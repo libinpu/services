@@ -108,7 +108,7 @@ export function Input({
   placeholder?: string;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
-  style?: ViewStyle;
+  style?: TextStyle | ViewStyle;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
   return (

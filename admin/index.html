@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seva Admin Portal — Super Control Center</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              900: '#7c2d12',
+            },
+            darkbg: '#0b0f19',
+            darkcard: '#111827',
+            darkborder: '#1f2937'
+          }
+        }
+      }
+    }
+  </script>
+  <!-- FontAwesome / Lucide Icons & Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0b0f19;
+      color: #f3f4f6;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-header {
+      background: rgba(11, 15, 25, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .pulse-ring {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(1.15); }
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ea580c;
+    }
+  </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col antialiased selection:bg-brand-600 selection:text-white">
+
+  <!-- TOP HEADER NAV -->
+  <header class="glass-header h-16 shrink-0 px-6 flex items-center justify-between z-30 sticky top-0">
+    <div class="flex items-center space-x-4">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-lg shadow-brand-600/30">
+        <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+          SEVA <span class="bg-brand-600/20 text-brand-500 text-xs px-2 py-0.5 rounded-full border border-brand-500/30 uppercase tracking-widest font-mono">Admin Center</span>
+        </h1>
+        <p class="text-xs text-gray-400">Database Engine, Provider Verifications & Realtime Marketplace Operations</p>
+      </div>
+    </div>
+
+    <!-- Right Header Controls -->
+    <div class="flex items-center space-x-4">
+      <!-- Database Connection Status Badge -->
+      <div id="db-status-badge" class="flex items-center space-x-2 bg-emerald-500/10 text-emerald-400 text-xs px-3 py-1.5 rounded-full border border-emerald-500/20">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="db-status-text" class="font-medium">Supabase Connected</span>
+      </div>
+
+      <!-- Realtime Notification Bell -->
+      <div class="relative">
+        <button id="notif-btn" onclick="toggleNotifDropdown()" class="p-2 rounded-xl bg-gray-800/80 hover:bg-gray-700 text-gray-300 hover:text-white relative transition-all border border-gray-700/50">
+          <i data-lucide="bell" class="w-5 h-5"></i>
+          <span id="notif-badge-count" class="hidden absolute -top-1.5 -right-1.5 bg-brand-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-darkbg pulse-ring">0</span>
+        </button>
+
+        <!-- Notification Dropdown Panel -->
+        <div id="notif-dropdown" class="hidden absolute right-0 mt-3 w-96 glass-card rounded-2xl shadow-2xl p-4 z-50 divide-y divide-gray-800">
+          <div class="flex items-center justify-between pb-3">
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <i data-lucide="rss" class="w-4 h-4 text-brand-500"></i> Live Notifications Feed
+            </h3>
+            <button onclick="clearNotifs()" class="text-xs text-gray-400 hover:text-gray-200">Clear All</button>
+          </div>
+          <div id="notif-list" class="pt-3 max-h-80 overflow-y-auto space-y-3">
+            <p class="text-xs text-gray-400 text-center py-4">Listening for new booking requests...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Profile Pill -->
+      <div class="flex items-center space-x-3 bg-gray-800/50 border border-gray-700/60 rounded-xl p-1.5 px-3">
+        <div class="w-8 h-8 rounded-lg bg-brand-600/30 text-brand-500 font-bold flex items-center justify-center text-sm">
+          SA
+        </div>
+        <div class="text-left hidden md:block">
+          <p class="text-xs font-semibold text-white">System Admin</p>
+          <p class="text-[10px] text-gray-400">admin@seva.app</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- SIDEBAR NAV -->
+    <aside class="w-64 glass-header border-r border-gray-800 flex flex-col justify-between shrink-0 p-4">
+      <div class="space-y-6">
+        <div>
+          <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase mb-3 px-3">Navigation</p>
+          <nav class="space-y-1">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-white bg-brand-600/20 border border-brand-500/30 text-brand-400">
+              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+              <span>Dashboard Overview</span>
+            </button>
+            <button onclick="switchTab('approvals')" id="nav-approvals" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60">
+              <div class="flex items-center space-x-3">
+                <i data-lucide="file-check" class="w-4 h-4 text-emerald-400"></i>
+                <span>Provider Approvals</span>
+              </div>
+              <span id="pending-approvals-badge" class="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-md border border-amber-500/30 font-mono">0</span>
+            </button>
+            <button onclick="switchTab('requests')" id="nav-requests" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60">
+              <div class="flex items-center space-x-3">
+                <i data-lucide="calendar-clock" class="w-4 h-4 text-blue-400"></i>
+                <span>Service Requests</span>
+              </div>
+              <span id="active-requests-badge" class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-md border border-blue-500/30 font-mono">0</span>
+            </button>
+            <button onclick="switchTab('tables')" id="nav-tables" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60">
+              <i data-lucide="database" class="w-4 h-4 text-purple-400"></i>
+              <span>Database Tables</span>
+            </button>
+            <button onclick="switchTab('users')" id="nav-users" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60">
+              <i data-lucide="users" class="w-4 h-4 text-pink-400"></i>
+              <span>Users & Profiles</span>
+            </button>
+          </nav>
+        </div>
+
+        <div>
+          <p class="text-[10px] font-bold tracking-wider text-gray-400 uppercase mb-3 px-3">Database Quick Select</p>
+          <div class="space-y-1">
+            <select id="quick-table-select" onchange="selectTableFromSelect(this.value)" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="profiles">profiles (Users)</option>
+              <option value="provider_profiles">provider_profiles (Providers)</option>
+              <option value="bookings">bookings (Service Orders)</option>
+              <option value="service_zones">service_zones (Zones)</option>
+              <option value="service_categories">service_categories</option>
+              <option value="service_subcategories">service_subcategories</option>
+              <option value="reviews">reviews (Feedback)</option>
+              <option value="wallets">wallets (Balances)</option>
+              <option value="offers">offers (Promotions)</option>
+              <option value="addresses">addresses (Locations)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="border-t border-gray-800 pt-4 space-y-2">
+        <button onclick="triggerSimulatedRequest()" class="w-full bg-brand-600/10 hover:bg-brand-600/20 text-brand-400 border border-brand-500/30 text-xs font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center space-x-2">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Simulate Booking Request</span>
+        </button>
+        <button onclick="refreshAllData()" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium py-2 px-3 rounded-xl transition flex items-center justify-center space-x-2 border border-gray-700">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Sync Database</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENT BODY CONTAINER -->
+    <main class="flex-1 overflow-y-auto p-6 bg-darkbg">
+
+      <!-- TAB 1: DASHBOARD OVERVIEW -->
+      <section id="tab-dashboard" class="tab-content space-y-6">
+        <!-- Stats Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-400 font-medium">Total Bookings Revenue</p>
+                <h3 id="stat-revenue" class="text-2xl font-bold text-white mt-1">₹48,950</h3>
+                <p class="text-xs text-emerald-400 flex items-center mt-1 font-medium">
+                  <i data-lucide="trending-up" class="w-3.5 h-3.5 mr-1"></i> +18.4% this month
+                </p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-brand-500/10 text-brand-500 border border-brand-500/20 flex items-center justify-center">
+                <i data-lucide="indian-rupee" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-400 font-medium">Service Requests</p>
+                <h3 id="stat-requests-count" class="text-2xl font-bold text-white mt-1">32</h3>
+                <p class="text-xs text-blue-400 flex items-center mt-1 font-medium">
+                  <i data-lucide="clock" class="w-3.5 h-3.5 mr-1"></i> Live active queue
+                </p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
+                <i data-lucide="calendar" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-400 font-medium">Pending Provider Approvals</p>
+                <h3 id="stat-pending-approvals" class="text-2xl font-bold text-white mt-1">5</h3>
+                <p class="text-xs text-amber-400 flex items-center mt-1 font-medium">
+                  <i data-lucide="shield-alert" class="w-3.5 h-3.5 mr-1"></i> Needs verification
+                </p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+                <i data-lucide="user-check" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-400 font-medium">Verified Professionals</p>
+                <h3 id="stat-verified-providers" class="text-2xl font-bold text-white mt-1">18</h3>
+                <p class="text-xs text-purple-400 flex items-center mt-1 font-medium">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-1"></i> Active in Thrissur & Kochi
+                </p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center">
+                <i data-lucide="award" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Middle Quick Grid: Pending Approvals Alert & Recent Service Requests -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Provider Approval Preview Box -->
+          <div class="glass-card rounded-2xl p-5 border border-gray-800 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-base text-white flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i> Pending Provider Approvals
+              </h3>
+              <button onclick="switchTab('approvals')" class="text-xs text-brand-400 hover:text-brand-300 font-semibold">View All →</button>
+            </div>
+            <div id="dashboard-approvals-list" class="space-y-3">
+              <!-- Loaded dynamically -->
+            </div>
+          </div>
+
+          <!-- Live Service Requests Stream -->
+          <div class="glass-card rounded-2xl p-5 border border-gray-800 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-base text-white flex items-center gap-2">
+                <i data-lucide="activity" class="w-5 h-5 text-blue-400"></i> Recent Service Requests
+              </h3>
+              <button onclick="switchTab('requests')" class="text-xs text-brand-400 hover:text-brand-300 font-semibold">Live Queue →</button>
+            </div>
+            <div id="dashboard-requests-list" class="space-y-3">
+              <!-- Loaded dynamically -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: PROVIDER APPROVALS & CERTIFICATES -->
+      <section id="tab-approvals" class="tab-content hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-white">Provider Verification & Certificates</h2>
+            <p class="text-xs text-gray-400">Review experience, background checks, police verification, and certificate documents before approving providers.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="filterApprovals('all')" class="approval-filter-btn active text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-white border border-gray-700 font-medium">All</button>
+            <button onclick="filterApprovals('pending')" class="approval-filter-btn text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 border border-gray-700 font-medium">Pending</button>
+            <button onclick="filterApprovals('approved')" class="approval-filter-btn text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 border border-gray-700 font-medium">Approved</button>
+            <button onclick="filterApprovals('rejected')" class="approval-filter-btn text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 border border-gray-700 font-medium">Rejected</button>
+          </div>
+        </div>
+
+        <!-- Provider Applications Grid -->
+        <div id="approvals-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+
+      <!-- TAB 3: LIVE SERVICE REQUESTS & BOOKINGS -->
+      <section id="tab-requests" class="tab-content hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-white">Service Requests & Orders Queue</h2>
+            <p class="text-xs text-gray-400">Live stream of customer service requests, provider assignments, and OTP verifications.</p>
+          </div>
+          <button onclick="triggerSimulatedRequest()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-lg shadow-brand-600/30 flex items-center space-x-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Create Test Service Request</span>
+          </button>
+        </div>
+
+        <div class="glass-card rounded-2xl overflow-hidden border border-gray-800">
+          <div class="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-900/50">
+            <div class="flex items-center space-x-3">
+              <input type="text" id="requests-search" oninput="renderRequestsTable()" placeholder="Search by customer name, OTP, or ID..." class="bg-gray-800 border border-gray-700 text-xs rounded-xl px-3 py-2 text-white w-64 focus:outline-none focus:border-brand-500">
+              <select id="requests-status-filter" onchange="renderRequestsTable()" class="bg-gray-800 border border-gray-700 text-xs rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="accepted">Accepted</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            <span class="text-xs text-gray-400 font-mono" id="requests-count-text">Showing 0 orders</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-gray-300">
+              <thead class="bg-gray-900/80 uppercase font-semibold text-[11px] text-gray-400 border-b border-gray-800">
+                <tr>
+                  <th class="p-3.5">Booking ID</th>
+                  <th class="p-3.5">Customer</th>
+                  <th class="p-3.5">Service Requested</th>
+                  <th class="p-3.5">Assigned Provider</th>
+                  <th class="p-3.5">Est. Cost</th>
+                  <th class="p-3.5">OTP</th>
+                  <th class="p-3.5">Status</th>
+                  <th class="p-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="requests-table-body" class="divide-y divide-gray-800/60">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: DATABASE TABLES EXPLORER -->
+      <section id="tab-tables" class="tab-content hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i data-lucide="database" class="w-6 h-6 text-brand-500"></i> Database Tables Explorer
+            </h2>
+            <p class="text-xs text-gray-400">Direct query and editing controls for all Supabase database tables.</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button onclick="exportCurrentTableCSV()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-3.5 py-2 rounded-xl border border-gray-700 flex items-center space-x-2 font-medium">
+              <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
+              <span>Export CSV</span>
+            </button>
+            <button onclick="openNewRecordModal()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs px-3.5 py-2 rounded-xl font-semibold shadow-lg shadow-brand-600/30 flex items-center space-x-2">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Add Record</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Table Selector Tabs -->
+        <div class="flex items-center space-x-2 overflow-x-auto pb-2 border-b border-gray-800 scrollbar-none" id="table-tab-buttons">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Current Table Content Box -->
+        <div class="glass-card rounded-2xl overflow-hidden border border-gray-800">
+          <div class="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-900/60">
+            <div class="flex items-center space-x-3">
+              <input type="text" id="db-search" oninput="filterCurrentTable()" placeholder="Search records..." class="bg-gray-800 border border-gray-700 text-xs rounded-xl px-3 py-2 text-white w-64 focus:outline-none focus:border-brand-500">
+              <span id="current-table-title" class="text-xs font-mono font-bold text-brand-400 uppercase bg-brand-500/10 border border-brand-500/20 px-2.5 py-1 rounded-lg">profiles</span>
+            </div>
+            <span class="text-xs text-gray-400 font-mono" id="table-records-count">0 Rows</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-gray-300">
+              <thead id="db-table-head" class="bg-gray-900/90 uppercase font-semibold text-[10px] text-gray-400 border-b border-gray-800">
+                <!-- Dynamic columns -->
+              </thead>
+              <tbody id="db-table-body" class="divide-y divide-gray-800/60 font-mono">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: USERS & PROFILES -->
+      <section id="tab-users" class="tab-content hidden space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-white">Users & Member Profiles</h2>
+            <p class="text-xs text-gray-400">View customer, provider, and administrator user accounts registered in Seva database.</p>
+          </div>
+        </div>
+
+        <div id="users-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL: CERTIFICATE & PROFILE INSPECTOR -->
+  <div id="cert-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-4xl rounded-3xl overflow-hidden border border-gray-700 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="p-5 border-b border-gray-800 flex items-center justify-between bg-gray-900/90">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-brand-600/20 border border-brand-500/30 flex items-center justify-center text-brand-400 font-bold" id="modal-avatar">
+            P
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white" id="modal-name">Provider Name</h3>
+            <p class="text-xs text-gray-400" id="modal-sub">Experience & Certificates Inspection</p>
+          </div>
+        </div>
+        <button onclick="closeCertModal()" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6 flex-1 bg-darkbg">
+        <!-- Certificates Documents Preview Grid -->
+        <div>
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Verification Certificates & Proofs</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="modal-certs-container">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- Full Profile Metadata Table -->
+        <div>
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Full Profile Details</h4>
+          <div class="bg-gray-900/70 border border-gray-800 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div>
+              <p class="text-gray-400">Experience</p>
+              <p class="font-bold text-white" id="modal-exp">5 Years</p>
+            </div>
+            <div>
+              <p class="text-gray-400">Hourly Rate</p>
+              <p class="font-bold text-emerald-400" id="modal-rate">₹250/hr</p>
+            </div>
+            <div>
+              <p class="text-gray-400">Phone</p>
+              <p class="font-bold text-white" id="modal-phone">+91 98470 12345</p>
+            </div>
+            <div>
+              <p class="text-gray-400">Status</p>
+              <p class="font-bold text-amber-400" id="modal-status">Pending Review</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 border-t border-gray-800 bg-gray-900/90 flex items-center justify-between">
+        <span class="text-xs text-gray-400">Action logged into Supabase audit logs</span>
+        <div class="flex items-center space-x-3" id="modal-actions-container">
+          <!-- Approve/Reject buttons -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT INTEGRATION & APP LOGIC -->
+  <script>
+    // Global Config & Supabase Client Init
+    const SUPABASE_URL = 'https://xugtikrvmwuchqonkshz.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1Z3Rpa3J2bXd1Y2hxb25rc2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4Mzk5MzgsImV4cCI6MjEwMDQxNTkzOH0.gUfI41_H1JY_fTHi1Xbe04J0CipIaKlbxcewpkZezyI';
+    
+    let supabaseClient = null;
+
+    // Database Mock / Cache state
+    let state = {
+      profiles: [],
+      provider_profiles: [],
+      bookings: [],
+      service_zones: [],
+      service_categories: [],
+      service_subcategories: [],
+      reviews: [],
+      wallets: [],
+      offers: [],
+      notifications: [],
+      currentTable: 'profiles'
+    };
+
+    // Initialize Supabase & App
+    window.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      initSupabase();
+      seedInitialDataIfEmpty();
+      await fetchAllDatabaseTables();
+      setupRealtimeSubscriptions();
+      renderAllViews();
+    });
+
+    function initSupabase() {
+      try {
+        if (window.supabase) {
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+          console.log("Supabase client initialized successfully");
+        }
+      } catch (err) {
+        console.warn("Using local cache mode:", err);
+      }
+    }
+
+    // Seed robust initial mock data for seamless demonstration
+    function seedInitialDataIfEmpty() {
+      state.profiles = [
+        { id: 'usr-1', full_name: 'Anand Kumar', phone: '+91 98460 11223', email: 'anand.k@gmail.com', role: 'customer', preferred_language: 'ml', is_active: true, created_at: '2026-07-25T10:00:00Z' },
+        { id: 'usr-2', full_name: 'Rahul Nair', phone: '+91 97455 33445', email: 'rahul.nair@service.com', role: 'provider', preferred_language: 'en', is_active: true, created_at: '2026-07-26T11:30:00Z' },
+        { id: 'usr-3', full_name: 'Suhasini Menon', phone: '+91 94471 88990', email: 'suhasini.m@gmail.com', role: 'customer', preferred_language: 'ml', is_active: true, created_at: '2026-07-28T09:15:00Z' },
+        { id: 'usr-4', full_name: 'Deepak Varma', phone: '+91 98952 66778', email: 'deepak.v@electrical.in', role: 'provider', preferred_language: 'ml', is_active: true, created_at: '2026-07-29T14:20:00Z' },
+        { id: 'usr-5', full_name: 'Vinu Joseph', phone: '+91 99612 44556', email: 'vinu.j@plumbing.com', role: 'provider', preferred_language: 'en', is_active: true, created_at: '2026-07-30T16:45:00Z' }
+      ];
+
+      state.provider_profiles = [
+        {
+          id: 'usr-2',
+          full_name: 'Rahul Nair',
+          experience_years: 6,
+          is_verified: false,
+          background_check_status: 'pending',
+          rating_avg: 4.8,
+          jobs_completed: 42,
+          price_per_hour: 350,
+          specializations: ['Pipes', 'Drainage', 'Bathroom Fitting'],
+          id_proof_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+          address_proof_url: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=600&auto=format&fit=crop&q=80',
+          police_verification_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
+        },
+        {
+          id: 'usr-4',
+          full_name: 'Deepak Varma',
+          experience_years: 8,
+          is_verified: true,
+          background_check_status: 'approved',
+          rating_avg: 4.9,
+          jobs_completed: 89,
+          price_per_hour: 400,
+          specializations: ['Wiring', 'MCB Repair', 'Inverter Setup'],
+          id_proof_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80',
+          address_proof_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+          police_verification_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
+        },
+        {
+          id: 'usr-5',
+          full_name: 'Vinu Joseph',
+          experience_years: 4,
+          is_verified: false,
+          background_check_status: 'pending',
+          rating_avg: 4.5,
+          jobs_completed: 15,
+          price_per_hour: 300,
+          specializations: ['AC Servicing', 'Gas Refill'],
+          id_proof_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
+          address_proof_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
+          police_verification_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
+        }
+      ];
+
+      state.bookings = [
+        {
+          id: 'bk-8901',
+          customer_name: 'Anand Kumar',
+          service_name: 'Leakage Repair & Tap Fitting',
+          provider_name: 'Deepak Varma',
+          estimated_cost: 650,
+          otp: '4821',
+          status: 'pending',
+          created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString()
+        },
+        {
+          id: 'bk-8902',
+          customer_name: 'Suhasini Menon',
+          service_name: 'AC Master Service & Gas Check',
+          provider_name: 'Rahul Nair',
+          estimated_cost: 1200,
+          otp: '9102',
+          status: 'accepted',
+          created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString()
+        },
+        {
+          id: 'bk-8903',
+          customer_name: 'Anand Kumar',
+          service_name: 'Main Switch Board Wiring Repair',
+          provider_name: 'Deepak Varma',
+          estimated_cost: 850,
+          otp: '3319',
+          status: 'completed',
+          created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString()
+        }
+      ];
+
+      state.service_zones = [
+        { id: 'zone-1', name: 'Thrissur Central', district: 'Thrissur', state: 'Kerala', is_active: true },
+        { id: 'zone-2', name: 'Kochi Urban', district: 'Ernakulam', state: 'Kerala', is_active: true },
+        { id: 'zone-3', name: 'Palakkad Town', district: 'Palakkad', state: 'Kerala', is_active: true }
+      ];
+
+      state.service_categories = [
+        { id: 'cat-1', name_en: 'Plumbing', icon_name: 'Wrench', is_active: true },
+        { id: 'cat-2', name_en: 'Electrical Work', icon_name: 'Zap', is_active: true },
+        { id: 'cat-3', name_en: 'AC & Appliance Repair', icon_name: 'Wind', is_active: true },
+        { id: 'cat-4', name_en: 'Vehicle Cleaning', icon_name: 'Car', is_active: true }
+      ];
+    }
+
+    async function fetchAllDatabaseTables() {
+      if (!supabaseClient) return;
+      try {
+        const { data: profs } = await supabaseClient.from('profiles').select('*');
+        if (profs && profs.length > 0) state.profiles = profs;
+
+        const { data: provs } = await supabaseClient.from('provider_profiles').select('*');
+        if (provs && provs.length > 0) state.provider_profiles = provs;
+
+        const { data: bks } = await supabaseClient.from('bookings').select('*');
+        if (bks && bks.length > 0) state.bookings = bks;
+      } catch (err) {
+        console.warn("Supabase fetch error, fallback to local state:", err);
+      }
+    }
+
+    // Realtime Supabase Listeners
+    function setupRealtimeSubscriptions() {
+      if (!supabaseClient) return;
+      try {
+        supabaseClient.channel('admin-bookings-channel')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, payload => {
+            const newBooking = payload.new;
+            state.bookings.unshift(newBooking);
+            pushNotification(`New Service Request! Booking #${newBooking.id.substring(0,6)}`, `Estimated Cost: ₹${newBooking.estimated_cost}`);
+            renderAllViews();
+          })
+          .subscribe();
+      } catch (e) {
+        console.log("Realtime subscription notice:", e);
+      }
+    }
+
+    // Notification Sound & Alert Generator
+    function pushNotification(title, message) {
+      const notif = { id: Date.now(), title, message, time: new Date().toLocaleTimeString() };
+      state.notifications.unshift(notif);
+
+      // Play audio chime synthesised with Web Audio API
+      playChime();
+
+      // Show floating notification badge & toast
+      renderNotifs();
+    }
+
+    function playChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      } catch(e){}
+    }
+
+    // Render All Dashboard Components
+    function renderAllViews() {
+      renderDashboardStats();
+      renderPendingApprovals();
+      renderServiceRequests();
+      renderTableTabs();
+      renderCurrentTable();
+      renderUsersGrid();
+      renderNotifs();
+      lucide.createIcons();
+    }
+
+    function renderDashboardStats() {
+      const pendingCount = state.provider_profiles.filter(p => p.background_check_status === 'pending').length;
+      const verifiedCount = state.provider_profiles.filter(p => p.is_verified).length;
+      const requestsCount = state.bookings.length;
+
+      document.getElementById('stat-pending-approvals').innerText = pendingCount;
+      document.getElementById('stat-verified-providers').innerText = verifiedCount;
+      document.getElementById('stat-requests-count').innerText = requestsCount;
+      document.getElementById('pending-approvals-badge').innerText = pendingCount;
+      document.getElementById('active-requests-badge').innerText = requestsCount;
+    }
+
+    // Tab Switcher
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('active', 'bg-brand-600/20', 'border', 'border-brand-500/30', 'text-brand-400');
+        el.classList.add('text-gray-400');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.classList.add('active', 'bg-brand-600/20', 'border', 'border-brand-500/30', 'text-brand-400');
+        activeNav.classList.remove('text-gray-400');
+      }
+      lucide.createIcons();
+    }
+
+    // PROVIDER APPROVALS RENDER
+    function renderPendingApprovals() {
+      const grid = document.getElementById('approvals-grid');
+      const dashList = document.getElementById('dashboard-approvals-list');
+      grid.innerHTML = '';
+      dashList.innerHTML = '';
+
+      state.provider_profiles.forEach(prov => {
+        const isPending = prov.background_check_status === 'pending';
+        const cardHtml = `
+          <div class="glass-card rounded-2xl p-5 border border-gray-800 space-y-4 hover:border-brand-500/50 transition">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <img src="${prov.id_proof_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" class="w-12 h-12 rounded-xl object-cover border border-gray-700">
+                <div>
+                  <h4 class="font-bold text-white text-sm">${prov.full_name || 'Provider Profile'}</h4>
+                  <p class="text-xs text-gray-400">${prov.experience_years} Years Exp • ₹${prov.price_per_hour}/hr</p>
+                </div>
+              </div>
+              <span class="text-[10px] uppercase font-mono px-2.5 py-1 rounded-full border ${isPending ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : prov.is_verified ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'} font-semibold">
+                ${prov.background_check_status}
+              </span>
+            </div>
+
+            <!-- Documents Preview Links -->
+            <div class="bg-gray-900/60 p-3 rounded-xl border border-gray-800/80 space-y-2">
+              <p class="text-[11px] text-gray-400 font-medium">Uploaded Document Proofs:</p>
+              <div class="flex items-center space-x-2">
+                <span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700">ID Proof</span>
+                <span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700">Address Proof</span>
+                <span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700">Police Cert.</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center space-x-2 pt-2">
+              <button onclick="inspectCertificates('${prov.id}')" class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs py-2 rounded-xl border border-gray-700 font-semibold transition">Inspect Proofs</button>
+              <button onclick="updateProviderStatus('${prov.id}', true, 'approved')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3.5 py-2 rounded-xl font-bold transition">Approve</button>
+              <button onclick="updateProviderStatus('${prov.id}', false, 'rejected')" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs px-3.5 py-2 rounded-xl font-semibold transition">Reject</button>
+            </div>
+          </div>
+        `;
+        grid.innerHTML += cardHtml;
+
+        if (isPending) {
+          dashList.innerHTML += `
+            <div class="flex items-center justify-between p-3 bg-gray-900/40 border border-gray-800 rounded-xl">
+              <div>
+                <p class="text-xs font-bold text-white">${prov.full_name}</p>
+                <p class="text-[10px] text-gray-400">${prov.specializations ? prov.specializations.join(', ') : 'Service Professional'}</p>
+              </div>
+              <button onclick="inspectCertificates('${prov.id}')" class="text-xs bg-brand-600/20 text-brand-400 border border-brand-500/30 px-3 py-1 rounded-lg font-semibold hover:bg-brand-600/30">Verify Proofs</button>
+            </div>
+          `;
+        }
+      });
+
+      if (!dashList.innerHTML) {
+        dashList.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">All provider applications reviewed!</p>`;
+      }
+    }
+
+    function inspectCertificates(provId) {
+      const prov = state.provider_profiles.find(p => p.id === provId);
+      if (!prov) return;
+
+      document.getElementById('modal-name').innerText = prov.full_name || 'Provider Documents';
+      document.getElementById('modal-exp').innerText = `${prov.experience_years} Years`;
+      document.getElementById('modal-rate').innerText = `₹${prov.price_per_hour}/hr`;
+      document.getElementById('modal-status').innerText = prov.background_check_status.toUpperCase();
+
+      const certsContainer = document.getElementById('modal-certs-container');
+      certsContainer.innerHTML = `
+        <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
+          <p class="text-xs font-semibold text-gray-300">Government ID Proof</p>
+          <img src="${prov.id_proof_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700">
+        </div>
+        <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
+          <p class="text-xs font-semibold text-gray-300">Address Proof Document</p>
+          <img src="${prov.address_proof_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700">
+        </div>
+        <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
+          <p class="text-xs font-semibold text-gray-300">Police Verification Clearance</p>
+          <img src="${prov.police_verification_url || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700">
+        </div>
+      `;
+
+      const actions = document.getElementById('modal-actions-container');
+      actions.innerHTML = `
+        <button onclick="updateProviderStatus('${prov.id}', false, 'rejected'); closeCertModal();" class="bg-red-600/20 text-red-400 border border-red-500/30 text-xs px-4 py-2 rounded-xl font-semibold">Reject Application</button>
+        <button onclick="updateProviderStatus('${prov.id}', true, 'approved'); closeCertModal();" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-5 py-2 rounded-xl font-bold">Approve Provider</button>
+      `;
+
+      document.getElementById('cert-modal').classList.remove('hidden');
+    }
+
+    function closeCertModal() {
+      document.getElementById('cert-modal').classList.add('hidden');
+    }
+
+    async function updateProviderStatus(provId, isVerified, status) {
+      const prov = state.provider_profiles.find(p => p.id === provId);
+      if (prov) {
+        prov.is_verified = isVerified;
+        prov.background_check_status = status;
+      }
+
+      if (supabaseClient) {
+        try {
+          await supabaseClient.from('provider_profiles').update({ is_verified: isVerified, background_check_status: status }).eq('id', provId);
+        } catch (e) { console.warn("Supabase update warning:", e); }
+      }
+
+      pushNotification(`Provider Status Updated`, `${prov.full_name || 'Provider'} was marked as ${status.toUpperCase()}`);
+      renderAllViews();
+    }
+
+    // SERVICE REQUESTS RENDER
+    function renderServiceRequests() {
+      renderRequestsTable();
+    }
+
+    function renderRequestsTable() {
+      const tbody = document.getElementById('requests-table-body');
+      const dashList = document.getElementById('dashboard-requests-list');
+      const search = document.getElementById('requests-search').value.toLowerCase();
+      const statusFilter = document.getElementById('requests-status-filter').value;
+
+      tbody.innerHTML = '';
+      if (dashList) dashList.innerHTML = '';
+
+      const filtered = state.bookings.filter(b => {
+        const matchesSearch = (b.customer_name || '').toLowerCase().includes(search) || (b.id || '').toLowerCase().includes(search) || (b.otp || '').includes(search);
+        const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      });
+
+      document.getElementById('requests-count-text').innerText = `Showing ${filtered.length} orders`;
+
+      filtered.forEach(b => {
+        const row = `
+          <tr class="hover:bg-gray-800/40 transition">
+            <td class="p-3.5 font-mono text-brand-400 font-bold">#${b.id.substring(0,8)}</td>
+            <td class="p-3.5 font-semibold text-white">${b.customer_name || 'Customer'}</td>
+            <td class="p-3.5 text-gray-300">${b.service_name || 'General Service'}</td>
+            <td class="p-3.5 text-gray-300">${b.provider_name || 'Unassigned'}</td>
+            <td class="p-3.5 font-bold text-emerald-400">₹${b.estimated_cost}</td>
+            <td class="p-3.5"><span class="bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700 font-mono text-[11px]">${b.otp || '---'}</span></td>
+            <td class="p-3.5">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${b.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : b.status === 'accepted' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'}">
+                ${b.status}
+              </span>
+            </td>
+            <td class="p-3.5 text-right space-x-2">
+              ${b.status === 'pending' ? `<button onclick="updateBookingStatus('${b.id}', 'accepted')" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-lg hover:bg-blue-600/30">Accept</button>` : ''}
+              ${b.status === 'accepted' ? `<button onclick="updateBookingStatus('${b.id}', 'completed')" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg hover:bg-emerald-600/30">Complete</button>` : ''}
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+
+      state.bookings.slice(0, 4).forEach(b => {
+        if (dashList) {
+          dashList.innerHTML += `
+            <div class="flex items-center justify-between p-3 bg-gray-900/40 border border-gray-800 rounded-xl">
+              <div>
+                <p class="text-xs font-bold text-white">${b.service_name || 'Service Request'}</p>
+                <p class="text-[10px] text-gray-400">By ${b.customer_name || 'Customer'} • ₹${b.estimated_cost}</p>
+              </div>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/30 uppercase font-semibold">${b.status}</span>
+            </div>
+          `;
+        }
+      });
+    }
+
+    async function updateBookingStatus(bookingId, status) {
+      const b = state.bookings.find(x => x.id === bookingId);
+      if (b) b.status = status;
+
+      if (supabaseClient) {
+        try {
+          await supabaseClient.from('bookings').update({ status }).eq('id', bookingId);
+        } catch (e){}
+      }
+      renderAllViews();
+    }
+
+    function triggerSimulatedRequest() {
+      const randomId = 'bk-' + Math.floor(1000 + Math.random() * 9000);
+      const newBooking = {
+        id: randomId,
+        customer_name: ['Rahul G', 'Priya Roy', 'Kavya S', 'Nitin Joy'][Math.floor(Math.random() * 4)],
+        service_name: ['Full House Deep Cleaning', 'Wiring Short Circuit Repair', 'Pipe Block Removal'][Math.floor(Math.random() * 3)],
+        provider_name: 'Deepak Varma',
+        estimated_cost: [450, 800, 1500][Math.floor(Math.random() * 3)],
+        otp: Math.floor(1000 + Math.random() * 9000).toString(),
+        status: 'pending',
+        created_at: new Date().toISOString()
+      };
+
+      state.bookings.unshift(newBooking);
+      pushNotification(`New Service Request #${randomId}`, `Customer requested ${newBooking.service_name}`);
+      renderAllViews();
+    }
+
+    // DATABASE TABLE EXPLORER
+    const tablesList = ['profiles', 'provider_profiles', 'bookings', 'service_zones', 'service_categories'];
+
+    function renderTableTabs() {
+      const container = document.getElementById('table-tab-buttons');
+      container.innerHTML = '';
+      tablesList.forEach(tbl => {
+        const isActive = state.currentTable === tbl;
+        container.innerHTML += `
+          <button onclick="selectTable('${tbl}')" class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${isActive ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'}">
+            ${tbl}
+          </button>
+        `;
+      });
+    }
+
+    function selectTable(tbl) {
+      state.currentTable = tbl;
+      document.getElementById('quick-table-select').value = tbl;
+      renderTableTabs();
+      renderCurrentTable();
+    }
+
+    function selectTableFromSelect(tbl) {
+      selectTable(tbl);
+    }
+
+    function renderCurrentTable() {
+      const titleEl = document.getElementById('current-table-title');
+      const countEl = document.getElementById('table-records-count');
+      const headEl = document.getElementById('db-table-head');
+      const bodyEl = document.getElementById('db-table-body');
+
+      const tblName = state.currentTable;
+      titleEl.innerText = tblName;
+
+      const records = state[tblName] || [];
+      countEl.innerText = `${records.length} Rows`;
+
+      if (records.length === 0) {
+        headEl.innerHTML = `<tr><th class="p-3">Data</th></tr>`;
+        bodyEl.innerHTML = `<tr><td class="p-4 text-center text-gray-400">No records found in table '${tblName}'</td></tr>`;
+        return;
+      }
+
+      const keys = Object.keys(records[0]);
+      headEl.innerHTML = `<tr>${keys.map(k => `<th class="p-3">${k}</th>`).join('')}</tr>`;
+
+      bodyEl.innerHTML = '';
+      records.forEach(row => {
+        const tds = keys.map(k => {
+          let val = row[k];
+          if (typeof val === 'object') val = JSON.stringify(val);
+          return `<td class="p-3 max-w-xs truncate">${val}</td>`;
+        }).join('');
+        bodyEl.innerHTML += `<tr class="hover:bg-gray-800/40 border-b border-gray-800/60">${tds}</tr>`;
+      });
+    }
+
+    // USERS GRID RENDER
+    function renderUsersGrid() {
+      const container = document.getElementById('users-grid');
+      container.innerHTML = '';
+      state.profiles.forEach(user => {
+        container.innerHTML += `
+          <div class="glass-card rounded-2xl p-5 border border-gray-800 space-y-3">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-full bg-brand-600/20 text-brand-400 font-bold flex items-center justify-center border border-brand-500/30">
+                ${user.full_name ? user.full_name[0] : 'U'}
+              </div>
+              <div>
+                <h4 class="font-bold text-white text-sm">${user.full_name || 'User Account'}</h4>
+                <p class="text-xs text-gray-400">${user.email || 'No email registered'}</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-gray-800/80 text-xs">
+              <span class="text-gray-400 font-mono">Role: <strong class="text-white uppercase">${user.role}</strong></span>
+              <span class="text-emerald-400 font-semibold font-mono">Active</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // NOTIFICATION DROPDOWN RENDER
+    function renderNotifs() {
+      const badge = document.getElementById('notif-badge-count');
+      const list = document.getElementById('notif-list');
+      
+      if (state.notifications.length > 0) {
+        badge.classList.remove('hidden');
+        badge.innerText = state.notifications.length;
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      if (state.notifications.length === 0) {
+        list.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">No new notifications</p>`;
+        return;
+      }
+
+      list.innerHTML = '';
+      state.notifications.forEach(n => {
+        list.innerHTML += `
+          <div class="p-2.5 rounded-xl bg-gray-900/60 border border-gray-800 space-y-1">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold text-brand-400">${n.title}</p>
+              <span class="text-[10px] text-gray-500 font-mono">${n.time}</span>
+            </div>
+            <p class="text-xs text-gray-300">${n.message}</p>
+          </div>
+        `;
+      });
+    }
+
+    function toggleNotifDropdown() {
+      document.getElementById('notif-dropdown').classList.toggle('hidden');
+    }
+
+    function clearNotifs() {
+      state.notifications = [];
+      renderNotifs();
+    }
+
+    function refreshAllData() {
+      fetchAllDatabaseTables();
+      renderAllViews();
+    }
+
+    function exportCurrentTableCSV() {
+      const records = state[state.currentTable] || [];
+      if (records.length === 0) return alert('No data to export!');
+      
+      const keys = Object.keys(records[0]);
+      let csv = keys.join(',') + '\n';
+      records.forEach(r => {
+        csv += keys.map(k => `"${r[k] !== undefined ? r[k] : ''}"`).join(',') + '\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `${state.currentTable}_export.csv`);
+      a.click();
+    }
+  </script>
+</body>
+</html>

@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { LoadingState } from '@/components/ui';
 import type { Address } from '@/lib/types';
-import { User, MapPin, CreditCard, Bell, Gift, Circle as HelpCircle, LogOut, ChevronRight, Calendar, Phone, Mail, Pencil, Briefcase } from 'lucide-react-native';
+import { User, MapPin, CreditCard, Bell, Gift, Circle as HelpCircle, LogOut, ChevronRight, Calendar, Phone, Mail, Pencil, Briefcase, ShieldCheck } from 'lucide-react-native';
 
 export default function ProfileScreen() {
   const { t, lang, setLang } = useLanguage();
@@ -56,6 +56,7 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
+    { icon: ShieldCheck, label: 'Admin Portal & Database', sublabel: 'Verifications, Tables & Requests', onPress: () => router.push('/admin' as any) },
     { icon: MapPin, label: t('manageAddresses'), sublabel: `${addresses.length} saved`, onPress: () => router.push('/location-setup') },
     { icon: CreditCard, label: t('savedPayments'), sublabel: '', onPress: () => {} },
     { icon: Gift, label: t('referFriend'), sublabel: '', onPress: () => {} },

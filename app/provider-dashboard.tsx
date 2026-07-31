@@ -139,7 +139,7 @@ export default function ProviderDashboardScreen() {
                 <Text style={styles.pendingInfoText}>{application.specializations.join(', ') || 'N/A'}</Text>
               </View>
             </View>
-            <Button label={t('switchToCustomer')} onPress={() => router.replace('/(tabs)/index')} variant="outline" style={styles.pendingBtn} />
+            <Button label={t('switchToCustomer')} onPress={() => router.replace('/(tabs)/index' as any)} variant="outline" style={styles.pendingBtn} />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -157,7 +157,7 @@ export default function ProviderDashboardScreen() {
             <Text style={styles.welcomeTitle}>{t('becomeProvider')}</Text>
             <Text style={styles.welcomeDesc}>{t('becomeProviderDesc')}</Text>
             <Button label={t('becomeProvider')} onPress={() => router.push('/provider-onboarding')} style={styles.welcomeBtn} />
-            <Button label={t('switchToCustomer')} onPress={() => router.replace('/(tabs)/index')} variant="ghost" style={styles.welcomeBtn2} />
+            <Button label={t('switchToCustomer')} onPress={() => router.replace('/(tabs)/index' as any)} variant="ghost" style={styles.welcomeBtn2} />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -326,7 +326,7 @@ export default function ProviderDashboardScreen() {
         )}
 
         <View style={styles.switchSection}>
-          <Button label={t('switchToCustomer')} onPress={() => router.replace('/(tabs)/index')} variant="outline" style={styles.switchBtn} />
+          <Button label={t('switchToCustomer')} onPress={() => router.replace('/(tabs)/index' as any)} variant="outline" style={styles.switchBtn} />
         </View>
       </ScrollView>
 
