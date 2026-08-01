@@ -209,6 +209,12 @@ export default function ProviderDashboardScreen() {
               </Text>
             </View>
           </View>
+
+          <View style={styles.modeRow}>
+            <TouchableOpacity style={styles.modeButton} onPress={() => router.replace('/(tabs)/index' as any)}>
+              <Text style={styles.modeButtonText}>Switch to Customer</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.statsRow}>
@@ -407,6 +413,22 @@ const styles = StyleSheet.create({
   dashVerifiedText: { fontSize: typography.sizes.xs, color: 'rgba(255,255,255,0.8)', fontWeight: '600', fontFamily: typography.fontFamilyMedium },
   onlineToggleWrap: { alignItems: 'center' },
   onlineToggleLabel: { fontSize: typography.sizes.xs, fontWeight: '600', marginTop: 4, fontFamily: typography.fontFamilyMedium },
+  modeRow: { marginTop: spacing.md },
+  modeButton: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+  },
+  modeButtonText: {
+    color: colors.neutral[0],
+    fontSize: typography.sizes.sm,
+    fontWeight: '700',
+    fontFamily: typography.fontFamilyBold,
+  },
   statsRow: { flexDirection: 'row', paddingHorizontal: spacing.md, marginTop: spacing.md, gap: spacing.sm },
   statCard: { flex: 1, backgroundColor: colors.neutral[0], borderRadius: radius.lg, padding: spacing.md, alignItems: 'center', ...shadows.sm },
   statIcon: { width: 36, height: 36, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },

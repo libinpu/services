@@ -58,8 +58,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+    const profileChannel = supabase
+      .channel('profile-role-sync')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: 'id=eq.' + (session?.user?.id || '') }, () => {
+        if (session?.user?.id) {
+          fetchProfile(session.user.id);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      profileChannel.unsubscribe();
+    };
+  }, [fetchProfile, session?.user?.id]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

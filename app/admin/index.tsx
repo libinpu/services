@@ -113,6 +113,26 @@ export default function AdminScreen() {
         .update({ role: targetRole, updated_at: new Date().toISOString() })
         .eq('id', provId);
 
+      if (isVerified) {
+        try {
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', provId)
+            .maybeSingle();
+
+          await supabase.functions.invoke('send-provider-approval-email', {
+            body: {
+              user_id: provId,
+              email: userProfile?.email || null,
+              full_name: userProfile?.full_name || 'Professional',
+            },
+          });
+        } catch (mailError) {
+          console.info('Approval notification trigger skipped because no provider-email function is configured yet.', mailError);
+        }
+      }
+
       setProviders((prev) =>
         prev.map((p) => (p.id === provId ? { ...p, is_verified: isVerified, background_check_status: status } : p))
       );
@@ -385,19 +405,14 @@ export default function AdminScreen() {
                       <Text style={styles.btnInspectText}>View Certificates</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.btnApprove}
-                      onPress={() => handleUpdateProviderStatus(prov.id, true, 'approved')}
-                    >
-                      <Text style={styles.btnApproveText}>Approve</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.btnReject}
-                      onPress={() => handleUpdateProviderStatus(prov.id, false, 'rejected')}
-                    >
-                      <Text style={styles.btnRejectText}>Reject</Text>
-                    </TouchableOpacity>
+                    {prov.background_check_status === 'pending' && (
+                      <TouchableOpacity
+                        style={styles.btnApprove}
+                        onPress={() => handleUpdateProviderStatus(prov.id, true, 'approved')}
+                      >
+                        <Text style={styles.btnApproveText}>Approve</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
                 );
@@ -522,14 +537,16 @@ export default function AdminScreen() {
             )}
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.btnApproveFull}
-                onPress={() =>
-                  selectedProvider && handleUpdateProviderStatus(selectedProvider.id, true, 'approved')
-                }
-              >
-                <Text style={styles.btnApproveText}>Approve Provider</Text>
-              </TouchableOpacity>
+              {selectedProvider?.background_check_status === 'pending' && (
+                <TouchableOpacity
+                  style={styles.btnApproveFull}
+                  onPress={() =>
+                    selectedProvider && handleUpdateProviderStatus(selectedProvider.id, true, 'approved')
+                  }
+                >
+                  <Text style={styles.btnApproveText}>Approve Provider</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>

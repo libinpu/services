@@ -68,9 +68,14 @@ export default function ProfileScreen() {
   const handleSwitchToProvider = () => {
     if (profile?.role === 'provider') {
       router.push('/provider-dashboard');
-    } else {
-      router.push('/provider-onboarding');
+      return;
     }
+
+    router.push('/provider-onboarding');
+  };
+
+  const handleSwitchToCustomer = () => {
+    router.replace('/(tabs)/index' as any);
   };
 
   const mlStyle = getLangTextStyle(lang);
@@ -172,7 +177,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Switch to Provider */}
+        {/* Customer / Professional switch */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.providerSwitchCard} onPress={handleSwitchToProvider} activeOpacity={0.8}>
             <View style={styles.providerSwitchIcon}>
@@ -183,11 +188,19 @@ export default function ProfileScreen() {
                 {profile?.role === 'provider' ? t('providerDashboard') : t('switchToProvider')}
               </Text>
               <Text style={[styles.providerSwitchDesc, mlStyle]}>
-                {profile?.role === 'provider' ? 'Manage your jobs, earnings & status' : t('becomeProviderDesc')}
+                {profile?.role === 'provider'
+                  ? 'Manage jobs, earnings and professional status'
+                  : t('becomeProviderDesc')}
               </Text>
             </View>
             <ChevronRight size={20} color={colors.neutral[0]} strokeWidth={2.5} />
           </TouchableOpacity>
+
+          {profile?.role === 'provider' && (
+            <TouchableOpacity style={styles.customerSwitchBtn} onPress={handleSwitchToCustomer} activeOpacity={0.8}>
+              <Text style={[styles.customerSwitchText, mlStyle]}>Switch to Customer</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Menu items */}
@@ -305,6 +318,21 @@ const styles = StyleSheet.create({
   providerSwitchDesc: {
     fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.8)', marginTop: 2,
     fontFamily: typography.fontFamilyRegular,
+  },
+  customerSwitchBtn: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.neutral[0],
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+  },
+  customerSwitchText: {
+    textAlign: 'center',
+    color: colors.primary[700],
+    fontWeight: '700',
+    fontFamily: typography.fontFamilyBold,
   },
   sectionTitle: {
     fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[700],

@@ -15,7 +15,7 @@ import {
 
 export default function ProviderOnboardingScreen() {
   const { t, lang } = useLanguage();
-  const { session, refreshProfile } = useAuth();
+  const { session, refreshProfile, profile } = useAuth();
   const router = useRouter();
   const mlStyle = getLangTextStyle(lang);
 
@@ -182,7 +182,9 @@ export default function ProviderOnboardingScreen() {
   if (loading) return <LoadingState label={t('loading')} />;
   if (error && !categories.length) return <ErrorState message={error} onRetry={fetchData} />;
 
-  if (existingApp?.status === 'approved') {
+  const isApprovedProfessional = profile?.role === 'provider' || existingApp?.status === 'approved';
+
+  if (isApprovedProfessional) {
     return (
       <SafeAreaView style={styles.container}>
         <Header title={t('providerOnboarding')} onBack={() => router.back()} />
@@ -247,6 +249,17 @@ export default function ProviderOnboardingScreen() {
           <Text style={[styles.introTitle, mlStyle]}>{t('becomeProvider')}</Text>
           <Text style={[styles.introDesc, mlStyle]}>{t('providerOnboardingDesc')}</Text>
         </View>
+
+        {existingApp?.status === 'rejected' && (
+          <View style={styles.warningCard}>
+            <X size={18} color={colors.error[600]} strokeWidth={2.5} />
+            <Text style={[styles.warningText, mlStyle]}>
+              {lang === 'ml'
+                ? 'നിങ്ങളുടെ പ്രൊഫഷണൽ അപ്ലിക്കേഷൻ റിജക്റ്റ് ചെയ്തു. പുതിയ ഡോക്യുമന്റുകൾ അപ്ലോഡ് ചെയ്ത് വീണ്ടും സമർപ്പിക്കുക.'
+                : 'Your professional application was rejected. Please update the details and submit again for review.'}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, mlStyle]}>{t('selectServiceCategory')}</Text>
@@ -457,4 +470,23 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
   },
   approvedBtn: { width: '100%' },
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.error[50],
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.error[200],
+  },
+  warningText: {
+    flex: 1,
+    color: colors.error[700],
+    fontSize: typography.sizes.sm,
+    lineHeight: 20,
+    fontFamily: typography.fontFamilyRegular,
+  },
 });
