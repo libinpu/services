@@ -8,10 +8,11 @@ import {
   TextInput,
   ViewStyle,
   TextStyle,
+  StyleProp,
 } from 'react-native';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 
-export function ScreenContainer({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
+export function ScreenContainer({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[styles.screen, style]}>{children}</View>;
 }
 
@@ -50,7 +51,7 @@ export function Button({
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }) {
   const variantStyle = {
     primary: styles.btnPrimary,
@@ -83,7 +84,7 @@ export function Button({
   );
 }
 
-export function Card({ children, style, onPress }: { children: React.ReactNode; style?: ViewStyle; onPress?: () => void }) {
+export function Card({ children, style, onPress }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
   if (onPress) {
     return (
       <TouchableOpacity onPress={onPress} style={[styles.card, style]} activeOpacity={0.9}>
@@ -108,7 +109,7 @@ export function Input({
   placeholder?: string;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
-  style?: TextStyle | ViewStyle;
+  style?: StyleProp<TextStyle>;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
   return (
@@ -209,6 +210,7 @@ const styles = StyleSheet.create({
   headerBtnText: {
     fontSize: 22,
     color: colors.neutral[800],
+    includeFontPadding: false,
   },
   headerTitle: {
     flex: 1,
@@ -217,12 +219,14 @@ const styles = StyleSheet.create({
     color: colors.neutral[900],
     marginLeft: spacing.sm,
     fontFamily: typography.fontFamilyBold,
+    includeFontPadding: false,
   },
   headerRight: {
     width: 40,
   },
   btnBase: {
-    height: 52,
+    minHeight: 52,
+    paddingVertical: spacing.sm,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -252,6 +256,8 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: '600',
     fontFamily: typography.fontFamilyMedium,
+    includeFontPadding: false,
+    textAlign: 'center',
   },
   btnPrimaryText: {
     color: colors.neutral[0],
@@ -275,15 +281,17 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   input: {
-    height: 52,
+    minHeight: 52,
     borderWidth: 1.5,
     borderColor: colors.neutral[300],
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
     fontSize: typography.sizes.md,
     color: colors.neutral[900],
     backgroundColor: colors.neutral[0],
     fontFamily: typography.fontFamilyRegular,
+    includeFontPadding: false,
   },
   badge: {
     paddingHorizontal: spacing.sm,

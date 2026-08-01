@@ -30,6 +30,7 @@ export default function ProviderDashboardScreen() {
   const [showJobModal, setShowJobModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<BookingWithDetails | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -165,6 +166,24 @@ export default function ProviderDashboardScreen() {
   }
 
   const pp = providerProfile?.provider_profile;
+
+  // New Professional Welcome Screen
+  if (application?.status === 'approved' && pp?.is_verified && !welcomeDismissed && pp?.jobs_completed === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+          <View style={styles.welcomeCard}>
+            <View style={[styles.welcomeIcon, { backgroundColor: colors.success[50] }]}>
+              <Award size={48} color={colors.success[600]} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.welcomeTitle}>{lang === 'ml' ? 'പ്രൊഫഷണലിലേക്ക് സ്വാഗതം!' : 'Welcome to Professional!'}</Text>
+            <Text style={styles.welcomeDesc}>{lang === 'ml' ? 'നിങ്ങളുടെ അപേക്ഷ അംഗീകരിച്ചു. നിങ്ങൾക്ക് ഇപ്പോൾ ജോലി ആരംഭിക്കാം.' : 'Your application has been approved. You can now go online and start working!'}</Text>
+            <Button label={lang === 'ml' ? 'ജോലി ആരംഭിക്കുക' : 'Start Working'} onPress={() => setWelcomeDismissed(true)} style={styles.welcomeBtn} />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

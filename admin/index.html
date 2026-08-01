@@ -192,10 +192,6 @@
 
       <!-- Quick Action Controls -->
       <div class="border-t border-gray-800 pt-4 space-y-2">
-        <button onclick="triggerSimulatedRequest()" class="w-full bg-brand-600/10 hover:bg-brand-600/20 text-brand-400 border border-brand-500/30 text-xs font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center space-x-2">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span>Simulate Booking Request</span>
-        </button>
         <button onclick="refreshAllData()" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium py-2 px-3 rounded-xl transition flex items-center justify-center space-x-2 border border-gray-700">
           <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
           <span>Sync Database</span>
@@ -215,7 +211,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-xs text-gray-400 font-medium">Total Bookings Revenue</p>
-                <h3 id="stat-revenue" class="text-2xl font-bold text-white mt-1">₹48,950</h3>
+                <h3 id="stat-revenue" class="text-2xl font-bold text-white mt-1">₹0</h3>
                 <p class="text-xs text-emerald-400 flex items-center mt-1 font-medium">
                   <i data-lucide="trending-up" class="w-3.5 h-3.5 mr-1"></i> +18.4% this month
                 </p>
@@ -230,7 +226,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-xs text-gray-400 font-medium">Service Requests</p>
-                <h3 id="stat-requests-count" class="text-2xl font-bold text-white mt-1">32</h3>
+                <h3 id="stat-requests-count" class="text-2xl font-bold text-white mt-1">0</h3>
                 <p class="text-xs text-blue-400 flex items-center mt-1 font-medium">
                   <i data-lucide="clock" class="w-3.5 h-3.5 mr-1"></i> Live active queue
                 </p>
@@ -245,7 +241,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-xs text-gray-400 font-medium">Pending Provider Approvals</p>
-                <h3 id="stat-pending-approvals" class="text-2xl font-bold text-white mt-1">5</h3>
+                <h3 id="stat-pending-approvals" class="text-2xl font-bold text-white mt-1">0</h3>
                 <p class="text-xs text-amber-400 flex items-center mt-1 font-medium">
                   <i data-lucide="shield-alert" class="w-3.5 h-3.5 mr-1"></i> Needs verification
                 </p>
@@ -260,9 +256,9 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-xs text-gray-400 font-medium">Verified Professionals</p>
-                <h3 id="stat-verified-providers" class="text-2xl font-bold text-white mt-1">18</h3>
+                <h3 id="stat-verified-providers" class="text-2xl font-bold text-white mt-1">0</h3>
                 <p class="text-xs text-purple-400 flex items-center mt-1 font-medium">
-                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-1"></i> Active in Thrissur & Kochi
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-1"></i> Verified professionals
                 </p>
               </div>
               <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center">
@@ -331,12 +327,8 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 class="text-xl font-bold text-white">Service Requests & Orders Queue</h2>
-            <p class="text-xs text-gray-400">Live stream of customer service requests, provider assignments, and OTP verifications.</p>
+            <p class="text-xs text-gray-400">Live stream of customer service requests, provider assignments, and OTP verifications from the database.</p>
           </div>
-          <button onclick="triggerSimulatedRequest()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-lg shadow-brand-600/30 flex items-center space-x-2">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i>
-            <span>Create Test Service Request</span>
-          </button>
         </div>
 
         <div class="glass-card rounded-2xl overflow-hidden border border-gray-800">
@@ -526,7 +518,6 @@
     window.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
       initSupabase();
-      seedInitialDataIfEmpty();
       await fetchAllDatabaseTables();
       setupRealtimeSubscriptions();
       renderAllViews();
@@ -543,121 +534,30 @@
       }
     }
 
-    // Seed robust initial mock data for seamless demonstration
-    function seedInitialDataIfEmpty() {
-      state.profiles = [
-        { id: 'usr-1', full_name: 'Anand Kumar', phone: '+91 98460 11223', email: 'anand.k@gmail.com', role: 'customer', preferred_language: 'ml', is_active: true, created_at: '2026-07-25T10:00:00Z' },
-        { id: 'usr-2', full_name: 'Rahul Nair', phone: '+91 97455 33445', email: 'rahul.nair@service.com', role: 'provider', preferred_language: 'en', is_active: true, created_at: '2026-07-26T11:30:00Z' },
-        { id: 'usr-3', full_name: 'Suhasini Menon', phone: '+91 94471 88990', email: 'suhasini.m@gmail.com', role: 'customer', preferred_language: 'ml', is_active: true, created_at: '2026-07-28T09:15:00Z' },
-        { id: 'usr-4', full_name: 'Deepak Varma', phone: '+91 98952 66778', email: 'deepak.v@electrical.in', role: 'provider', preferred_language: 'ml', is_active: true, created_at: '2026-07-29T14:20:00Z' },
-        { id: 'usr-5', full_name: 'Vinu Joseph', phone: '+91 99612 44556', email: 'vinu.j@plumbing.com', role: 'provider', preferred_language: 'en', is_active: true, created_at: '2026-07-30T16:45:00Z' }
-      ];
 
-      state.provider_profiles = [
-        {
-          id: 'usr-2',
-          full_name: 'Rahul Nair',
-          experience_years: 6,
-          is_verified: false,
-          background_check_status: 'pending',
-          rating_avg: 4.8,
-          jobs_completed: 42,
-          price_per_hour: 350,
-          specializations: ['Pipes', 'Drainage', 'Bathroom Fitting'],
-          id_proof_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-          address_proof_url: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=600&auto=format&fit=crop&q=80',
-          police_verification_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
-        },
-        {
-          id: 'usr-4',
-          full_name: 'Deepak Varma',
-          experience_years: 8,
-          is_verified: true,
-          background_check_status: 'approved',
-          rating_avg: 4.9,
-          jobs_completed: 89,
-          price_per_hour: 400,
-          specializations: ['Wiring', 'MCB Repair', 'Inverter Setup'],
-          id_proof_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80',
-          address_proof_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
-          police_verification_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
-        },
-        {
-          id: 'usr-5',
-          full_name: 'Vinu Joseph',
-          experience_years: 4,
-          is_verified: false,
-          background_check_status: 'pending',
-          rating_avg: 4.5,
-          jobs_completed: 15,
-          price_per_hour: 300,
-          specializations: ['AC Servicing', 'Gas Refill'],
-          id_proof_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
-          address_proof_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
-          police_verification_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
-        }
-      ];
-
-      state.bookings = [
-        {
-          id: 'bk-8901',
-          customer_name: 'Anand Kumar',
-          service_name: 'Leakage Repair & Tap Fitting',
-          provider_name: 'Deepak Varma',
-          estimated_cost: 650,
-          otp: '4821',
-          status: 'pending',
-          created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString()
-        },
-        {
-          id: 'bk-8902',
-          customer_name: 'Suhasini Menon',
-          service_name: 'AC Master Service & Gas Check',
-          provider_name: 'Rahul Nair',
-          estimated_cost: 1200,
-          otp: '9102',
-          status: 'accepted',
-          created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString()
-        },
-        {
-          id: 'bk-8903',
-          customer_name: 'Anand Kumar',
-          service_name: 'Main Switch Board Wiring Repair',
-          provider_name: 'Deepak Varma',
-          estimated_cost: 850,
-          otp: '3319',
-          status: 'completed',
-          created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString()
-        }
-      ];
-
-      state.service_zones = [
-        { id: 'zone-1', name: 'Thrissur Central', district: 'Thrissur', state: 'Kerala', is_active: true },
-        { id: 'zone-2', name: 'Kochi Urban', district: 'Ernakulam', state: 'Kerala', is_active: true },
-        { id: 'zone-3', name: 'Palakkad Town', district: 'Palakkad', state: 'Kerala', is_active: true }
-      ];
-
-      state.service_categories = [
-        { id: 'cat-1', name_en: 'Plumbing', icon_name: 'Wrench', is_active: true },
-        { id: 'cat-2', name_en: 'Electrical Work', icon_name: 'Zap', is_active: true },
-        { id: 'cat-3', name_en: 'AC & Appliance Repair', icon_name: 'Wind', is_active: true },
-        { id: 'cat-4', name_en: 'Vehicle Cleaning', icon_name: 'Car', is_active: true }
-      ];
-    }
 
     async function fetchAllDatabaseTables() {
       if (!supabaseClient) return;
       try {
-        const { data: profs } = await supabaseClient.from('profiles').select('*');
-        if (profs && profs.length > 0) state.profiles = profs;
+        const { data: profs, error: profErr } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
+        if (!profErr) state.profiles = profs || [];
 
-        const { data: provs } = await supabaseClient.from('provider_profiles').select('*');
-        if (provs && provs.length > 0) state.provider_profiles = provs;
+        const { data: provs, error: provErr } = await supabaseClient.from('provider_profiles').select('*');
+        if (!provErr) state.provider_profiles = provs || [];
 
-        const { data: bks } = await supabaseClient.from('bookings').select('*');
-        if (bks && bks.length > 0) state.bookings = bks;
+        const { data: bks, error: bkErr } = await supabaseClient.from('bookings').select('*').order('created_at', { ascending: false });
+        if (!bkErr) state.bookings = bks || [];
+
+        const { data: zones, error: zoneErr } = await supabaseClient.from('service_zones').select('*');
+        if (!zoneErr) state.service_zones = zones || [];
+
+        const { data: cats, error: catErr } = await supabaseClient.from('service_categories').select('*');
+        if (!catErr) state.service_categories = cats || [];
+
+        const { data: apps, error: appErr } = await supabaseClient.from('provider_applications').select('*').order('created_at', { ascending: false });
+        if (!appErr) state.provider_applications = apps || [];
       } catch (err) {
-        console.warn("Supabase fetch error, fallback to local state:", err);
+        console.warn("Supabase fetch error:", err);
       }
     }
 
@@ -665,12 +565,42 @@
     function setupRealtimeSubscriptions() {
       if (!supabaseClient) return;
       try {
+        // Bookings realtime listener
         supabaseClient.channel('admin-bookings-channel')
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, payload => {
-            const newBooking = payload.new;
-            state.bookings.unshift(newBooking);
-            pushNotification(`New Service Request! Booking #${newBooking.id.substring(0,6)}`, `Estimated Cost: ₹${newBooking.estimated_cost}`);
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, payload => {
+            if (payload.eventType === 'INSERT') {
+              const newBooking = payload.new;
+              state.bookings.unshift(newBooking);
+              pushNotification(`New Service Request! Booking #${newBooking.id.substring(0,6)}`, `Estimated Cost: ₹${newBooking.estimated_cost}`);
+            } else if (payload.eventType === 'UPDATE') {
+              const updated = payload.new;
+              const idx = state.bookings.findIndex(b => b.id === updated.id);
+              if (idx !== -1) state.bookings[idx] = updated;
+              else state.bookings.unshift(updated);
+            }
             renderAllViews();
+          })
+          .subscribe();
+
+        // Provider Applications realtime listener (Auto Sync user switch to professional)
+        supabaseClient.channel('admin-provider-apps-channel')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'provider_applications' }, payload => {
+            const appData = payload.new;
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              fetchAllDatabaseTables().then(() => {
+                pushNotification(`User Switched to Professional!`, `New verified data application received for review.`);
+                renderAllViews();
+              });
+            }
+          })
+          .subscribe();
+
+        // Provider Profiles & Profiles realtime listener
+        supabaseClient.channel('admin-provider-profiles-channel')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'provider_profiles' }, payload => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              fetchAllDatabaseTables().then(() => renderAllViews());
+            }
           })
           .subscribe();
       } catch (e) {
@@ -723,7 +653,12 @@
       const pendingCount = state.provider_profiles.filter(p => p.background_check_status === 'pending').length;
       const verifiedCount = state.provider_profiles.filter(p => p.is_verified).length;
       const requestsCount = state.bookings.length;
+      const totalRevenue = state.bookings
+        .filter(b => b.status === 'completed')
+        .reduce((sum, b) => sum + (Number(b.estimated_cost) || 0), 0);
 
+      const revenueEl = document.getElementById('stat-revenue');
+      if (revenueEl) revenueEl.innerText = '\u20b9' + totalRevenue.toLocaleString('en-IN');
       document.getElementById('stat-pending-approvals').innerText = pendingCount;
       document.getElementById('stat-verified-providers').innerText = verifiedCount;
       document.getElementById('stat-requests-count').innerText = requestsCount;
@@ -756,14 +691,16 @@
       dashList.innerHTML = '';
 
       state.provider_profiles.forEach(prov => {
+        const prof = state.profiles.find(p => p.id === prov.id);
+        const fullName = prof?.full_name || 'Provider Profile';
         const isPending = prov.background_check_status === 'pending';
         const cardHtml = `
           <div class="glass-card rounded-2xl p-5 border border-gray-800 space-y-4 hover:border-brand-500/50 transition">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-3">
-                <img src="${prov.id_proof_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" class="w-12 h-12 rounded-xl object-cover border border-gray-700">
+                <img src="${prov.id_proof_url || ''}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Ccircle cx=%2224%22 cy=%2218%22 r=%228%22/%3E%3Cellipse cx=%2224%22 cy=%2236%22 rx=%2214%22 ry=%228%22/%3E%3C/svg%3E'" class="w-12 h-12 rounded-xl object-cover border border-gray-700 bg-gray-800">
                 <div>
-                  <h4 class="font-bold text-white text-sm">${prov.full_name || 'Provider Profile'}</h4>
+                  <h4 class="font-bold text-white text-sm">${fullName}</h4>
                   <p class="text-xs text-gray-400">${prov.experience_years} Years Exp • ₹${prov.price_per_hour}/hr</p>
                 </div>
               </div>
@@ -796,7 +733,7 @@
           dashList.innerHTML += `
             <div class="flex items-center justify-between p-3 bg-gray-900/40 border border-gray-800 rounded-xl">
               <div>
-                <p class="text-xs font-bold text-white">${prov.full_name}</p>
+                <p class="text-xs font-bold text-white">${fullName}</p>
                 <p class="text-[10px] text-gray-400">${prov.specializations ? prov.specializations.join(', ') : 'Service Professional'}</p>
               </div>
               <button onclick="inspectCertificates('${prov.id}')" class="text-xs bg-brand-600/20 text-brand-400 border border-brand-500/30 px-3 py-1 rounded-lg font-semibold hover:bg-brand-600/30">Verify Proofs</button>
@@ -814,7 +751,10 @@
       const prov = state.provider_profiles.find(p => p.id === provId);
       if (!prov) return;
 
-      document.getElementById('modal-name').innerText = prov.full_name || 'Provider Documents';
+      const prof = state.profiles.find(p => p.id === provId);
+      const fullName = prof?.full_name || 'Provider Documents';
+
+      document.getElementById('modal-name').innerText = fullName;
       document.getElementById('modal-exp').innerText = `${prov.experience_years} Years`;
       document.getElementById('modal-rate').innerText = `₹${prov.price_per_hour}/hr`;
       document.getElementById('modal-status').innerText = prov.background_check_status.toUpperCase();
@@ -855,13 +795,36 @@
         prov.background_check_status = status;
       }
 
-      if (supabaseClient) {
-        try {
-          await supabaseClient.from('provider_profiles').update({ is_verified: isVerified, background_check_status: status }).eq('id', provId);
-        } catch (e) { console.warn("Supabase update warning:", e); }
+      // Update local profiles list role
+      const prof = state.profiles.find(u => u.id === provId);
+      const targetRole = isVerified ? 'provider' : 'customer';
+      if (prof) {
+        prof.role = targetRole;
       }
 
-      pushNotification(`Provider Status Updated`, `${prov.full_name || 'Provider'} was marked as ${status.toUpperCase()}`);
+      if (supabaseClient) {
+        try {
+          // 1. Update provider_profiles
+          await supabaseClient
+            .from('provider_profiles')
+            .update({ is_verified: isVerified, background_check_status: status })
+            .eq('id', provId);
+
+          // 2. Update provider_applications
+          await supabaseClient
+            .from('provider_applications')
+            .update({ status: status, reviewed_at: new Date().toISOString() })
+            .eq('user_id', provId);
+
+          // 3. Sync user profile role so both user and professional reflect the change
+          await supabaseClient
+            .from('profiles')
+            .update({ role: targetRole, updated_at: new Date().toISOString() })
+            .eq('id', provId);
+        } catch (e) { console.warn("Supabase update error:", e); }
+      }
+
+      pushNotification(`Provider Status Updated`, `${prov?.full_name || 'User'} marked as ${status.toUpperCase()} (Role: ${targetRole.toUpperCase()})`);
       renderAllViews();
     }
 
@@ -937,23 +900,7 @@
       renderAllViews();
     }
 
-    function triggerSimulatedRequest() {
-      const randomId = 'bk-' + Math.floor(1000 + Math.random() * 9000);
-      const newBooking = {
-        id: randomId,
-        customer_name: ['Rahul G', 'Priya Roy', 'Kavya S', 'Nitin Joy'][Math.floor(Math.random() * 4)],
-        service_name: ['Full House Deep Cleaning', 'Wiring Short Circuit Repair', 'Pipe Block Removal'][Math.floor(Math.random() * 3)],
-        provider_name: 'Deepak Varma',
-        estimated_cost: [450, 800, 1500][Math.floor(Math.random() * 3)],
-        otp: Math.floor(1000 + Math.random() * 9000).toString(),
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
 
-      state.bookings.unshift(newBooking);
-      pushNotification(`New Service Request #${randomId}`, `Customer requested ${newBooking.service_name}`);
-      renderAllViews();
-    }
 
     // DATABASE TABLE EXPLORER
     const tablesList = ['profiles', 'provider_profiles', 'bookings', 'service_zones', 'service_categories'];
@@ -1032,11 +979,35 @@
             </div>
             <div class="flex items-center justify-between pt-2 border-t border-gray-800/80 text-xs">
               <span class="text-gray-400 font-mono">Role: <strong class="text-white uppercase">${user.role}</strong></span>
-              <span class="text-emerald-400 font-semibold font-mono">Active</span>
+              <button onclick="deleteUser('${user.id}')" class="text-red-400 hover:text-red-300 font-semibold flex items-center space-x-1 px-2 py-1 bg-red-500/10 hover:bg-red-500/20 rounded-md transition border border-red-500/20">
+                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                <span>Delete</span>
+              </button>
             </div>
           </div>
         `;
       });
+      lucide.createIcons();
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm('Are you sure you want to permanently delete this user?')) return;
+      
+      try {
+        if (supabaseClient) {
+          await supabaseClient.from('provider_profiles').delete().eq('id', userId);
+          await supabaseClient.from('profiles').delete().eq('id', userId);
+        }
+        
+        state.profiles = state.profiles.filter(p => p.id !== userId);
+        state.provider_profiles = state.provider_profiles.filter(p => p.id !== userId);
+        
+        pushNotification('User Deleted', 'User account successfully removed.');
+        renderAllViews();
+      } catch (e) {
+        console.error('Failed to delete user:', e);
+        alert('Failed to delete user');
+      }
     }
 
     // NOTIFICATION DROPDOWN RENDER

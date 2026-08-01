@@ -110,11 +110,11 @@ export const radius = {
 };
 
 export const typography = {
-  fontFamilyRegular: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'System',
-  fontFamilyMedium: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'System',
-  fontFamilyBold: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'System',
-  headingLineHeight: 24,
-  bodyLineHeight: 22,
+  fontFamilyRegular: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'Noto-Sans-Malayalam-Regular',
+  fontFamilyMedium: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'Noto-Sans-Malayalam-Medium',
+  fontFamilyBold: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'Noto-Sans-Malayalam-Bold',
+  headingLineHeight: 28,
+  bodyLineHeight: 24,
   sizes: {
     xs: 12,
     sm: 14,
@@ -151,17 +151,20 @@ export const shadows = {
 };
 
 // Helper for Malayalam text styles - Malayalam script needs more line height
-// and proper letter spacing for correct vertical alignment
+// and proper letter spacing and font family for correct vertical alignment in APK
 export function getLangTextStyle(lang: string) {
   if (lang === 'ml') {
     return {
+      fontFamily: Platform.OS === 'web' ? 'Noto Sans Malayalam, Inter, sans-serif' : 'Noto-Sans-Malayalam-Regular',
       lineHeight: Platform.OS === 'web' ? 28 : 26,
       letterSpacing: 0,
       includeFontPadding: false,
       textAlignVertical: 'center' as const,
     };
   }
-  return {};
+  return {
+    includeFontPadding: false,
+  };
 }
 
 // Apply Malayalam text style to a StyleSheet style object
@@ -169,5 +172,6 @@ export function withLangStyle(style: object, lang: string) {
   if (lang === 'ml') {
     return { ...style, ...getLangTextStyle(lang) };
   }
-  return style;
+  return { ...style, includeFontPadding: false };
 }
+

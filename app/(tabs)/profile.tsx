@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
-import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { colors, spacing, radius, typography, shadows, getLangTextStyle } from '@/lib/theme';
 import { LoadingState } from '@/components/ui';
 import type { Address } from '@/lib/types';
 import { User, MapPin, CreditCard, Bell, Gift, Circle as HelpCircle, LogOut, ChevronRight, Calendar, Phone, Mail, Pencil, Briefcase, ShieldCheck } from 'lucide-react-native';
@@ -56,7 +56,9 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { icon: ShieldCheck, label: 'Admin Portal & Database', sublabel: 'Verifications, Tables & Requests', onPress: () => router.push('/admin' as any) },
+    ...(profile?.role === 'admin'
+      ? [{ icon: ShieldCheck, label: 'Admin Portal & Database', sublabel: 'Verifications, Tables & Requests', onPress: () => router.push('/admin' as any) }]
+      : []),
     { icon: MapPin, label: t('manageAddresses'), sublabel: `${addresses.length} saved`, onPress: () => router.push('/location-setup') },
     { icon: CreditCard, label: t('savedPayments'), sublabel: '', onPress: () => {} },
     { icon: Gift, label: t('referFriend'), sublabel: '', onPress: () => {} },
@@ -64,8 +66,14 @@ export default function ProfileScreen() {
   ];
 
   const handleSwitchToProvider = () => {
-    router.push('/provider-dashboard');
+    if (profile?.role === 'provider') {
+      router.push('/provider-dashboard');
+    } else {
+      router.push('/provider-onboarding');
+    }
   };
+
+  const mlStyle = getLangTextStyle(lang);
 
   if (loading) return <LoadingState label={t('loading')} />;
 
@@ -78,7 +86,7 @@ export default function ProfileScreen() {
             <User size={36} color={colors.neutral[0]} strokeWidth={2} />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{profile?.full_name || 'User'}</Text>
+            <Text style={[styles.profileName, mlStyle]}>{profile?.full_name || 'User'}</Text>
             <Text style={styles.profilePhone}>{profile?.phone || profile?.email || ''}</Text>
           </View>
           <TouchableOpacity
@@ -87,7 +95,7 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
           >
             <Pencil size={14} color={colors.primary[700]} strokeWidth={2.5} />
-            <Text style={styles.editBtnText}>{t('editProfile')}</Text>
+            <Text style={[styles.editBtnText, mlStyle]}>{t('editProfile')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -98,28 +106,28 @@ export default function ProfileScreen() {
               <Calendar size={18} color={colors.primary[600]} strokeWidth={2} />
             </View>
             <Text style={styles.infoCardValue}>0</Text>
-            <Text style={styles.infoCardLabel}>Bookings</Text>
+            <Text style={[styles.infoCardLabel, mlStyle]}>Bookings</Text>
           </View>
           <View style={styles.infoCard}>
             <View style={styles.infoCardIcon}>
               <MapPin size={18} color={colors.secondary[600]} strokeWidth={2} />
             </View>
             <Text style={styles.infoCardValue}>{addresses.length}</Text>
-            <Text style={styles.infoCardLabel}>Addresses</Text>
+            <Text style={[styles.infoCardLabel, mlStyle]}>Addresses</Text>
           </View>
           <View style={styles.infoCard}>
             <View style={styles.infoCardIcon}>
               <Gift size={18} color={colors.accent[500]} strokeWidth={2} />
             </View>
             <Text style={styles.infoCardValue}>₹100</Text>
-            <Text style={styles.infoCardLabel}>Referral</Text>
+            <Text style={[styles.infoCardLabel, mlStyle]}>Referral</Text>
           </View>
         </View>
 
         {/* Contact info */}
         {profile && (profile.phone || profile.email) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Contact</Text>
+            <Text style={[styles.sectionTitle, mlStyle]}>Contact</Text>
             <View style={styles.contactCard}>
               {profile.phone && (
                 <View style={styles.contactRow}>
@@ -143,13 +151,13 @@ export default function ProfileScreen() {
 
         {/* Language toggle */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('language')}</Text>
+          <Text style={[styles.sectionTitle, mlStyle]}>{t('language')}</Text>
           <View style={styles.langToggle}>
             <TouchableOpacity
               style={[styles.langBtn, lang === 'ml' && styles.langBtnActive]}
               onPress={() => handleLanguageToggle('ml')}
             >
-              <Text style={[styles.langBtnText, lang === 'ml' && styles.langBtnTextActive]}>
+              <Text style={[styles.langBtnText, lang === 'ml' && styles.langBtnTextActive, mlStyle]}>
                 {t('malayalam')}
               </Text>
             </TouchableOpacity>
@@ -157,7 +165,7 @@ export default function ProfileScreen() {
               style={[styles.langBtn, lang === 'en' && styles.langBtnActive]}
               onPress={() => handleLanguageToggle('en')}
             >
-              <Text style={[styles.langBtnText, lang === 'en' && styles.langBtnTextActive]}>
+              <Text style={[styles.langBtnText, lang === 'en' && styles.langBtnTextActive, mlStyle]}>
                 {t('english')}
               </Text>
             </TouchableOpacity>
@@ -171,8 +179,12 @@ export default function ProfileScreen() {
               <Briefcase size={24} color={colors.neutral[0]} strokeWidth={2} />
             </View>
             <View style={styles.providerSwitchInfo}>
-              <Text style={styles.providerSwitchTitle}>{t('switchToProvider')}</Text>
-              <Text style={styles.providerSwitchDesc}>{t('becomeProviderDesc')}</Text>
+              <Text style={[styles.providerSwitchTitle, mlStyle]}>
+                {profile?.role === 'provider' ? t('providerDashboard') : t('switchToProvider')}
+              </Text>
+              <Text style={[styles.providerSwitchDesc, mlStyle]}>
+                {profile?.role === 'provider' ? 'Manage your jobs, earnings & status' : t('becomeProviderDesc')}
+              </Text>
             </View>
             <ChevronRight size={20} color={colors.neutral[0]} strokeWidth={2.5} />
           </TouchableOpacity>

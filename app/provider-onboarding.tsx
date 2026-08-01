@@ -15,7 +15,7 @@ import {
 
 export default function ProviderOnboardingScreen() {
   const { t, lang } = useLanguage();
-  const { session } = useAuth();
+  const { session, refreshProfile } = useAuth();
   const router = useRouter();
   const mlStyle = getLangTextStyle(lang);
 
@@ -91,11 +91,17 @@ export default function ProviderOnboardingScreen() {
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !uploadTarget) return;
-    const url = URL.createObjectURL(file);
-    if (uploadTarget === 'front') setAadhaarFront(url);
-    else if (uploadTarget === 'back') setAadhaarBack(url);
-    else if (uploadTarget === 'selfie') setSelfie(url);
-    setUploadTarget(null);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const url = e.target?.result as string;
+      if (uploadTarget === 'front') setAadhaarFront(url);
+      else if (uploadTarget === 'back') setAadhaarBack(url);
+      else if (uploadTarget === 'selfie') setSelfie(url);
+      setUploadTarget(null);
+    };
+    reader.readAsDataURL(file);
+
     if (event.target) event.target.value = '';
   };
 
@@ -123,7 +129,8 @@ export default function ProviderOnboardingScreen() {
     setError(null);
 
     try {
-      const { error: upsertError } = await supabase
+      // 1. Upsert provider_applications
+      const { error: appError } = await supabase
         .from('provider_applications')
         .upsert({
           user_id: session.user.id,
@@ -138,7 +145,32 @@ export default function ProviderOnboardingScreen() {
           submitted_at: new Date().toISOString(),
         });
 
-      if (upsertError) throw upsertError;
+      if (appError) throw appError;
+
+      // 2. Upsert provider_profiles as pending
+      const { error: provError } = await supabase
+        .from('provider_profiles')
+        .upsert({
+          id: session.user.id,
+          category_ids: selectedCategories,
+          specializations: [],
+          experience_years: parseInt(experienceYears, 10) || 0,
+          is_verified: false,
+          background_check_status: 'pending',
+          bio_en: bio,
+          bio_ml: bio,
+          id_proof_url: aadhaarFront,
+          address_proof_url: aadhaarBack,
+          police_verification_url: selfie,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (provError) throw provError;
+
+      if (refreshProfile) {
+        await refreshProfile();
+      }
+
       router.replace('/provider-dashboard');
     } catch (e: any) {
       setError(e.message || 'Failed to submit');

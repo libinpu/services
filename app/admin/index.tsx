@@ -31,17 +31,27 @@ import {
   Eye,
   IndianRupee,
   ExternalLink,
+  Trash2,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 import { colors } from '@/lib/theme';
 import { ProviderProfile, Booking, Profile } from '@/lib/types';
 
 type AdminTab = 'dashboard' | 'approvals' | 'requests' | 'tables' | 'users';
 
 export default function AdminScreen() {
-  const router = RouterHook();
+  const router = useRouter();
+  const { profile, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Admin guard — redirect non-admins immediately
+  useEffect(() => {
+    if (!authLoading && profile && profile.role !== 'admin') {
+      router.replace('/' as any);
+    }
+  }, [authLoading, profile]);
 
   // Database Data States
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -74,52 +84,8 @@ export default function AdminScreen() {
       const { data: bookData } = await supabase.from('bookings').select('*');
       if (bookData) setBookings(bookData);
     } catch (error) {
-      console.warn('Admin fetch error, fallback mock:', error);
-      // Fallback mock data if network or schema offline
-      setProviders([
-        {
-          id: 'p-1',
-          category_ids: [],
-          specializations: ['Plumbing', 'Pipe Repair'],
-          experience_years: 5,
-          is_verified: false,
-          background_check_status: 'pending',
-          rating_avg: 4.8,
-          rating_count: 12,
-          jobs_completed: 34,
-          is_online: true,
-          price_per_hour: 300,
-          zone_id: null,
-          bio_en: 'Certified Plumbing Technician',
-          bio_ml: null,
-          id_proof_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600',
-          address_proof_url: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=600',
-          police_verification_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: 'p-2',
-          category_ids: [],
-          specializations: ['Electrical Wiring', 'MCB'],
-          experience_years: 8,
-          is_verified: true,
-          background_check_status: 'approved',
-          rating_avg: 4.9,
-          rating_count: 45,
-          jobs_completed: 102,
-          is_online: true,
-          price_per_hour: 400,
-          zone_id: null,
-          bio_en: 'Senior Electrical Engineer',
-          bio_ml: null,
-          id_proof_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600',
-          address_proof_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600',
-          police_verification_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
+      console.warn('Admin fetch error:', error);
+      // Leave state as empty arrays — no mock/dummy fallback
     } finally {
       setLoading(false);
     }
@@ -127,19 +93,38 @@ export default function AdminScreen() {
 
   const handleUpdateProviderStatus = async (provId: string, isVerified: boolean, status: 'approved' | 'rejected') => {
     try {
+      const targetRole = isVerified ? 'provider' : 'customer';
+
+      // 1. Update provider_profiles
       await supabase
         .from('provider_profiles')
-        .update({ is_verified: isVerified, background_check_status: status })
+        .update({ is_verified: isVerified, background_check_status: status, updated_at: new Date().toISOString() })
+        .eq('id', provId);
+
+      // 2. Update provider_applications
+      await supabase
+        .from('provider_applications')
+        .update({ status, reviewed_at: new Date().toISOString() })
+        .eq('user_id', provId);
+
+      // 3. Update user profile role so user and professional both act like changed
+      await supabase
+        .from('profiles')
+        .update({ role: targetRole, updated_at: new Date().toISOString() })
         .eq('id', provId);
 
       setProviders((prev) =>
         prev.map((p) => (p.id === provId ? { ...p, is_verified: isVerified, background_check_status: status } : p))
       );
 
+      setProfiles((prev) =>
+        prev.map((u) => (u.id === provId ? { ...u, role: targetRole } : u))
+      );
+
       if (Platform.OS === 'web') {
-        alert(`Provider application marked as ${status.toUpperCase()}`);
+        alert(`Provider application marked as ${status.toUpperCase()} (Role: ${targetRole.toUpperCase()})`);
       } else {
-        Alert.alert('Status Updated', `Provider marked as ${status}`);
+        Alert.alert('Status Updated', `Provider marked as ${status} (Role: ${targetRole})`);
       }
       setSelectedProvider(null);
     } catch (e) {
@@ -147,8 +132,67 @@ export default function AdminScreen() {
     }
   };
 
+  const handleDeleteUser = (userId: string) => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Delete this user completely? This action cannot be undone.')) {
+        executeDelete(userId);
+      }
+    } else {
+      Alert.alert('Delete User', 'Are you sure you want to permanently delete this user? This action cannot be undone.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => executeDelete(userId) },
+      ]);
+    }
+  };
+
+  const executeDelete = async (userId: string) => {
+    try {
+      // 1. Delete from provider profiles if exists
+      await supabase.from('provider_profiles').delete().eq('id', userId);
+      // 2. Delete from profiles
+      await supabase.from('profiles').delete().eq('id', userId);
+
+      setProfiles(prev => prev.filter(p => p.id !== userId));
+      setProviders(prev => prev.filter(p => p.id !== userId));
+
+      if (Platform.OS === 'web') alert('User deleted successfully.');
+      else Alert.alert('Success', 'User deleted successfully.');
+    } catch (e) {
+      console.error('Delete user failed:', e);
+    }
+  };
+
   const pendingProviders = providers.filter((p) => p.background_check_status === 'pending');
   const verifiedProviders = providers.filter((p) => p.is_verified);
+
+  // Block non-admin users from seeing the dashboard
+  if (authLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[900] }}>
+        <ActivityIndicator size="large" color={colors.primary[500]} />
+      </View>
+    );
+  }
+
+  if (!profile || profile.role !== 'admin') {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[900], padding: 32 }}>
+        <ShieldCheck size={64} color={colors.error[400]} strokeWidth={1.5} />
+        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 20, textAlign: 'center' }}>
+          Access Denied
+        </Text>
+        <Text style={{ color: '#9ca3af', fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 22 }}>
+          This area is restricted to administrators only. You do not have permission to view this page.
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.replace('/' as any)}
+          style={{ marginTop: 28, backgroundColor: colors.primary[600], borderRadius: 12, paddingHorizontal: 28, paddingVertical: 12 }}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Go to Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -210,6 +254,14 @@ export default function AdminScreen() {
             <Database color={activeTab === 'tables' ? colors.primary[500] : '#9CA3AF'} size={16} />
             <Text style={[styles.tabText, activeTab === 'tables' && styles.activeTabText]}>Tables Explorer</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'users' && styles.activeTabItem]}
+            onPress={() => setActiveTab('users')}
+          >
+            <Users color={activeTab === 'users' ? colors.primary[500] : '#9CA3AF'} size={16} />
+            <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>Users ({profiles.length})</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -253,19 +305,21 @@ export default function AdminScreen() {
                   <Text style={styles.emptyText}>All provider applications have been reviewed!</Text>
                 </View>
               ) : (
-                pendingProviders.map((prov) => (
-                  <View key={prov.id} style={styles.cardItem}>
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.cardTitle}>{prov.bio_en || `Provider #${prov.id.substring(0, 6)}`}</Text>
-                        <Text style={styles.cardSub}>
-                          {prov.experience_years} Years Experience • ₹{prov.price_per_hour}/hr
-                        </Text>
+                pendingProviders.map((prov) => {
+                  const prof = profiles.find(p => p.id === prov.id);
+                  return (
+                    <View key={prov.id} style={styles.cardItem}>
+                      <View style={styles.cardHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.cardTitle}>{prof?.full_name || `Provider #${prov.id.substring(0, 6)}`}</Text>
+                          <Text style={styles.cardSub}>
+                            {prov.experience_years} Years Experience • ₹{prov.price_per_hour}/hr
+                          </Text>
+                        </View>
+                        <View style={styles.badgePending}>
+                          <Text style={styles.badgePendingText}>PENDING</Text>
+                        </View>
                       </View>
-                      <View style={styles.badgePending}>
-                        <Text style={styles.badgePendingText}>PENDING</Text>
-                      </View>
-                    </View>
 
                     <View style={styles.cardActions}>
                       <TouchableOpacity style={styles.btnInspect} onPress={() => setSelectedProvider(prov)}>
@@ -281,7 +335,8 @@ export default function AdminScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
-                ))
+                );
+              })
               )}
             </View>
           )}
@@ -291,16 +346,18 @@ export default function AdminScreen() {
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Provider Applications & Document Certificates</Text>
 
-              {providers.map((prov) => (
-                <View key={prov.id} style={styles.cardItem}>
-                  <View style={styles.cardHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.cardTitle}>Professional Provider #{prov.id.substring(0, 6)}</Text>
-                      <Text style={styles.cardSub}>
-                        {prov.specializations?.join(', ') || 'General Repairs'} • {prov.experience_years} Years
-                      </Text>
-                    </View>
-                    <View
+              {providers.map((prov) => {
+                const prof = profiles.find(p => p.id === prov.id);
+                return (
+                  <View key={prov.id} style={styles.cardItem}>
+                    <View style={styles.cardHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cardTitle}>{prof?.full_name || `Professional Provider #${prov.id.substring(0, 6)}`}</Text>
+                        <Text style={styles.cardSub}>
+                          {prov.specializations?.join(', ') || 'General Repairs'} • {prov.experience_years} Years
+                        </Text>
+                      </View>
+                      <View
                       style={
                         prov.background_check_status === 'approved'
                           ? styles.badgeApproved
@@ -343,7 +400,8 @@ export default function AdminScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              ))}
+                );
+              })}
             </View>
           )}
 
@@ -387,6 +445,37 @@ export default function AdminScreen() {
               </View>
             </View>
           )}
+
+          {/* TAB 5: USERS MANAGEMENT */}
+          {activeTab === 'users' && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Manage Platform Users</Text>
+              
+              {profiles.map((p) => (
+                <View key={p.id} style={styles.cardItem}>
+                  <View style={styles.cardHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.cardTitle}>{p.full_name || 'User Account'}</Text>
+                      <Text style={styles.cardSub}>{p.phone || p.email || 'No contact info'}</Text>
+                    </View>
+                    <View style={p.role === 'admin' ? styles.badgePending : styles.badgeApproved}>
+                      <Text style={p.role === 'admin' ? styles.badgePendingText : styles.badgeText}>{p.role.toUpperCase()}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity 
+                      style={styles.btnReject} 
+                      onPress={() => handleDeleteUser(p.id)}
+                    >
+                      <Trash2 color="#EF4444" size={14} />
+                      <Text style={styles.btnRejectText}>Delete User</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </ScrollView>
       )}
 
@@ -404,22 +493,31 @@ export default function AdminScreen() {
             {selectedProvider && (
               <ScrollView style={{ maxHeight: 400 }}>
                 <Text style={styles.docLabel}>ID Proof Document</Text>
-                <Image
-                  source={{ uri: selectedProvider.id_proof_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600' }}
-                  style={styles.certImg}
-                />
+                {selectedProvider.id_proof_url ? (
+                  <Image source={{ uri: selectedProvider.id_proof_url }} style={styles.certImg} />
+                ) : (
+                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }]}>
+                    <Text style={{ color: '#6b7280', fontSize: 13 }}>Not uploaded</Text>
+                  </View>
+                )}
 
                 <Text style={styles.docLabel}>Address Proof Document</Text>
-                <Image
-                  source={{ uri: selectedProvider.address_proof_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=600' }}
-                  style={styles.certImg}
-                />
+                {selectedProvider.address_proof_url ? (
+                  <Image source={{ uri: selectedProvider.address_proof_url }} style={styles.certImg} />
+                ) : (
+                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }]}>
+                    <Text style={{ color: '#6b7280', fontSize: 13 }}>Not uploaded</Text>
+                  </View>
+                )}
 
                 <Text style={styles.docLabel}>Police Clearance Certificate</Text>
-                <Image
-                  source={{ uri: selectedProvider.police_verification_url || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600' }}
-                  style={styles.certImg}
-                />
+                {selectedProvider.police_verification_url ? (
+                  <Image source={{ uri: selectedProvider.police_verification_url }} style={styles.certImg} />
+                ) : (
+                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }]}>
+                    <Text style={{ color: '#6b7280', fontSize: 13 }}>Not uploaded</Text>
+                  </View>
+                )}
               </ScrollView>
             )}
 
