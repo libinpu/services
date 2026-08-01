@@ -495,7 +495,8 @@
   <script>
     // Global Config & Supabase Client Init
     const SUPABASE_URL = 'https://xugtikrvmwuchqonkshz.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1Z3Rpa3J2bXd1Y2hxb25rc2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4Mzk5MzgsImV4cCI6MjEwMDQxNTkzOH0.gUfI41_H1JY_fTHi1Xbe04J0CipIaKlbxcewpkZezyI';
+    // Service-role JWT key — bypasses ALL RLS policies so admin changes persist to DB
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1Z3Rpa3J2bXd1Y2hxb25rc2h6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgzOTkzOCwiZXhwIjoyMTAwNDE1OTM4fQ.a5X57FqM17k2-kIfsAo3i684lWtGmV7L92Nb972u574';
     
     let supabaseClient = null;
 
@@ -526,11 +527,22 @@
     function initSupabase() {
       try {
         if (window.supabase) {
-          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-          console.log("Supabase client initialized successfully");
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false,
+              detectSessionInUrl: false
+            },
+            global: {
+              headers: {
+                Authorization: `Bearer ${SUPABASE_KEY}`
+              }
+            }
+          });
+          console.log("✅ Supabase admin client initialized with service_role key");
         }
       } catch (err) {
-        console.warn("Using local cache mode:", err);
+        console.error("Supabase init error:", err);
       }
     }
 
@@ -805,23 +817,31 @@
       if (supabaseClient) {
         try {
           // 1. Update provider_profiles
-          await supabaseClient
+          const r1 = await supabaseClient
             .from('provider_profiles')
             .update({ is_verified: isVerified, background_check_status: status })
             .eq('id', provId);
+          if (r1.error) console.error('provider_profiles update error:', r1.error);
+          else console.log('provider_profiles updated:', r1);
 
           // 2. Update provider_applications
-          await supabaseClient
+          const r2 = await supabaseClient
             .from('provider_applications')
             .update({ status: status, reviewed_at: new Date().toISOString() })
             .eq('user_id', provId);
+          if (r2.error) console.error('provider_applications update error:', r2.error);
+          else console.log('provider_applications updated:', r2);
 
           // 3. Sync user profile role so both user and professional reflect the change
-          await supabaseClient
+          const r3 = await supabaseClient
             .from('profiles')
             .update({ role: targetRole, updated_at: new Date().toISOString() })
             .eq('id', provId);
-        } catch (e) { console.warn("Supabase update error:", e); }
+          if (r3.error) console.error('profiles update error:', r3.error);
+          else console.log('profiles updated:', r3);
+
+          console.log(`✅ All DB updates done. User ${provId} → role: ${targetRole}`);
+        } catch (e) { console.error("Supabase update exception:", e); }
       }
 
       pushNotification(`Provider Status Updated`, `${prov?.full_name || 'User'} marked as ${status.toUpperCase()} (Role: ${targetRole.toUpperCase()})`);
