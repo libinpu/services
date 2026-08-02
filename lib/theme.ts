@@ -1,94 +1,105 @@
 import { Platform } from 'react-native';
 
+// Dark theme: charcoal background + vibrant orange accent.
+// Color indices are mapped so existing references produce correct dark-theme values.
+// neutral[0] = white (for text on colored backgrounds)
+// neutral[50] = charcoal app background
+// neutral[100] = dark card/input surface
+// neutral[200] = slightly lighter surface (icon containers, dividers)
+// neutral[300] = muted gray (inactive icons, chevrons)
+// neutral[400] = muted gray (placeholder, inactive icons)
+// neutral[500]/[600] = secondary text gray
+// neutral[700]/[800]/[900] = white (headings/primary text)
+
 export const colors = {
-  // Primary: Deep Teal (#0F766E) — trust, stability, professionalism
+  // Primary: Vibrant Orange (#FF9142 → #F5821F)
   primary: {
-    50: '#F0FDFA',
-    100: '#CCFBF1',
-    200: '#99F6E4',
-    300: '#5EEAD4',
-    400: '#2DD4BF',
-    500: '#14B8A6',
-    600: '#0D9488',
-    700: '#0F766E',
-    800: '#115E59',
-    900: '#134E4A',
+    50: 'rgba(255,145,66,0.12)',
+    100: 'rgba(255,145,66,0.18)',
+    200: 'rgba(255,145,66,0.25)',
+    300: '#FF9142',
+    400: '#FF9142',
+    500: '#FF9142',
+    600: '#FF9142',
+    700: '#F5821F',
+    800: '#F5821F',
+    900: '#F5821F',
   },
-  // Secondary: Warm Copper/Bronze (#B45309) — premium, reliable, warm
+  // Secondary: Orange (single accent — same as primary)
   secondary: {
-    50: '#FFFBEB',
-    100: '#FEF3C7',
-    200: '#FDE68A',
-    300: '#FCD34D',
-    400: '#FBBF24',
-    500: '#F59E0B',
-    600: '#D97706',
-    700: '#B45309',
-    800: '#92400E',
-    900: '#78350F',
+    50: 'rgba(255,145,66,0.12)',
+    100: 'rgba(255,145,66,0.18)',
+    200: 'rgba(255,145,66,0.25)',
+    300: '#FF9142',
+    400: '#FF9142',
+    500: '#FF9142',
+    600: '#F5821F',
+    700: '#F5821F',
+    800: '#F5821F',
+    900: '#F5821F',
   },
-  // Accent: Rose/Coral — for ratings and highlights
+  // Accent: Orange (used for ratings/highlights — single accent color)
   accent: {
-    50: '#FFF1F2',
-    100: '#FFE4E6',
-    200: '#FECDD3',
-    300: '#FDA4AF',
-    400: '#FB7185',
-    500: '#F43F5E',
-    600: '#E11D48',
-    700: '#BE123C',
-    800: '#9F1239',
-    900: '#881337',
+    50: 'rgba(255,145,66,0.12)',
+    100: 'rgba(255,145,66,0.18)',
+    200: 'rgba(255,145,66,0.25)',
+    300: '#FF9142',
+    400: '#FF9142',
+    500: '#FF9142',
+    600: '#F5821F',
+    700: '#F5821F',
+    800: '#F5821F',
+    900: '#F5821F',
   },
   success: {
-    50: '#ecfdf5',
-    100: '#d1fae5',
-    200: '#a7f3d0',
-    300: '#6ee7b7',
-    400: '#34d399',
-    500: '#10b981',
-    600: '#059669',
-    700: '#047857',
-    800: '#065f46',
-    900: '#064e3b',
+    50: 'rgba(48,209,88,0.12)',
+    100: 'rgba(48,209,88,0.18)',
+    200: 'rgba(48,209,88,0.25)',
+    300: '#30D158',
+    400: '#30D158',
+    500: '#30D158',
+    600: '#30D158',
+    700: '#28B84C',
+    800: '#28B84C',
+    900: '#28B84C',
   },
   warning: {
-    50: '#fffbeb',
-    100: '#fef3c7',
-    200: '#fde68a',
-    300: '#fcd34d',
-    400: '#fbbf24',
-    500: '#f59e0b',
-    600: '#d97706',
-    700: '#b45309',
-    800: '#92400e',
-    900: '#78350f',
+    50: 'rgba(255,214,10,0.12)',
+    100: 'rgba(255,214,10,0.18)',
+    200: 'rgba(255,214,10,0.25)',
+    300: '#FFD60A',
+    400: '#FFD60A',
+    500: '#FFD60A',
+    600: '#E6C109',
+    700: '#E6C109',
+    800: '#E6C109',
+    900: '#E6C109',
   },
   error: {
-    50: '#fef2f2',
-    100: '#fee2e2',
-    200: '#fecaca',
-    300: '#fca5a5',
-    400: '#f87171',
-    500: '#ef4444',
-    600: '#dc2626',
-    700: '#b91c1c',
-    800: '#991b1b',
-    900: '#7f1d1d',
+    50: 'rgba(255,69,58,0.12)',
+    100: 'rgba(255,69,58,0.18)',
+    200: 'rgba(255,69,58,0.25)',
+    300: '#FF453A',
+    400: '#FF453A',
+    500: '#FF453A',
+    600: '#FF453A',
+    700: '#E03E34',
+    800: '#E03E34',
+    900: '#E03E34',
   },
   neutral: {
-    0: '#ffffff',
-    50: '#f8fafc',
-    100: '#f1f5f9',
-    200: '#e2e8f0',
-    300: '#cbd5e1',
-    400: '#94a3b8',
-    500: '#64748b',
-    600: '#475569',
-    700: '#334155',
-    800: '#1e293b',
-    900: '#0f172a',
-    950: '#020617',
+    0: '#FFFFFF',
+    50: '#1C1C1E',
+    100: '#2A2A2D',
+    200: '#3A3A3D',
+    300: '#8E8E93',
+    400: '#8E8E93',
+    500: '#9A9A9E',
+    600: '#9A9A9E',
+    700: '#FFFFFF',
+    800: '#FFFFFF',
+    900: '#FFFFFF',
+    950: '#1C1C1E',
   },
 };
 
@@ -129,29 +140,29 @@ export const typography = {
 
 export const shadows = {
   sm: Platform.select({
-    ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4 },
-    android: { elevation: 1 },
-    default: { boxShadow: '0 1px 4px rgba(15, 23, 42, 0.05)' },
+    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.3, shadowRadius: 4 },
+    android: { elevation: 2 },
+    default: { boxShadow: '0 1px 4px rgba(0, 0, 0, 0.3)' },
   }),
   md: Platform.select({
-    ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 12 },
-    android: { elevation: 3 },
-    default: { boxShadow: '0 3px 12px rgba(15, 23, 42, 0.07)' },
+    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.35, shadowRadius: 12 },
+    android: { elevation: 4 },
+    default: { boxShadow: '0 3px 12px rgba(0, 0, 0, 0.35)' },
   }),
   lg: Platform.select({
-    ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.09, shadowRadius: 20 },
-    android: { elevation: 6 },
-    default: { boxShadow: '0 6px 20px rgba(15, 23, 42, 0.09)' },
+    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 20 },
+    android: { elevation: 8 },
+    default: { boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4)' },
   }),
   xl: Platform.select({
-    ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.12, shadowRadius: 32 },
-    android: { elevation: 10 },
-    default: { boxShadow: '0 10px 32px rgba(15, 23, 42, 0.12)' },
+    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.45, shadowRadius: 32 },
+    android: { elevation: 12 },
+    default: { boxShadow: '0 10px 32px rgba(0, 0, 0, 0.45)' },
   }),
 };
 
 // Helper for Malayalam text styles - Malayalam script needs more line height
-// and proper letter spacing and font family for correct vertical alignment in APK
+// and proper font family and letter spacing for correct vertical alignment in APK
 export function getLangTextStyle(lang: string) {
   if (lang === 'ml') {
     return {
@@ -174,4 +185,3 @@ export function withLangStyle(style: object, lang: string) {
   }
   return { ...style, includeFontPadding: false };
 }
-

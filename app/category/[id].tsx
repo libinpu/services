@@ -199,8 +199,8 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
   },
   subCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[0],
-    borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.sm, ...shadows.sm,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+    borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.sm,
   },
   subCardContent: { flex: 1 },
   subName: {
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   timeTag: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-    backgroundColor: colors.neutral[100], borderRadius: radius.sm,
+    backgroundColor: colors.neutral[200], borderRadius: radius.sm,
   },
   timeText: {
     fontSize: typography.sizes.sm, color: colors.neutral[600],
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheetCard: {
-    backgroundColor: colors.neutral[0], borderTopLeftRadius: radius.xl,
+    backgroundColor: colors.neutral[100], borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl, paddingBottom: spacing.xl, maxHeight: '80%',
   },
   sheetHandle: {
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     color: colors.neutral[900], fontFamily: typography.fontFamilyBold,
   },
   sheetCloseBtn: {
-    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[100],
+    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200],
     alignItems: 'center', justifyContent: 'center',
   },
   sheetBody: { paddingHorizontal: spacing.lg },
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   sheetBookBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.primary[600], borderRadius: radius.md,
+    backgroundColor: colors.primary[600], borderRadius: radius.full,
     paddingVertical: spacing.md, gap: spacing.xs,
   },
   sheetBookBtnText: {

@@ -260,7 +260,7 @@ export default function LocationSetupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[50],
   },
   flex1: {
     flex: 1,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     backgroundColor: colors.primary[100],
-    borderRadius: radius.sm,
+    borderRadius: radius.full,
   },
   mapBadgeText: {
     fontSize: typography.sizes.xs,
@@ -390,13 +390,13 @@ const styles = StyleSheet.create({
   labelChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
     borderWidth: 1.5,
-    borderColor: colors.neutral[300],
+    borderColor: colors.neutral[200],
     marginRight: spacing.sm,
   },
   labelChipActive: {
-    borderColor: colors.primary[700],
+    borderColor: colors.primary[600],
     backgroundColor: colors.primary[50],
   },
   labelChipText: {

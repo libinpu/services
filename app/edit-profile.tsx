@@ -212,17 +212,16 @@ const styles = StyleSheet.create({
   },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center', height: 52,
-    backgroundColor: colors.neutral[0], borderRadius: radius.md,
+    backgroundColor: colors.neutral[100], borderRadius: radius.md,
     paddingHorizontal: spacing.md, borderWidth: 1.5, borderColor: colors.neutral[200],
-    ...shadows.sm,
   },
   input: {
     flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
     color: colors.neutral[900], fontFamily: typography.fontFamilyRegular,
   },
   locationCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[0],
-    borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.xl, ...shadows.sm,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+    borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.xl,
   },
   locationIcon: {
     width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primary[50],
@@ -261,7 +260,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-    backgroundColor: colors.primary[700], borderRadius: radius.md,
+    backgroundColor: colors.primary[700], borderRadius: radius.full,
     paddingVertical: spacing.md, marginTop: spacing.xl, ...shadows.md,
   },
   saveBtnDisabled: { opacity: 0.6 },

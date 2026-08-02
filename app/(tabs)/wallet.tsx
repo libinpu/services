@@ -184,18 +184,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.sizes.lg,
     fontWeight: '700',
-    color: colors.neutral[900],
+    color: colors.neutral[0],
     marginBottom: spacing.sm,
     fontFamily: typography.fontFamilyBold,
   },
   offerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    ...shadows.sm,
   },
   offerIcon: {
     width: 40,
@@ -212,7 +211,7 @@ const styles = StyleSheet.create({
   offerTitle: {
     fontSize: typography.sizes.sm,
     fontWeight: '700',
-    color: colors.neutral[900],
+    color: colors.neutral[0],
     fontFamily: typography.fontFamilyBold,
   },
   offerDesc: {
@@ -236,11 +235,10 @@ const styles = StyleSheet.create({
   txRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    ...shadows.sm,
   },
   txIcon: {
     width: 40,
@@ -256,7 +254,7 @@ const styles = StyleSheet.create({
   txDesc: {
     fontSize: typography.sizes.sm,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: colors.neutral[0],
     fontFamily: typography.fontFamilyMedium,
   },
   txDate: {

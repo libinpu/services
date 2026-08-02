@@ -13,29 +13,10 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import {
-  ShieldCheck,
-  LayoutDashboard,
-  FileCheck,
-  CalendarClock,
-  Database,
-  Users,
-  Search,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  Award,
-  Bell,
-  ArrowLeft,
-  ChevronRight,
-  Eye,
-  IndianRupee,
-  ExternalLink,
-  Trash2,
-} from 'lucide-react-native';
+import { ShieldCheck, LayoutDashboard, FileCheck, CalendarClock, Database, Users, Search, CircleCheck as CheckCircle2, Circle as XCircle, RefreshCw, Award, Bell, ArrowLeft, ChevronRight, Eye, IndianRupee, ExternalLink, Trash2 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
-import { colors } from '@/lib/theme';
+import { colors, radius } from '@/lib/theme';
 import { ProviderProfile, Booking, Profile } from '@/lib/types';
 
 type AdminTab = 'dashboard' | 'approvals' | 'requests' | 'tables' | 'users';
@@ -188,7 +169,7 @@ export default function AdminScreen() {
   // Block non-admin users from seeing the dashboard
   if (authLoading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[900] }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[50] }}>
         <ActivityIndicator size="large" color={colors.primary[500]} />
       </View>
     );
@@ -196,19 +177,19 @@ export default function AdminScreen() {
 
   if (!profile || profile.role !== 'admin') {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[900], padding: 32 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[50], padding: 32 }}>
         <ShieldCheck size={64} color={colors.error[400]} strokeWidth={1.5} />
-        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 20, textAlign: 'center' }}>
+        <Text style={{ color: colors.neutral[0], fontSize: 22, fontWeight: '700', marginTop: 20, textAlign: 'center' }}>
           Access Denied
         </Text>
-        <Text style={{ color: '#9ca3af', fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 22 }}>
+        <Text style={{ color: colors.neutral[500], fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 22 }}>
           This area is restricted to administrators only. You do not have permission to view this page.
         </Text>
         <TouchableOpacity
           onPress={() => router.replace('/' as any)}
-          style={{ marginTop: 28, backgroundColor: colors.primary[600], borderRadius: 12, paddingHorizontal: 28, paddingVertical: 12 }}
+          style={{ marginTop: 28, backgroundColor: colors.primary[600], borderRadius: radius.full, paddingHorizontal: 28, paddingVertical: 12 }}
         >
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Go to Home</Text>
+          <Text style={{ color: colors.neutral[0], fontWeight: '700', fontSize: 15 }}>Go to Home</Text>
         </TouchableOpacity>
       </View>
     );
@@ -220,10 +201,10 @@ export default function AdminScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ArrowLeft color="#fff" size={20} />
+            <ArrowLeft color={colors.neutral[0]} size={20} />
           </TouchableOpacity>
           <View style={styles.logoBadge}>
-            <ShieldCheck color="#fff" size={20} />
+            <ShieldCheck color={colors.neutral[0]} size={20} />
           </View>
           <View>
             <Text style={styles.headerTitle}>SEVA Admin Panel</Text>
@@ -243,7 +224,7 @@ export default function AdminScreen() {
             style={[styles.tabItem, activeTab === 'dashboard' && styles.activeTabItem]}
             onPress={() => setActiveTab('dashboard')}
           >
-            <LayoutDashboard color={activeTab === 'dashboard' ? colors.primary[500] : '#9CA3AF'} size={16} />
+            <LayoutDashboard color={activeTab === 'dashboard' ? colors.primary[500] : colors.neutral[400]} size={16} />
             <Text style={[styles.tabText, activeTab === 'dashboard' && styles.activeTabText]}>Dashboard</Text>
           </TouchableOpacity>
 
@@ -251,7 +232,7 @@ export default function AdminScreen() {
             style={[styles.tabItem, activeTab === 'approvals' && styles.activeTabItem]}
             onPress={() => setActiveTab('approvals')}
           >
-            <FileCheck color={activeTab === 'approvals' ? colors.primary[500] : '#9CA3AF'} size={16} />
+            <FileCheck color={activeTab === 'approvals' ? colors.primary[500] : colors.neutral[400]} size={16} />
             <Text style={[styles.tabText, activeTab === 'approvals' && styles.activeTabText]}>
               Approvals ({pendingProviders.length})
             </Text>
@@ -261,7 +242,7 @@ export default function AdminScreen() {
             style={[styles.tabItem, activeTab === 'requests' && styles.activeTabItem]}
             onPress={() => setActiveTab('requests')}
           >
-            <CalendarClock color={activeTab === 'requests' ? colors.primary[500] : '#9CA3AF'} size={16} />
+            <CalendarClock color={activeTab === 'requests' ? colors.primary[500] : colors.neutral[400]} size={16} />
             <Text style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
               Service Orders ({bookings.length})
             </Text>
@@ -271,7 +252,7 @@ export default function AdminScreen() {
             style={[styles.tabItem, activeTab === 'tables' && styles.activeTabItem]}
             onPress={() => setActiveTab('tables')}
           >
-            <Database color={activeTab === 'tables' ? colors.primary[500] : '#9CA3AF'} size={16} />
+            <Database color={activeTab === 'tables' ? colors.primary[500] : colors.neutral[400]} size={16} />
             <Text style={[styles.tabText, activeTab === 'tables' && styles.activeTabText]}>Tables Explorer</Text>
           </TouchableOpacity>
 
@@ -279,7 +260,7 @@ export default function AdminScreen() {
             style={[styles.tabItem, activeTab === 'users' && styles.activeTabItem]}
             onPress={() => setActiveTab('users')}
           >
-            <Users color={activeTab === 'users' ? colors.primary[500] : '#9CA3AF'} size={16} />
+            <Users color={activeTab === 'users' ? colors.primary[500] : colors.neutral[400]} size={16} />
             <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>Users ({profiles.length})</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -321,7 +302,7 @@ export default function AdminScreen() {
               <Text style={styles.sectionTitle}>Pending Provider Verification Requests</Text>
               {pendingProviders.length === 0 ? (
                 <View style={styles.emptyCard}>
-                  <CheckCircle2 color="#10B981" size={24} />
+                  <CheckCircle2 color={colors.success[600]} size={24} />
                   <Text style={styles.emptyText}>All provider applications have been reviewed!</Text>
                 </View>
               ) : (
@@ -343,7 +324,7 @@ export default function AdminScreen() {
 
                     <View style={styles.cardActions}>
                       <TouchableOpacity style={styles.btnInspect} onPress={() => setSelectedProvider(prov)}>
-                        <Eye color="#fff" size={14} />
+                        <Eye color={colors.neutral[0]} size={14} />
                         <Text style={styles.btnInspectText}>Inspect Certificate Proofs</Text>
                       </TouchableOpacity>
 
@@ -401,7 +382,7 @@ export default function AdminScreen() {
 
                   <View style={styles.cardActions}>
                     <TouchableOpacity style={styles.btnInspect} onPress={() => setSelectedProvider(prov)}>
-                      <Eye color="#fff" size={14} />
+                      <Eye color={colors.neutral[0]} size={14} />
                       <Text style={styles.btnInspectText}>View Certificates</Text>
                     </TouchableOpacity>
 
@@ -483,7 +464,7 @@ export default function AdminScreen() {
                       style={styles.btnReject} 
                       onPress={() => handleDeleteUser(p.id)}
                     >
-                      <Trash2 color="#EF4444" size={14} />
+                      <Trash2 color={colors.error[600]} size={14} />
                       <Text style={styles.btnRejectText}>Delete User</Text>
                     </TouchableOpacity>
                   </View>
@@ -501,7 +482,7 @@ export default function AdminScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Certificate & Document Proofs</Text>
               <TouchableOpacity onPress={() => setSelectedProvider(null)}>
-                <XCircle color="#9CA3AF" size={24} />
+                <XCircle color={colors.neutral[400]} size={24} />
               </TouchableOpacity>
             </View>
 
@@ -511,8 +492,8 @@ export default function AdminScreen() {
                 {selectedProvider.id_proof_url ? (
                   <Image source={{ uri: selectedProvider.id_proof_url }} style={styles.certImg} />
                 ) : (
-                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }]}>
-                    <Text style={{ color: '#6b7280', fontSize: 13 }}>Not uploaded</Text>
+                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[200] }]}>
+                    <Text style={{ color: colors.neutral[500], fontSize: 13 }}>Not uploaded</Text>
                   </View>
                 )}
 
@@ -520,8 +501,8 @@ export default function AdminScreen() {
                 {selectedProvider.address_proof_url ? (
                   <Image source={{ uri: selectedProvider.address_proof_url }} style={styles.certImg} />
                 ) : (
-                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }]}>
-                    <Text style={{ color: '#6b7280', fontSize: 13 }}>Not uploaded</Text>
+                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[200] }]}>
+                    <Text style={{ color: colors.neutral[500], fontSize: 13 }}>Not uploaded</Text>
                   </View>
                 )}
 
@@ -529,8 +510,8 @@ export default function AdminScreen() {
                 {selectedProvider.police_verification_url ? (
                   <Image source={{ uri: selectedProvider.police_verification_url }} style={styles.certImg} />
                 ) : (
-                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }]}>
-                    <Text style={{ color: '#6b7280', fontSize: 13 }}>Not uploaded</Text>
+                  <View style={[styles.certImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[200] }]}>
+                    <Text style={{ color: colors.neutral[500], fontSize: 13 }}>Not uploaded</Text>
                   </View>
                 )}
               </ScrollView>
@@ -567,13 +548,13 @@ function RouterHook() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.neutral[50],
   },
   header: {
     height: 64,
-    backgroundColor: '#111827',
+    backgroundColor: colors.neutral[100],
     borderBottomWidth: 1,
-    borderBottomColor: '#1F2937',
+    borderBottomColor: colors.neutral[200],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -598,21 +579,21 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: colors.neutral[0],
   },
   headerSub: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.neutral[400],
   },
   refreshBtn: {
     padding: 8,
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.neutral[200],
     borderRadius: 8,
   },
   tabsContainer: {
-    backgroundColor: '#111827',
+    backgroundColor: colors.neutral[100],
     borderBottomWidth: 1,
-    borderBottomColor: '#1F2937',
+    borderBottomColor: colors.neutral[200],
   },
   tabsScroll: {
     paddingHorizontal: 12,
@@ -626,17 +607,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.neutral[200],
   },
   activeTabItem: {
-    backgroundColor: colors.primary[900] + '40',
+    backgroundColor: colors.primary[50],
     borderWidth: 1,
-    borderColor: colors.primary[500] + '60',
+    borderColor: colors.primary[200],
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.neutral[400],
   },
   activeTabText: {
     color: colors.primary[400],
@@ -648,7 +629,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   loadingText: {
-    color: '#9CA3AF',
+    color: colors.neutral[400],
     fontSize: 13,
     marginTop: 12,
   },
@@ -665,62 +646,62 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: colors.neutral[100],
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1F2937',
+    borderColor: colors.neutral[200],
   },
   statLabel: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.neutral[400],
     fontWeight: '500',
   },
   statValAlert: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#F59E0B',
+    color: colors.primary[600],
     marginVertical: 4,
   },
   statValSuccess: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#10B981',
+    color: colors.success[600],
     marginVertical: 4,
   },
   statValInfo: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: colors.primary[600],
     marginVertical: 4,
   },
   statDesc: {
     fontSize: 10,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: colors.neutral[0],
     marginTop: 8,
   },
   emptyCard: {
-    backgroundColor: '#111827',
+    backgroundColor: colors.neutral[100],
     padding: 20,
     borderRadius: 16,
     alignItems: 'center',
     gap: 8,
   },
   emptyText: {
-    color: '#9CA3AF',
+    color: colors.neutral[400],
     fontSize: 13,
   },
   cardItem: {
-    backgroundColor: '#111827',
+    backgroundColor: colors.neutral[100],
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#1F2937',
+    borderColor: colors.neutral[200],
     gap: 12,
   },
   cardHeader: {
@@ -731,60 +712,60 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: colors.neutral[0],
   },
   cardSub: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.neutral[400],
     marginTop: 2,
   },
   badgePending: {
-    backgroundColor: '#F59E0B20',
+    backgroundColor: colors.primary[50],
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: '#F59E0B50',
+    borderColor: colors.primary[200],
   },
   badgePendingText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#F59E0B',
+    color: colors.primary[600],
   },
   badgeApproved: {
-    backgroundColor: '#10B98120',
+    backgroundColor: colors.success[50],
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: '#10B98150',
+    borderColor: colors.success[200],
   },
   badgeRejected: {
-    backgroundColor: '#EF444420',
+    backgroundColor: colors.error[50],
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: '#EF444450',
+    borderColor: colors.error[200],
   },
   badgeText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: colors.neutral[0],
   },
   proofsRow: {
     flexDirection: 'row',
     gap: 8,
   },
   proofPill: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.neutral[200],
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   proofPillText: {
     fontSize: 11,
-    color: '#D1D5DB',
+    color: colors.neutral[500],
   },
   cardActions: {
     flexDirection: 'row',
@@ -796,30 +777,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.neutral[200],
     paddingVertical: 8,
     borderRadius: 10,
   },
   btnInspectText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFF',
+    color: colors.neutral[0],
   },
   btnApprove: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success[600],
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: radius.full,
   },
   btnApproveText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: colors.neutral[0],
   },
   btnReject: {
-    backgroundColor: '#EF444420',
+    backgroundColor: colors.error[50],
     borderWidth: 1,
-    borderColor: '#EF444450',
+    borderColor: colors.error[200],
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
@@ -827,15 +808,15 @@ const styles = StyleSheet.create({
   btnRejectText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#EF4444',
+    color: colors.error[600],
   },
   costText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#10B981',
+    color: colors.success[600],
   },
   tableCard: {
-    backgroundColor: '#111827',
+    backgroundColor: colors.neutral[100],
     borderRadius: 16,
     padding: 16,
     gap: 10,
@@ -843,17 +824,17 @@ const styles = StyleSheet.create({
   tableCardTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: colors.neutral[0],
   },
   tableRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#1F2937',
+    borderBottomColor: colors.neutral[200],
   },
   rowName: {
-    color: '#E5E7EB',
+    color: colors.neutral[500],
     fontSize: 13,
   },
   rowRole: {
@@ -871,7 +852,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: '#111827',
+    backgroundColor: colors.neutral[100],
     borderRadius: 24,
     padding: 20,
     gap: 14,
@@ -884,12 +865,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: colors.neutral[0],
   },
   docLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.neutral[400],
     marginTop: 10,
     marginBottom: 6,
   },
@@ -897,15 +878,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 160,
     borderRadius: 12,
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.neutral[200],
   },
   modalFooter: {
     marginTop: 10,
   },
   btnApproveFull: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success[600],
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: radius.full,
     alignItems: 'center',
   },
 });

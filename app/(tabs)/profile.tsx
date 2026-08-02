@@ -257,11 +257,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.neutral[50] },
   profileHeader: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[0],
-    padding: spacing.lg, ...shadows.sm,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+    padding: spacing.lg,
   },
   avatarWrap: {
-    width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.primary[700],
+    width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.primary[600],
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
   },
   profileInfo: { flex: 1 },
@@ -276,21 +276,21 @@ const styles = StyleSheet.create({
   editBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    backgroundColor: colors.primary[50], borderRadius: radius.md,
+    backgroundColor: colors.primary[50], borderRadius: radius.full,
   },
   editBtnText: {
-    fontSize: typography.sizes.sm, color: colors.primary[700], fontWeight: '600',
+    fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
     fontFamily: typography.fontFamilyMedium,
   },
   infoCardsRow: {
     flexDirection: 'row', paddingHorizontal: spacing.md, marginTop: spacing.md, gap: spacing.sm,
   },
   infoCard: {
-    flex: 1, backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    padding: spacing.md, alignItems: 'center', ...shadows.sm,
+    flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    padding: spacing.md, alignItems: 'center',
   },
   infoCardIcon: {
-    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[100],
+    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200],
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs,
   },
   infoCardValue: {
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   },
   section: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
   providerSwitchCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary[700],
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary[600],
     borderRadius: radius.lg, padding: spacing.lg, ...shadows.md,
   },
   providerSwitchIcon: {
@@ -321,56 +321,56 @@ const styles = StyleSheet.create({
   },
   customerSwitchBtn: {
     marginTop: spacing.sm,
-    backgroundColor: colors.neutral[0],
-    borderRadius: radius.md,
+    backgroundColor: 'transparent',
+    borderRadius: radius.full,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderWidth: 1.5,
+    borderColor: colors.primary[600],
   },
   customerSwitchText: {
     textAlign: 'center',
-    color: colors.primary[700],
+    color: colors.primary[600],
     fontWeight: '700',
     fontFamily: typography.fontFamilyBold,
   },
   sectionTitle: {
-    fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[700],
+    fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[0],
     marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
   },
   contactCard: {
-    backgroundColor: colors.neutral[0], borderRadius: radius.lg, padding: spacing.md, ...shadows.sm,
+    backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md,
   },
   contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs },
   contactIcon: {
-    width: 32, height: 32, borderRadius: radius.sm, backgroundColor: colors.neutral[100],
+    width: 32, height: 32, borderRadius: radius.sm, backgroundColor: colors.neutral[200],
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm,
   },
   contactText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[700],
+    fontSize: typography.sizes.sm, color: colors.neutral[600],
     fontFamily: typography.fontFamilyMedium,
   },
   langToggle: {
-    flexDirection: 'row', backgroundColor: colors.neutral[100], borderRadius: radius.md, padding: 4,
+    flexDirection: 'row', backgroundColor: colors.neutral[200], borderRadius: radius.full, padding: 4,
   },
-  langBtn: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.sm },
-  langBtnActive: { backgroundColor: colors.neutral[0], ...shadows.sm },
+  langBtn: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.full },
+  langBtnActive: { backgroundColor: colors.primary[600] },
   langBtnText: {
-    fontSize: typography.sizes.md, color: colors.neutral[500], fontWeight: '600',
+    fontSize: typography.sizes.md, color: colors.neutral[400], fontWeight: '600',
     fontFamily: typography.fontFamilyMedium,
   },
-  langBtnTextActive: { color: colors.primary[700] },
+  langBtnTextActive: { color: colors.neutral[0] },
   menuItem: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[0],
-    borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, ...shadows.sm,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+    borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
   },
   menuIcon: {
-    width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.neutral[100],
+    width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.neutral[200],
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
   },
   menuInfo: { flex: 1 },
   menuLabel: {
-    fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[800],
+    fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[0],
     fontFamily: typography.fontFamilyMedium,
   },
   menuSublabel: {
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.error[50], borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm,
+    backgroundColor: colors.error[50], borderRadius: radius.full, padding: spacing.md, gap: spacing.sm,
   },
   logoutText: {
     fontSize: typography.sizes.md, fontWeight: '600', color: colors.error[600],

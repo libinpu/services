@@ -270,8 +270,8 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
   },
   summaryCard: {
-    backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    padding: spacing.md, ...shadows.sm,
+    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    padding: spacing.md,
   },
   serviceName: {
     fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, padding: 4,
   },
   scheduleTab: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.sm },
-  scheduleTabActive: { backgroundColor: colors.neutral[0], ...shadows.sm },
+  scheduleTabActive: { backgroundColor: colors.neutral[200] },
   scheduleTabText: {
     fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[500],
     fontFamily: typography.fontFamilyMedium,
@@ -299,9 +299,9 @@ const styles = StyleSheet.create({
   scheduleTabTextActive: { color: colors.primary[700] },
   dateTimePicker: { marginTop: spacing.md },
   dateRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[0],
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
     borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md,
-    marginBottom: spacing.sm, ...shadows.sm,
+    marginBottom: spacing.sm,
   },
   dateText: {
     fontSize: typography.sizes.md, color: colors.neutral[700],
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   timeSlots: { flexDirection: 'row', flexWrap: 'wrap' },
   timeSlot: {
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    backgroundColor: colors.neutral[0], borderRadius: radius.md,
+    backgroundColor: colors.neutral[100], borderRadius: radius.md,
     borderWidth: 1.5, borderColor: colors.neutral[200],
     marginRight: spacing.sm, marginBottom: spacing.sm,
   },
@@ -320,8 +320,8 @@ const styles = StyleSheet.create({
   },
   timeSlotTextActive: { color: colors.primary[700], fontWeight: '700' },
   addressCard: {
-    flexDirection: 'row', backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    padding: spacing.md, ...shadows.sm,
+    flexDirection: 'row', backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    padding: spacing.md,
   },
   addressIcon: {
     width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primary[50],
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     lineHeight: 18, fontFamily: typography.fontFamilyRegular,
   },
   addAddressBtn: {
-    backgroundColor: colors.neutral[0], borderRadius: radius.lg, padding: spacing.md,
+    backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md,
     alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[300], borderStyle: 'dashed',
   },
   addAddressText: {
@@ -349,9 +349,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, marginTop: spacing.md, fontFamily: typography.fontFamilyRegular,
   },
   bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[0],
+    position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
     borderTopWidth: 1, borderTopColor: colors.neutral[200],
   },
-  confirmBtn: { width: '100%' },
+  confirmBtn: { width: '100%', borderRadius: radius.full },
 });

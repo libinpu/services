@@ -137,8 +137,8 @@ export default function BookingsScreen() {
                   <Text style={styles.bookingService}>
                     {lang === 'ml' ? sub?.name_ml : sub?.name_en}
                   </Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) + '15' }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(booking.status) }]}>
+                  <View style={[styles.statusBadge, isActiveStatus(booking.status) && styles.statusBadgeActive, !isActiveStatus(booking.status) && { backgroundColor: getStatusColor(booking.status) + '22' }]}>
+                    <Text style={[styles.statusText, isActiveStatus(booking.status) && styles.statusTextActive, { color: getStatusColor(booking.status) }]}>
                       {t(booking.status as any) || booking.status}
                     </Text>
                   </View>
@@ -200,19 +200,23 @@ export default function BookingsScreen() {
   );
 }
 
+function isActiveStatus(status: string): boolean {
+  return ['pending', 'accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(status);
+}
+
 function getStatusColor(status: string): string {
-  const colors: Record<string, string> = {
-    pending: '#FDBA74',
-    accepted: '#EA580C',
-    on_the_way: '#EA580C',
-    arrived: '#EA580C',
-    in_progress: '#EA580C',
-    awaiting_confirmation: '#FDBA74',
-    completed: '#10b981',
-    cancelled: '#ef4444',
-    rejected: '#ef4444',
+  const colorMap: Record<string, string> = {
+    pending: colors.primary[600],
+    accepted: colors.primary[600],
+    on_the_way: colors.primary[600],
+    arrived: colors.primary[600],
+    in_progress: colors.primary[600],
+    awaiting_confirmation: colors.primary[600],
+    completed: colors.neutral[500],
+    cancelled: colors.error[600],
+    rejected: colors.error[600],
   };
-  return colors[status] || '#6b7280';
+  return colorMap[status] || colors.neutral[500];
 }
 
 const styles = StyleSheet.create({
@@ -239,8 +243,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     marginRight: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.neutral[0],
+    borderRadius: radius.full,
+    backgroundColor: colors.neutral[100],
   },
   tabActive: {
     backgroundColor: colors.primary[600],
@@ -278,7 +282,14 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(154,154,158,0.18)',
+  },
+  statusBadgeActive: {
+    backgroundColor: colors.primary[600],
+  },
+  statusTextActive: {
+    color: colors.neutral[0],
   },
   statusText: {
     fontSize: typography.sizes.xs,
@@ -317,15 +328,15 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
+    borderTopColor: colors.neutral[200],
   },
   actionChip: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    backgroundColor: colors.neutral[50],
-    borderRadius: radius.sm,
+    backgroundColor: colors.neutral[200],
+    borderRadius: radius.full,
     gap: 4,
   },
   actionChipText: {

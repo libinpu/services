@@ -147,10 +147,10 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, paddingHorizontal: spacing.lg },
   groupBanner: {
     flexDirection: 'row', alignItems: 'center', padding: spacing.lg,
-    borderRadius: radius.lg, marginTop: spacing.md, ...shadows.sm,
+    borderRadius: radius.lg, marginTop: spacing.md,
   },
   groupBannerIcon: {
-    width: 56, height: 56, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.5)',
+    width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.neutral[200],
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
   },
   groupBannerText: { flex: 1 },
@@ -165,8 +165,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: spacing.md,
   },
   card: {
-    width: CARD_SIZE, backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    padding: spacing.md, marginBottom: spacing.md, alignItems: 'center', ...shadows.sm,
+    width: CARD_SIZE, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    padding: spacing.md, marginBottom: spacing.md, alignItems: 'center',
   },
   cardPressed: { transform: [{ scale: 0.96 }] },
   cardIcon: {

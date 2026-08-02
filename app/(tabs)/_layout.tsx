@@ -13,7 +13,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary[600],
         tabBarInactiveTintColor: colors.neutral[400],
         tabBarStyle: {
-          borderTopColor: colors.neutral[200],
+          backgroundColor: '#1C1C1E',
+          borderTopColor: '#3A3A3D',
           borderTopWidth: 1,
           paddingBottom: 4,
           paddingTop: 4,
@@ -24,27 +25,36 @@ export default function TabLayout() {
           fontWeight: '600',
           fontFamily: 'Inter, Noto Sans Malayalam, system-ui, sans-serif',
         },
+        tabBarIconStyle: {
+          marginTop: 2,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: t('homeTab'),
-          tabBarIcon: ({ size, color }) => <Home size={size} color={color} strokeWidth={2} />,
+          tabBarIcon: ({ size, color, focused }) => (
+            <Home size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? 'rgba(255,145,66,0.2)' : 'transparent'} />
+          ),
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
           title: t('bookingsTab'),
-          tabBarIcon: ({ size, color }) => <Calendar size={size} color={color} strokeWidth={2} />,
+          tabBarIcon: ({ size, color, focused }) => (
+            <Calendar size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? 'rgba(255,145,66,0.2)' : 'transparent'} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: t('profileTab'),
-          tabBarIcon: ({ size, color }) => <User size={size} color={color} strokeWidth={2} />,
+          tabBarIcon: ({ size, color, focused }) => (
+            <User size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? 'rgba(255,145,66,0.2)' : 'transparent'} />
+          ),
         }}
       />
       <Tabs.Screen

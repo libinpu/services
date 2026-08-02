@@ -152,10 +152,10 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.primary[600]} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.neutral[100]} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary[600]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary[600]} colors={[colors.primary[600]]} />}
         style={styles.scroll}
       >
         {/* Hero Header */}
@@ -418,7 +418,7 @@ export default function HomeScreen() {
         <SafeAreaView style={styles.searchModal} edges={['top']}>
           <View style={styles.searchHeader}>
             <TouchableOpacity style={styles.searchBackBtn} onPress={() => setSearchOpen(false)} activeOpacity={0.6}>
-              <X size={22} color={colors.neutral[700]} strokeWidth={2.2} />
+              <X size={22} color={colors.neutral[300]} strokeWidth={2.2} />
             </TouchableOpacity>
             <View style={styles.searchInputWrap}>
               <Search size={20} color={colors.neutral[400]} strokeWidth={2.2} />
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.neutral[50] },
   scroll: { flex: 1 },
   heroBlock: {
-    backgroundColor: colors.primary[600],
+    backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   heroLeft: { flex: 1 },
   locationLabel: {
     fontSize: typography.sizes.xs,
-    color: 'rgba(255,255,255,0.75)',
+    color: colors.neutral[500],
     fontFamily: typography.fontFamilyRegular,
     marginBottom: 2,
   },
@@ -560,20 +560,20 @@ const styles = StyleSheet.create({
   heroIcons: { flexDirection: 'row', gap: spacing.sm },
   iconBtn: {
     width: 44, height: 44, borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.neutral[200],
     alignItems: 'center', justifyContent: 'center',
   },
-  iconBtnPressed: { backgroundColor: 'rgba(255,255,255,0.28)' },
+  iconBtnPressed: { backgroundColor: colors.neutral[300] },
   bellDot: {
     position: 'absolute', top: 10, right: 11, width: 8, height: 8,
     borderRadius: radius.full, backgroundColor: colors.error[500],
-    borderWidth: 2, borderColor: colors.primary[600],
+    borderWidth: 2, borderColor: colors.neutral[100],
   },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   searchBar: {
     flex: 1, flexDirection: 'row', alignItems: 'center', height: 52,
-    backgroundColor: colors.neutral[0], borderRadius: radius.full,
-    paddingHorizontal: spacing.md, ...shadows.md,
+    backgroundColor: colors.neutral[200], borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
   },
   searchBarPressed: { transform: [{ scale: 0.99 }] },
   searchPlaceholder: {
@@ -582,18 +582,17 @@ const styles = StyleSheet.create({
   },
   filterBtn: {
     width: 52, height: 52, borderRadius: radius.full,
-    backgroundColor: colors.secondary[600], alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
   },
-  filterBtnPressed: { backgroundColor: colors.secondary[700] },
+  filterBtnPressed: { backgroundColor: colors.primary[700] },
   statsRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.neutral[0], marginHorizontal: spacing.lg, marginTop: spacing.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg, ...shadows.sm,
+    backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.md,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg,
   },
   statItem: { flex: 1, alignItems: 'center' },
   statValue: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.primary[700],
+    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.primary[600],
     fontFamily: typography.fontFamilyBold,
   },
   statLabel: {
@@ -612,11 +611,11 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
+    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
     fontFamily: typography.fontFamilyBold, paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
   },
   sectionTitleInline: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
+    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
     fontFamily: typography.fontFamilyBold,
   },
   viewAllText: {
@@ -625,8 +624,8 @@ const styles = StyleSheet.create({
   },
   quickRow: { flexDirection: 'row', paddingHorizontal: spacing.lg },
   quickCard: {
-    flex: 1, backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    padding: spacing.sm, marginHorizontal: spacing.xs / 2, alignItems: 'center', ...shadows.sm,
+    flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    padding: spacing.sm, marginHorizontal: spacing.xs / 2, alignItems: 'center',
   },
   quickCardPressed: { transform: [{ scale: 0.96 }] },
   quickIcon: {
@@ -634,7 +633,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs, backgroundColor: colors.primary[50],
   },
   quickLabel: {
-    fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[800],
+    fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[0],
     fontFamily: typography.fontFamilyBold, textAlign: 'center',
   },
   quickDesc: {
@@ -649,30 +648,30 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   serviceName: {
-    fontSize: typography.sizes.xs, fontWeight: '600', color: colors.neutral[700],
+    fontSize: typography.sizes.xs, fontWeight: '600', color: colors.neutral[600],
     textAlign: 'center', fontFamily: typography.fontFamilyMedium, lineHeight: 15,
   },
   popularScroll: { paddingHorizontal: spacing.lg },
   popularCard: {
-    width: 170, backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    marginRight: spacing.md, overflow: 'hidden', ...shadows.sm,
+    width: 170, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    marginRight: spacing.md, overflow: 'hidden',
   },
   popularImageWrap: { width: '100%', height: 110, position: 'relative' },
   popularImage: { width: '100%', height: '100%' },
   popularRatingBadge: {
     position: 'absolute', top: spacing.xs, left: spacing.xs, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.neutral[0], borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 3, gap: 3,
+    backgroundColor: colors.neutral[200], borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 3, gap: 3,
   },
   popularRatingText: {
-    fontSize: 11, fontWeight: '700', color: colors.neutral[800], fontFamily: typography.fontFamilyBold,
+    fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
   },
   popularHeartBtn: {
     position: 'absolute', top: spacing.xs, right: spacing.xs, width: 28, height: 28,
-    borderRadius: radius.full, backgroundColor: colors.neutral[0], alignItems: 'center', justifyContent: 'center',
+    borderRadius: radius.full, backgroundColor: colors.neutral[200], alignItems: 'center', justifyContent: 'center',
   },
   popularBody: { padding: spacing.sm },
   popularName: {
-    fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[800],
+    fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[0],
     marginBottom: 2, fontFamily: typography.fontFamilyBold,
   },
   popularSubtitle: {
@@ -681,7 +680,7 @@ const styles = StyleSheet.create({
   },
   popularFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   popularBookBtn: {
-    backgroundColor: colors.primary[600], paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.sm, alignSelf: 'flex-start',
+    backgroundColor: colors.primary[600], paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.full, alignSelf: 'flex-start',
   },
   popularBookBtnText: {
     fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
@@ -696,24 +695,24 @@ const styles = StyleSheet.create({
   howItWorksNum: {
     position: 'absolute', top: -4, right: -4, width: 22, height: 22, borderRadius: radius.full,
     backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: colors.neutral[0],
+    borderWidth: 2, borderColor: colors.neutral[50],
   },
   howItWorksNumText: {
     fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
   },
   howItWorksTitle: {
-    fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[800],
+    fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[0],
     textAlign: 'center', marginBottom: 4, fontFamily: typography.fontFamilyBold,
   },
   howItWorksDesc: {
     fontSize: 11, color: colors.neutral[500], textAlign: 'center',
     fontFamily: typography.fontFamilyRegular, lineHeight: 15,
   },
-  howItWorksConnector: { width: 24, height: 2, backgroundColor: colors.primary[200], marginTop: 28 },
+  howItWorksConnector: { width: 24, height: 2, backgroundColor: colors.neutral[200], marginTop: 28 },
   trustRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.neutral[0], marginHorizontal: spacing.lg, marginTop: spacing.lg,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg, ...shadows.sm,
+    backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.lg,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg,
   },
   trustItem: { flex: 1, alignItems: 'center' },
   trustText: {
@@ -756,25 +755,25 @@ const styles = StyleSheet.create({
   },
   searchModal: { flex: 1, backgroundColor: colors.neutral[50] },
   searchHeader: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[0],
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderBottomWidth: 1, borderBottomColor: colors.neutral[200], ...shadows.sm,
+    borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
   },
   searchBackBtn: {
     width: 40, height: 40, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.neutral[100],
+    backgroundColor: colors.neutral[200],
   },
   searchInputWrap: {
     flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: spacing.sm, height: 44,
-    backgroundColor: colors.neutral[100], borderRadius: radius.md, paddingHorizontal: spacing.md,
+    backgroundColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md,
   },
   searchInput: {
     flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
-    color: colors.neutral[900], fontFamily: typography.fontFamilyRegular,
+    color: colors.neutral[0], fontFamily: typography.fontFamilyRegular,
   },
   searchEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   searchEmptyTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '600', color: colors.neutral[700],
+    fontSize: typography.sizes.lg, fontWeight: '600', color: colors.neutral[0],
     marginTop: spacing.md, fontFamily: typography.fontFamilyMedium,
   },
   searchEmptyDesc: {
@@ -788,12 +787,12 @@ const styles = StyleSheet.create({
   },
   searchResultText: { flex: 1, marginLeft: spacing.md },
   searchResultLabel: {
-    fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[900],
+    fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[0],
     fontFamily: typography.fontFamilyMedium,
   },
   searchResultSubtitle: {
     fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
     fontFamily: typography.fontFamilyRegular,
   },
-  searchResultDivider: { height: 1, backgroundColor: colors.neutral[100], marginHorizontal: spacing.md },
+  searchResultDivider: { height: 1, backgroundColor: colors.neutral[200], marginHorizontal: spacing.md },
 });

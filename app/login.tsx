@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
   },
   formCard: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     borderRadius: radius.xl,
     padding: spacing.lg,
     ...shadows.lg,
@@ -227,9 +227,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 52,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
     borderWidth: 1.5,
-    borderColor: colors.neutral[300],
+    borderColor: colors.primary[600],
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: typography.sizes.md,
     fontWeight: '600',
-    color: colors.neutral[700],
+    color: colors.primary[600],
     fontFamily: typography.fontFamilyMedium,
     marginRight: spacing.md,
   },
@@ -285,8 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   modeTabActive: {
-    backgroundColor: colors.neutral[0],
-    ...shadows.sm,
+    backgroundColor: colors.neutral[100],
   },
   modeTabText: {
     fontSize: typography.sizes.sm,
@@ -298,6 +297,8 @@ const styles = StyleSheet.create({
     color: colors.primary[700],
   },
   input: {
+    backgroundColor: colors.neutral[100],
+    borderColor: colors.neutral[200],
     marginBottom: spacing.sm,
   },
   errorText: {

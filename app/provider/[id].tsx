@@ -199,9 +199,9 @@ export default function ProviderProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.neutral[50] },
-  profileHeader: { flexDirection: 'row', backgroundColor: colors.neutral[0], padding: spacing.lg, ...shadows.sm },
+  profileHeader: { flexDirection: 'row', backgroundColor: colors.neutral[100], padding: spacing.lg },
   avatarWrap: {
-    width: 80, height: 80, borderRadius: radius.full, backgroundColor: colors.neutral[100],
+    width: 80, height: 80, borderRadius: radius.full, backgroundColor: colors.neutral[200],
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
   },
   avatarPlaceholder: { width: 80, height: 80, borderRadius: radius.full, backgroundColor: colors.neutral[200] },
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   verifiedBadge: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-    backgroundColor: colors.success[50], borderRadius: radius.sm,
+    backgroundColor: colors.success[50], borderRadius: radius.full,
   },
   verifiedText: {
     fontSize: typography.sizes.xs, color: colors.success[700], fontWeight: '600',
@@ -238,8 +238,8 @@ const styles = StyleSheet.create({
     marginLeft: 4, fontFamily: typography.fontFamilyRegular,
   },
   statsRow: {
-    flexDirection: 'row', backgroundColor: colors.neutral[0], marginHorizontal: spacing.md,
-    marginTop: spacing.md, borderRadius: radius.lg, padding: spacing.md, ...shadows.sm,
+    flexDirection: 'row', backgroundColor: colors.neutral[100], marginHorizontal: spacing.md,
+    marginTop: spacing.md, borderRadius: radius.lg, padding: spacing.md,
   },
   statItem: { flex: 1, alignItems: 'center' },
   statValue: {
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   skillTag: {
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    backgroundColor: colors.primary[50], borderRadius: radius.md,
+    backgroundColor: colors.primary[50], borderRadius: radius.full,
     marginRight: spacing.sm, marginBottom: spacing.sm,
   },
   skillTagText: {
@@ -274,8 +274,8 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
   },
   reviewCard: {
-    backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    padding: spacing.md, marginBottom: spacing.sm, ...shadows.sm,
+    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    padding: spacing.md, marginBottom: spacing.sm,
   },
   reviewHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs,
@@ -291,16 +291,16 @@ const styles = StyleSheet.create({
   reviewTags: { flexDirection: 'row', flexWrap: 'wrap' },
   reviewTag: {
     paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-    backgroundColor: colors.neutral[100], borderRadius: radius.sm,
+    backgroundColor: colors.neutral[200], borderRadius: radius.full,
     marginRight: spacing.xs, marginBottom: spacing.xs,
   },
   reviewTagText: {
     fontSize: typography.sizes.xs, color: colors.neutral[600], fontFamily: typography.fontFamilyRegular,
   },
   bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[0],
+    position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
     borderTopWidth: 1, borderTopColor: colors.neutral[200],
   },
-  bookBtn: { width: '100%' },
+  bookBtn: { width: '100%', borderRadius: radius.full },
 });

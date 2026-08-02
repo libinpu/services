@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.neutral[50] },
   introCard: {
     alignItems: 'center', padding: spacing.xl, margin: spacing.md,
-    backgroundColor: colors.neutral[0], borderRadius: radius.lg, ...shadows.sm,
+    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
   },
   introTitle: {
     fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
@@ -379,8 +379,8 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    backgroundColor: colors.neutral[0], borderRadius: radius.md,
-    borderWidth: 1.5, borderColor: colors.neutral[200], ...shadows.sm,
+    backgroundColor: colors.neutral[100], borderRadius: radius.md,
+    borderWidth: 1.5, borderColor: colors.neutral[200],
   },
   categoryChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
   categoryChipText: {
@@ -390,9 +390,9 @@ const styles = StyleSheet.create({
   categoryChipTextActive: { color: colors.neutral[0] },
   expRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   expInput: {
-    width: 80, height: 52, borderWidth: 1.5, borderColor: colors.neutral[300],
+    width: 80, height: 52, borderWidth: 1.5, borderColor: colors.neutral[200],
     borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.xl,
-    color: colors.neutral[900], backgroundColor: colors.neutral[0], textAlign: 'center',
+    color: colors.neutral[900], backgroundColor: colors.neutral[100], textAlign: 'center',
     fontFamily: typography.fontFamilyBold,
   },
   expLabel: {
@@ -400,14 +400,14 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
   },
   bioInput: {
-    height: 120, borderWidth: 1.5, borderColor: colors.neutral[300], borderRadius: radius.md,
+    height: 120, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md,
     paddingHorizontal: spacing.md, paddingVertical: spacing.md, fontSize: typography.sizes.md,
-    color: colors.neutral[900], backgroundColor: colors.neutral[0],
+    color: colors.neutral[900], backgroundColor: colors.neutral[100],
     fontFamily: typography.fontFamilyRegular,
   },
   uploadCard: {
-    flexDirection: 'row', backgroundColor: colors.neutral[0],
-    borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, ...shadows.sm,
+    flexDirection: 'row', backgroundColor: colors.neutral[100],
+    borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
   },
   uploadArea: {
     width: 80, height: 80, borderRadius: radius.md, overflow: 'hidden',
@@ -428,19 +428,19 @@ const styles = StyleSheet.create({
   },
   removeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.error[50], paddingHorizontal: spacing.sm, paddingVertical: 4,
-    borderRadius: radius.sm, alignSelf: 'flex-start',
+    backgroundColor: 'transparent', paddingHorizontal: spacing.sm, paddingVertical: 4,
+    borderRadius: radius.full, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.error[600],
   },
   removeBtnText: {
     fontSize: typography.sizes.xs, color: colors.error[600], fontWeight: '600',
     fontFamily: typography.fontFamilyMedium,
   },
   chooseBtn: {
-    backgroundColor: colors.primary[50], paddingHorizontal: spacing.md, paddingVertical: 6,
-    borderRadius: radius.sm, alignSelf: 'flex-start',
+    backgroundColor: 'transparent', paddingHorizontal: spacing.md, paddingVertical: 6,
+    borderRadius: radius.full, alignSelf: 'flex-start', borderWidth: 1.5, borderColor: colors.primary[600],
   },
   chooseBtnText: {
-    fontSize: typography.sizes.sm, color: colors.primary[700], fontWeight: '600',
+    fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
     fontFamily: typography.fontFamilyMedium,
   },
   errorText: {
@@ -448,14 +448,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, marginTop: spacing.md, fontFamily: typography.fontFamilyRegular,
   },
   bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[0],
+    position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
     borderTopWidth: 1, borderTopColor: colors.neutral[200],
   },
   submitBtn: { width: '100%' },
   approvedCard: {
     alignItems: 'center', padding: spacing.xl, margin: spacing.md,
-    backgroundColor: colors.neutral[0], borderRadius: radius.lg, ...shadows.sm,
+    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
   },
   approvedIcon: {
     width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.success[50],

@@ -10,6 +10,7 @@ import {
   TextStyle,
   StyleProp,
 } from 'react-native';
+import { ArrowRight } from 'lucide-react-native';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 
 export function ScreenContainer({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
@@ -45,6 +46,7 @@ export function Button({
   loading = false,
   disabled = false,
   style,
+  showArrow = false,
 }: {
   label: string;
   onPress: () => void;
@@ -52,6 +54,7 @@ export function Button({
   loading?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
+  showArrow?: boolean;
 }) {
   const variantStyle = {
     primary: styles.btnPrimary,
@@ -69,6 +72,8 @@ export function Button({
     danger: styles.btnDangerText,
   }[variant];
 
+  const iconColor = variant === 'primary' || variant === 'secondary' || variant === 'danger' ? colors.neutral[0] : colors.primary[600];
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -76,9 +81,12 @@ export function Button({
       style={[styles.btnBase, variantStyle, disabled && styles.btnDisabled, style]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.neutral[0] : colors.primary[600]} />
+        <ActivityIndicator color={iconColor} />
       ) : (
-        <Text style={[styles.btnText, variantTextStyle]}>{label}</Text>
+        <View style={styles.btnContent}>
+          <Text style={[styles.btnText, variantTextStyle]}>{label}</Text>
+          {showArrow && <ArrowRight size={18} color={iconColor} strokeWidth={2.5} />}
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -194,9 +202,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    backgroundColor: colors.neutral[0],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
     paddingTop: spacing.xl,
   },
   headerBtn: {
@@ -209,14 +215,14 @@ const styles = StyleSheet.create({
   },
   headerBtnText: {
     fontSize: 22,
-    color: colors.neutral[800],
+    color: colors.neutral[0],
     includeFontPadding: false,
   },
   headerTitle: {
     flex: 1,
     fontSize: typography.sizes.xl,
     fontWeight: '700',
-    color: colors.neutral[900],
+    color: colors.neutral[0],
     marginLeft: spacing.sm,
     fontFamily: typography.fontFamilyBold,
     includeFontPadding: false,
@@ -227,7 +233,7 @@ const styles = StyleSheet.create({
   btnBase: {
     minHeight: 52,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
@@ -236,7 +242,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[600],
   },
   btnSecondary: {
-    backgroundColor: colors.secondary[500],
+    backgroundColor: colors.neutral[100],
+    borderWidth: 1.5,
+    borderColor: colors.primary[600],
   },
   btnOutline: {
     backgroundColor: 'transparent',
@@ -252,10 +260,15 @@ const styles = StyleSheet.create({
   btnDisabled: {
     opacity: 0.5,
   },
+  btnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   btnText: {
     fontSize: typography.sizes.md,
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
+    fontWeight: '700',
+    fontFamily: typography.fontFamilyBold,
     includeFontPadding: false,
     textAlign: 'center',
   },
@@ -263,7 +276,7 @@ const styles = StyleSheet.create({
     color: colors.neutral[0],
   },
   btnSecondaryText: {
-    color: colors.neutral[0],
+    color: colors.primary[600],
   },
   btnOutlineText: {
     color: colors.primary[600],
@@ -275,63 +288,63 @@ const styles = StyleSheet.create({
     color: colors.neutral[0],
   },
   card: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     borderRadius: radius.lg,
     padding: spacing.md,
-    ...shadows.sm,
   },
   input: {
     minHeight: 52,
     borderWidth: 1.5,
-    borderColor: colors.neutral[300],
+    borderColor: colors.neutral[200],
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     fontSize: typography.sizes.md,
-    color: colors.neutral[900],
-    backgroundColor: colors.neutral[0],
+    color: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     fontFamily: typography.fontFamilyRegular,
     includeFontPadding: false,
   },
   badge: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
+    borderRadius: radius.full,
   },
   badgeDefault: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: 'rgba(255,145,66,0.18)',
   },
   badgeSuccess: {
-    backgroundColor: colors.success[100],
+    backgroundColor: 'rgba(48,209,88,0.18)',
   },
   badgeWarning: {
-    backgroundColor: colors.warning[100],
+    backgroundColor: 'rgba(255,214,10,0.18)',
   },
   badgeError: {
-    backgroundColor: colors.error[100],
+    backgroundColor: 'rgba(255,69,58,0.18)',
   },
   badgeText: {
     fontSize: typography.sizes.xs,
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
+    fontWeight: '700',
+    fontFamily: typography.fontFamilyBold,
   },
   badgeDefaultText: {
-    color: colors.neutral[600],
+    color: colors.primary[600],
   },
   badgeSuccessText: {
-    color: colors.success[700],
+    color: colors.success[600],
   },
   badgeWarningText: {
-    color: colors.warning[700],
+    color: colors.warning[600],
   },
   badgeErrorText: {
-    color: colors.error[700],
+    color: colors.error[600],
   },
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
+    backgroundColor: colors.neutral[50],
   },
   loadingText: {
     marginTop: spacing.md,
@@ -348,8 +361,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: typography.sizes.lg,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: colors.neutral[500],
     fontFamily: typography.fontFamilyMedium,
+  },
+  secondaryText: {
+    color: colors.neutral[500],
+    fontFamily: typography.fontFamilyRegular,
   },
   emptyDesc: {
     marginTop: spacing.sm,
@@ -363,6 +380,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
+    backgroundColor: colors.neutral[50],
   },
   errorText: {
     fontSize: typography.sizes.md,
@@ -381,7 +399,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.sizes.lg,
     fontWeight: '700',
-    color: colors.neutral[900],
+    color: colors.neutral[0],
     fontFamily: typography.fontFamilyBold,
   },
 });

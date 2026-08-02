@@ -185,11 +185,10 @@ const styles = StyleSheet.create({
   providerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     borderRadius: radius.lg,
     padding: spacing.md,
     margin: spacing.md,
-    ...shadows.sm,
   },
   providerAvatar: {
     width: 48,
@@ -246,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     borderRadius: radius.lg,
     borderWidth: 1.5,
     borderColor: colors.neutral[200],
@@ -269,12 +268,12 @@ const styles = StyleSheet.create({
   commentInput: {
     minHeight: 100,
     borderWidth: 1.5,
-    borderColor: colors.neutral[300],
+    borderColor: colors.neutral[200],
     borderRadius: radius.lg,
     padding: spacing.md,
     fontSize: typography.sizes.md,
     color: colors.neutral[900],
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     fontFamily: typography.fontFamilyRegular,
   },
   photoUpload: {
@@ -305,7 +304,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopWidth: 1,
@@ -313,5 +312,6 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     width: '100%',
+    borderRadius: radius.full,
   },
 });

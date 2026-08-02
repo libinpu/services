@@ -179,8 +179,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.neutral[50] },
   modeContainer: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingVertical: spacing.md, gap: spacing.sm },
   modeCard: {
-    flex: 1, backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    padding: spacing.md, borderWidth: 2, borderColor: 'transparent', ...shadows.sm,
+    flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    padding: spacing.md, borderWidth: 2, borderColor: 'transparent',
   },
   modeCardActive: { borderColor: colors.primary[600], backgroundColor: colors.primary[50] },
   modeIcon: {
@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
   modeDescActive: { color: colors.primary[600] },
   autoContent: { paddingHorizontal: spacing.md },
   autoInfoCard: {
-    backgroundColor: colors.neutral[0], borderRadius: radius.lg,
-    padding: spacing.xl, alignItems: 'center', ...shadows.sm,
+    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    padding: spacing.xl, alignItems: 'center',
   },
   autoInfoIcon: {
     width: 64, height: 64, borderRadius: radius.xl, backgroundColor: colors.primary[50],
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm, color: colors.neutral[500],
     textAlign: 'center', marginBottom: spacing.md, fontFamily: typography.fontFamilyRegular,
   },
-  autoBtn: { width: '100%', marginTop: spacing.lg },
+  autoBtn: { width: '100%', marginTop: spacing.lg, borderRadius: radius.full },
   providersList: { paddingHorizontal: spacing.md },
   noProviders: { padding: spacing.xl, alignItems: 'center' },
   noProvidersText: {
@@ -223,11 +223,11 @@ const styles = StyleSheet.create({
     textAlign: 'center', fontFamily: typography.fontFamilyRegular,
   },
   providerCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[0],
-    borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, ...shadows.sm,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+    borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
   },
   providerAvatar: {
-    width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[100],
+    width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[200],
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
   },
   providerAvatarPlaceholder: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[200] },
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   verifiedBadge: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs, paddingVertical: 2,
-    backgroundColor: colors.success[50], borderRadius: radius.sm,
+    backgroundColor: colors.success[50], borderRadius: radius.full,
   },
   verifiedText: {
     fontSize: typography.sizes.xs, color: colors.success[700], fontWeight: '600',

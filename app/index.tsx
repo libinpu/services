@@ -119,7 +119,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.neutral[50],
   },
   skipRow: {
     flexDirection: 'row',
