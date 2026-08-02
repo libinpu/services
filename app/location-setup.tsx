@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { MapWebView } from '@/components/MapWebView';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Button, Input } from '@/components/ui';
-import { MapPin, Navigation, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Crosshair } from 'lucide-react-native';
+import { Navigation, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Crosshair } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 const THRISSUR_BOUNDS = {
@@ -32,10 +33,14 @@ export default function LocationSetupScreen() {
   const [step, setStep] = useState<'permission' | 'map' | 'details' | 'outside' | 'denied'>('permission');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reverseGeocoding, setReverseGeocoding] = useState(false);
+  const [reverseGeocodeText, setReverseGeocodeText] = useState<string | null>(null);
   const [label, setLabel] = useState('Home');
   const [customLabel, setCustomLabel] = useState('');
   const [addressLine, setAddressLine] = useState('');
   const [area, setArea] = useState('');
+  const [city, setCity] = useState('');
+  const [stateName, setStateName] = useState('');
   const [pincode, setPincode] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -115,37 +120,17 @@ export default function LocationSetupScreen() {
       borderRadius: radius.lg,
       overflow: 'hidden',
     },
-    mapPlaceholder: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primary[50],
-      borderRadius: radius.lg,
-    },
-    mapCoordText: {
-      fontSize: typography.sizes.sm,
-      color: colors.neutral[600],
-      marginTop: spacing.md,
-      fontFamily: typography.fontFamilyMedium,
-    },
     mapHintText: {
       fontSize: typography.sizes.md,
       color: colors.neutral[700],
-      marginTop: spacing.xs,
       fontFamily: typography.fontFamilyMedium,
     },
-    mapBadge: {
-      marginTop: spacing.md,
+    addressPreview: {
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
-      backgroundColor: colors.primary[100],
-      borderRadius: radius.full,
-    },
-    mapBadgeText: {
-      fontSize: typography.sizes.xs,
-      color: colors.primary[700],
-      fontWeight: '600',
-      fontFamily: typography.fontFamilyMedium,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.neutral[50],
+      borderTopWidth: 1,
+      borderTopColor: colors.neutral[200],
     },
     mapFooter: {
       padding: spacing.lg,
@@ -213,15 +198,56 @@ export default function LocationSetupScreen() {
         return;
       }
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.Highest,
       });
       const { latitude, longitude } = location.coords;
       setCoords({ lat: latitude, lng: longitude });
       setStep('map');
+      reverseGeocode(latitude, longitude);
     } catch (e: any) {
       setError(e.message || t('locationError'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    setReverseGeocoding(true);
+    setReverseGeocodeText(null);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=geocodejson&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      if (!res.ok) throw new Error('Reverse geocode failed');
+      const data = await res.json();
+      const result = data.results?.[0];
+      const addr = result?.components || data.address || {};
+      const houseNo = addr.house_number || '';
+      const road = addr.road || addr.pedestrian || addr.footway || '';
+      const neighbourhood = addr.neighbourhood || addr.hamlet || '';
+      const suburb = addr.suburb || addr.residential || '';
+      const locality = addr.locality || addr.quarter || '';
+      const village = addr.village || '';
+      const town = addr.town || '';
+      const city = addr.city || addr.municipality || town || village || 'Thrissur';
+      const county = addr.county || addr.state_district || 'Thrissur';
+      const state = addr.state || 'Kerala';
+      const pin = addr.postcode || '';
+      const line1 = [houseNo, road].filter(Boolean).join(' ');
+      const areaName = [neighbourhood, suburb, locality].filter(Boolean).join(', ') || village || town || '';
+      const fullLine = [line1, areaName].filter(Boolean).join(', ');
+      const displayName = result?.formatted || data.display_name || `${areaName}, ${city}, ${state}`;
+      setAddressLine(fullLine || (displayName ? displayName.split(',').slice(0, 2).join(', ') : ''));
+      setArea(areaName || city);
+      setCity(city);
+      setStateName(state);
+      setPincode(pin);
+      setReverseGeocodeText(displayName);
+    } catch (e) {
+      setReverseGeocodeText(null);
+    } finally {
+      setReverseGeocoding(false);
     }
   };
 
@@ -247,9 +273,9 @@ export default function LocationSetupScreen() {
         label: finalLabel,
         address_line: addressLine || 'Location confirmed on map',
         area: area || 'Thrissur',
-        city: 'Thrissur',
+        city: city || 'Thrissur',
         district: 'Thrissur',
-        state: 'Kerala',
+        state: stateName || 'Kerala',
         pincode: pincode || '680001',
         latitude: coords?.lat || 10.52,
         longitude: coords?.lng || 76.21,
@@ -316,16 +342,27 @@ export default function LocationSetupScreen() {
             <Text style={styles.mapDesc}>{t('dragPin')}</Text>
           </View>
           <View style={styles.mapArea}>
-            <View style={styles.mapPlaceholder}>
-              <MapPin size={48} color={colors.primary[700]} strokeWidth={1.5} />
-              <Text style={styles.mapCoordText}>
-                {coords?.lat.toFixed(4)}, {coords?.lng.toFixed(4)}
+            {coords && (
+              <MapWebView
+                lat={coords.lat}
+                lng={coords.lng}
+                onPinDrag={(lat, lng) => {
+                  setCoords({ lat, lng });
+                  reverseGeocode(lat, lng);
+                }}
+              />
+            )}
+          </View>
+          <View style={styles.addressPreview}>
+            {reverseGeocoding ? (
+              <ActivityIndicator size="small" color={colors.primary[600]} />
+            ) : reverseGeocodeText ? (
+              <Text style={styles.mapHintText} numberOfLines={3}>
+                {reverseGeocodeText}
               </Text>
-              <Text style={styles.mapHintText}>Thrissur, Kerala</Text>
-              <View style={styles.mapBadge}>
-                <Text style={styles.mapBadgeText}>Map View</Text>
-              </View>
-            </View>
+            ) : (
+              <Text style={styles.mapHintText}>{coords?.lat.toFixed(5)}, {coords?.lng.toFixed(5)}</Text>
+            )}
           </View>
           <View style={styles.mapFooter}>
             <Button label={t('confirmAddress')} onPress={handleConfirmPin} style={styles.actionBtn} />
