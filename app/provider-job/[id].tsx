@@ -9,7 +9,8 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { BookingWithDetails } from '@/lib/types';
-import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck } from 'lucide-react-native';
+import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler } from 'lucide-react-native';
+import { formatDistance, formatEta } from '@/lib/distance';
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -224,19 +225,42 @@ export default function ProviderJobDetailScreen() {
               {status === 'on_the_way' && (
                 <View style={styles.mapEtaBadge}>
                   <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
-                  <Text style={styles.mapEtaText}>On the way</Text>
+                  <Text style={styles.mapEtaText}>{booking.estimated_eta_mins ? formatEta(booking.estimated_eta_mins) : 'On the way'}</Text>
                 </View>
               )}
               {status === 'accepted' && (
                 <View style={styles.mapEtaBadge}>
                   <Clock size={14} color={colors.neutral[0]} strokeWidth={2.5} />
-                  <Text style={styles.mapEtaText}>Start navigation</Text>
+                  <Text style={styles.mapEtaText}>{booking.distance_km ? formatDistance(booking.distance_km) : 'Start navigation'}</Text>
                 </View>
               )}
               {status === 'arrived' && (
                 <View style={[styles.mapEtaBadge, { backgroundColor: colors.success[600] }]}>
                   <CheckCircle size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                   <Text style={styles.mapEtaText}>Arrived</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {['accepted', 'on_the_way', 'arrived'].includes(status) && (
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm }}>
+              {booking.distance_km != null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ruler size={14} color={colors.primary[600]} strokeWidth={2} />
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: '600', color: colors.primary[700], fontFamily: typography.fontFamilyMedium }}>
+                    {formatDistance(booking.distance_km)}
+                  </Text>
+                </View>
+              )}
+              {booking.estimated_eta_mins != null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Navigation size={14} color={colors.success[600]} strokeWidth={2} />
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: '600', color: colors.success[600], fontFamily: typography.fontFamilyMedium }}>
+                    ETA {formatEta(booking.estimated_eta_mins)}
+                  </Text>
                 </View>
               )}
             </View>
