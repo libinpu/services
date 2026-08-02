@@ -99,6 +99,9 @@ export interface ProviderProfile {
   id_proof_url: string | null;
   address_proof_url: string | null;
   police_verification_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  last_location_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -145,6 +148,8 @@ export interface Booking {
   cancellation_reason: string | null;
   created_at: string;
   updated_at: string;
+  estimated_eta_mins: number | null;
+  distance_km: number | null;
 }
 
 export interface BookingItem {

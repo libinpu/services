@@ -11,7 +11,7 @@ import { LoadingState, ErrorState, Button } from '@/components/ui';
 import type { BookingWithDetails, ProviderApplication, ProviderWithProfile } from '@/lib/types';
 import {
   ZapOff, Clock, MapPin, Star, Check, X, ChevronRight,
-  TrendingUp, Briefcase, Award, Bell, User, Navigation,
+  TrendingUp, Briefcase, Award, Bell, User, Navigation, Ruler, MapPinned,
 } from 'lucide-react-native';
 
 export default function ProviderDashboardScreen() {
@@ -195,7 +195,24 @@ export default function ProviderDashboardScreen() {
     if (!session?.user?.id) return;
     const newOnline = !isOnline;
     setIsOnline(newOnline);
-    await supabase.from('provider_profiles').update({ is_online: newOnline, updated_at: new Date().toISOString() }).eq('id', session.user.id);
+    const updateData: any = { is_online: newOnline, updated_at: new Date().toISOString() };
+    // When going online, try to capture the provider's current location
+    if (newOnline) {
+      try {
+        const { getCurrentPositionAsync } = await import('expo-location');
+        const { granted } = await (await import('expo-location')).requestForegroundPermissionsAsync();
+        if (granted) {
+          const pos = await getCurrentPositionAsync({ accuracy: 3 });
+          updateData.latitude = pos.coords.latitude;
+          updateData.longitude = pos.coords.longitude;
+          updateData.last_location_at = new Date().toISOString();
+        }
+      } catch (e) {
+        // Location permission denied or unavailable — proceed without location
+      }
+    }
+    await supabase.from('provider_profiles').update(updateData).eq('id', session.user.id);
+    fetchData();
   };
 
   const handleAcceptJob = async (jobId: string) => {
@@ -308,8 +325,12 @@ export default function ProviderDashboardScreen() {
           </View>
 
           <View style={styles.modeRow}>
-            <TouchableOpacity style={styles.modeButton} onPress={() => router.replace('/(tabs)/index' as any)}>
-              <Text style={styles.modeButtonText}>Switch to Customer</Text>
+            <TouchableOpacity style={[styles.modeButton, { flex: 1, marginRight: spacing.xs }]} onPress={() => router.push('/nearby-requests' as any)}>
+              <MapPinned size={16} color={colors.neutral[0]} strokeWidth={2.5} />
+              <Text style={styles.modeButtonText}>  {lang === 'ml' ? 'അടുത്തുള്ള അഭ്യർത്ഥനകൾ' : 'Nearby Requests'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.modeButton, { flex: 1, marginLeft: spacing.xs }]} onPress={() => router.replace('/(tabs)/index' as any)}>
+              <Text style={styles.modeButtonText}>{lang === 'ml' ? 'ഉപഭോക്താവ്' : 'Customer'}</Text>
             </TouchableOpacity>
           </View>
         </View>
