@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { WebView } from 'react-native-webview';
+import { MapWebView } from '@/components/MapWebView';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -343,18 +343,12 @@ export default function LocationSetupScreen() {
           </View>
           <View style={styles.mapArea}>
             {coords && (
-              <WebView
-                source={{
-                  html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><style>html,body,#map{margin:0;padding:0;width:100%;height:100%;}</style></head><body><div id="map"></div><script>var map=L.map('map',{zoomControl:true,attributionControl:false}).setView([${coords.lat},${coords.lng}],16);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);var marker=L.marker([${coords.lat},${coords.lng}],{draggable:true}).addTo(map);marker.on('dragend',function(e){var p=e.target.getLatLng();window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng}));});</script></body></html>`,
-                }}
-                style={{ flex: 1 }}
-                javaScriptEnabled={true}
-                onMessage={(event) => {
-                  try {
-                    const data = JSON.parse(event.nativeEvent.data);
-                    setCoords({ lat: data.lat, lng: data.lng });
-                    reverseGeocode(data.lat, data.lng);
-                  } catch (e) {}
+              <MapWebView
+                lat={coords.lat}
+                lng={coords.lng}
+                onPinDrag={(lat, lng) => {
+                  setCoords({ lat, lng });
+                  reverseGeocode(lat, lng);
                 }}
               />
             )}
