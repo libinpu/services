@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -196,11 +196,18 @@ export default function BookingsScreen() {
     },
   });
 
+  const params = useLocalSearchParams<{ tab?: string }>();
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
-  const [activeTab, setActiveTab] = useState<TabKey>('upcoming');
+  const [activeTab, setActiveTab] = useState<TabKey>((params.tab as TabKey) || 'upcoming');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (params.tab && ['upcoming', 'ongoing', 'completed', 'cancelled'].includes(params.tab)) {
+      setActiveTab(params.tab as TabKey);
+    }
+  }, [params.tab]);
 
   const fetchBookings = useCallback(async () => {
     if (!session?.user?.id) return;
@@ -359,7 +366,7 @@ export default function BookingsScreen() {
 
                 {booking.status === 'completed' && (
                   <View style={styles.bookingActions}>
-                    <TouchableOpacity style={styles.actionChip} onPress={() => router.push(`/category/${sub?.category_id}`)}>
+                    <TouchableOpacity style={styles.actionChip} onPress={() => router.push(`/booking/new?subId=${sub?.id}&mode=manual&providerId=${provider?.id}`)}>
                       <RotateCw size={14} color={colors.accent[500]} strokeWidth={2} />
                       <Text style={styles.actionChipText}>{t('rebook')}</Text>
                     </TouchableOpacity>

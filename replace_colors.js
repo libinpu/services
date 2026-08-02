@@ -21,7 +21,7 @@ function walkDir(dir, callback) {
   });
 }
 
-walkDir('./app', function(filePath) {
+walkDir('./components', function(filePath) {
   if (filePath.endsWith('.tsx')) {
     let content = fs.readFileSync(filePath, 'utf8');
     let changed = false;

@@ -483,8 +483,8 @@ export default function HomeScreen() {
           <View style={styles.quickRow}>
             <QuickAction icon={Siren} label={t('emergency')} desc={t('emergencyDesc')} onPress={() => setSearchOpen(true)} />
             <QuickAction icon={CalendarClock} label={t('scheduleService')} desc={t('scheduleDesc')} onPress={() => setSearchOpen(true)} />
-            <QuickAction icon={Navigation} label={t('trackService')} desc={t('trackDesc')} onPress={() => router.push('/(tabs)/bookings')} />
-            <QuickAction icon={RefreshCw} label={t('rebookService')} desc={t('rebookDesc')} onPress={() => router.push('/(tabs)/bookings')} />
+            <QuickAction icon={Navigation} label={t('trackService')} desc={t('trackDesc')} onPress={() => router.push('/(tabs)/bookings?tab=ongoing')} />
+            <QuickAction icon={RefreshCw} label={t('rebookService')} desc={t('rebookDesc')} onPress={() => router.push('/(tabs)/bookings?tab=completed')} />
           </View>
         </View>
 
@@ -659,7 +659,7 @@ export default function HomeScreen() {
             <View style={styles.searchInputWrap}>
               <Search size={20} color={colors.neutral[500]} strokeWidth={2.2} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any)]}
                 placeholder={t('searchServices')}
                 placeholderTextColor={colors.neutral[500]}
                 value={searchQuery}

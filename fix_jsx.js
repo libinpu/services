@@ -9,7 +9,7 @@ function walkDir(dir, callback) {
   });
 }
 
-walkDir('./app', function(filePath) {
+walkDir('./components', function(filePath) {
   if (filePath.endsWith('.tsx')) {
     let content = fs.readFileSync(filePath, 'utf8');
     let newContent = content.replace(/([a-zA-Z0-9_]+)=colors\.([a-zA-Z0-9_\[\]]+)/g, '$1={colors.$2}');

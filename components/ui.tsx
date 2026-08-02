@@ -23,7 +23,7 @@ function makeStyles() {
     },
     // Premium round header style with slate blue bg (#334E68)
     header: {
-      backgroundColor: '#334E68',
+      backgroundColor: colors.primary[600],
       borderBottomLeftRadius: radius.xl,
       borderBottomRightRadius: radius.xl,
       paddingHorizontal: spacing.lg,
@@ -50,7 +50,7 @@ function makeStyles() {
       flex: 1,
       fontSize: typography.sizes.xl,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: colors.neutral[100],
       fontFamily: typography.fontFamilyBold,
       includeFontPadding: false,
     },
@@ -75,17 +75,17 @@ function makeStyles() {
       ...shadows.sm,
     },
     btnPrimary: {
-      backgroundColor: '#F46A45', // Coral Orange CTA
+      backgroundColor: colors.accent[500], // Coral Orange CTA
     },
     btnSecondary: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.neutral[100],
       borderWidth: 1.5,
-      borderColor: '#F46A45',
+      borderColor: colors.accent[500],
     },
     btnOutline: {
       backgroundColor: 'transparent',
       borderWidth: 1.5,
-      borderColor: '#F46A45',
+      borderColor: colors.accent[500],
     },
     btnGhost: {
       backgroundColor: 'transparent',
@@ -112,40 +112,40 @@ function makeStyles() {
       textAlign: 'center',
     },
     btnPrimaryText: {
-      color: '#FFFFFF',
+      color: colors.neutral[100],
     },
     btnSecondaryText: {
-      color: '#F46A45',
+      color: colors.accent[500],
     },
     btnOutlineText: {
-      color: '#F46A45',
+      color: colors.accent[500],
     },
     btnGhostText: {
-      color: '#F46A45',
+      color: colors.accent[500],
     },
     btnDangerText: {
-      color: '#FFFFFF',
+      color: colors.neutral[100],
     },
     card: {
-      backgroundColor: '#FFFFFF', // Clean white background
+      backgroundColor: colors.neutral[100], // Clean white background
       borderRadius: radius.xl, // Large rounded corners 22-28px
       padding: spacing.lg, // Generous padding
       marginHorizontal: spacing.md,
       marginVertical: spacing.sm,
       borderWidth: 1,
-      borderColor: '#E8EEF4',
+      borderColor: colors.neutral[200],
       ...shadows.md, // Soft shadow / subtle elevation
     },
     input: {
       minHeight: 54,
       borderWidth: 1,
-      borderColor: '#E8EEF4',
+      borderColor: colors.neutral[200],
       borderRadius: radius.md,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       fontSize: typography.sizes.md,
-      color: '#233142',
-      backgroundColor: '#FFFFFF',
+      color: colors.neutral[900],
+      backgroundColor: colors.neutral[100],
       fontFamily: typography.fontFamilyRegular,
       includeFontPadding: false,
       ...shadows.sm,
@@ -194,7 +194,7 @@ function makeStyles() {
     loadingText: {
       marginTop: spacing.md,
       fontSize: typography.sizes.sm,
-      color: '#7B8794',
+      color: colors.neutral[500],
       fontFamily: typography.fontFamilyRegular,
     },
     empty: {
@@ -206,13 +206,13 @@ function makeStyles() {
     emptyTitle: {
       fontSize: typography.sizes.lg,
       fontWeight: '600',
-      color: '#7B8794',
+      color: colors.neutral[500],
       fontFamily: typography.fontFamilyMedium,
     },
     emptyDesc: {
       marginTop: spacing.sm,
       fontSize: typography.sizes.sm,
-      color: '#7B8794',
+      color: colors.neutral[500],
       textAlign: 'center',
       fontFamily: typography.fontFamilyRegular,
     },
@@ -240,7 +240,7 @@ function makeStyles() {
     sectionTitle: {
       fontSize: typography.sizes.lg,
       fontWeight: '700',
-      color: '#233142',
+      color: colors.neutral[900],
       fontFamily: typography.fontFamilyBold,
     },
   });
@@ -291,7 +291,7 @@ export function Header({
       <View style={styles.headerRow}>
         {onBack && (
           <TouchableOpacity onPress={onBack} style={styles.headerBtn} activeOpacity={0.7}>
-            <ChevronLeft size={22} color="#FFFFFF" strokeWidth={2.5} />
+            <ChevronLeft size={22} color={colors.neutral[100]} strokeWidth={2.5} />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>{title}</Text>
@@ -336,7 +336,7 @@ export function Button({
     danger: styles.btnDangerText,
   }[variant];
 
-  const iconColor = variant === 'primary' ? '#FFFFFF' : '#F46A45';
+  const iconColor = variant === 'primary' ? colors.neutral[100] : colors.accent[500];
 
   return (
     <TouchableOpacity
@@ -392,11 +392,11 @@ export function Input({
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor="#7B8794"
+      placeholderTextColor={colors.neutral[500]}
       secureTextEntry={secureTextEntry}
       keyboardType={keyboardType}
       autoCapitalize={autoCapitalize}
-      style={[styles.input, style]}
+      style={[styles.input, style, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any)]}
     />
   );
 }
@@ -426,7 +426,7 @@ export function LoadingState({ label }: { label?: string }) {
   const styles = makeStyles();
   return (
     <View style={styles.loading}>
-      <ActivityIndicator size="large" color="#F46A45" />
+      <ActivityIndicator size="large" color={colors.accent[500]} />
       {label && <Text style={styles.loadingText}>{label}</Text>}
     </View>
   );
