@@ -32,6 +32,8 @@ export default function LocationSetupScreen() {
   const [step, setStep] = useState<'permission' | 'map' | 'details' | 'outside' | 'denied'>('permission');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reverseGeocoding, setReverseGeocoding] = useState(false);
+  const [reverseGeocodeText, setReverseGeocodeText] = useState<string | null>(null);
   const [label, setLabel] = useState('Home');
   const [customLabel, setCustomLabel] = useState('');
   const [addressLine, setAddressLine] = useState('');
@@ -218,10 +220,40 @@ export default function LocationSetupScreen() {
       const { latitude, longitude } = location.coords;
       setCoords({ lat: latitude, lng: longitude });
       setStep('map');
+      reverseGeocode(latitude, longitude);
     } catch (e: any) {
       setError(e.message || t('locationError'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    setReverseGeocoding(true);
+    setReverseGeocodeText(null);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      if (!res.ok) throw new Error('Reverse geocode failed');
+      const data = await res.json();
+      const addr = data.address || {};
+      const line1 = [addr.building, addr.road, addr.neighbourhood].filter(Boolean).join(', ');
+      const areaName = addr.suburb || addr.village || addr.town || addr.city_district || addr.county || '';
+      const city = addr.city || addr.town || addr.village || 'Thrissur';
+      const district = addr.county || addr.state_district || 'Thrissur';
+      const state = addr.state || 'Kerala';
+      const pin = addr.postcode || '';
+      const fullLine = [line1, areaName].filter(Boolean).join(', ');
+      setAddressLine(fullLine || (data.display_name ? data.display_name.split(',').slice(0, 2).join(', ') : ''));
+      setArea(areaName || city);
+      setPincode(pin);
+      setReverseGeocodeText(data.display_name || `${areaName}, ${city}, ${state}`);
+    } catch (e) {
+      setReverseGeocodeText(null);
+    } finally {
+      setReverseGeocoding(false);
     }
   };
 
@@ -321,7 +353,15 @@ export default function LocationSetupScreen() {
               <Text style={styles.mapCoordText}>
                 {coords?.lat.toFixed(4)}, {coords?.lng.toFixed(4)}
               </Text>
-              <Text style={styles.mapHintText}>Thrissur, Kerala</Text>
+              {reverseGeocoding ? (
+                <ActivityIndicator size="small" color={colors.primary[600]} style={{ marginTop: spacing.xs }} />
+              ) : reverseGeocodeText ? (
+                <Text style={[styles.mapHintText, { textAlign: 'center', paddingHorizontal: spacing.md }]} numberOfLines={2}>
+                  {reverseGeocodeText}
+                </Text>
+              ) : (
+                <Text style={styles.mapHintText}>Thrissur, Kerala</Text>
+              )}
               <View style={styles.mapBadge}>
                 <Text style={styles.mapBadgeText}>Map View</Text>
               </View>
