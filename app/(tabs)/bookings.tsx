@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
-import { LoadingState, ErrorState, EmptyState, Button } from '@/components/ui';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui';
 import type { BookingWithDetails } from '@/lib/types';
 import { Calendar, Clock, IndianRupee, ChevronRight, RotateCw, Download } from 'lucide-react-native';
 
@@ -24,53 +24,94 @@ export default function BookingsScreen() {
       flex: 1,
       backgroundColor: colors.neutral[50],
     },
+    // Rounded header style
     header: {
+      backgroundColor: colors.primary[600],
+      borderBottomLeftRadius: 36,
+      borderBottomRightRadius: 36,
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.sm,
+      paddingTop: Platform.OS === 'ios' ? 50 : spacing.lg,
+      paddingBottom: 40,
+      ...shadows.lg,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    topCircle1: {
+      position: 'absolute',
+      top: -30,
+      right: -30,
+      width: 140,
+      height: 140,
+      borderRadius: radius.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    topCircle2: {
+      position: 'absolute',
+      bottom: -40,
+      left: -20,
+      width: 100,
+      height: 100,
+      borderRadius: radius.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.04)',
     },
     headerTitle: {
-      fontSize: typography.sizes.xxxl,
+      fontSize: 22,
       fontWeight: '700',
-      color: colors.neutral[900],
+      color: colors.neutral[100],
       fontFamily: typography.fontFamilyBold,
+      textAlign: 'center',
     },
+    // Pill shaped tabs section
     tabBar: {
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginTop: -24, // Overlapping card style
+      marginBottom: spacing.md,
+      zIndex: 10,
+    },
+    tabBarScroll: {
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.full,
+      padding: 4,
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
+      ...shadows.md,
     },
     tab: {
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      marginRight: spacing.sm,
+      paddingVertical: 10,
+      marginRight: spacing.xs,
       borderRadius: radius.full,
-      backgroundColor: colors.neutral[100],
     },
     tabActive: {
-      backgroundColor: colors.primary[600],
+      backgroundColor: colors.accent[500], // Coral Orange for active state
+      ...shadows.sm,
     },
     tabText: {
-      fontSize: typography.sizes.sm,
+      fontSize: typography.sizes.xs,
       fontWeight: '600',
       color: colors.neutral[500],
       fontFamily: typography.fontFamilyMedium,
     },
     tabTextActive: {
-      color: colors.neutral[0],
+      color: colors.neutral[100],
     },
+    // Rounded Card Style
     bookingCard: {
-      backgroundColor: colors.neutral[0],
-      borderRadius: radius.lg,
-      padding: spacing.md,
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.sm,
-      ...shadows.sm,
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.xl, // rounded corners 22-28px
+      padding: spacing.lg,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
+      ...shadows.md,
+      position: 'relative',
     },
     bookingHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: spacing.xs,
+      marginBottom: spacing.sm,
     },
     bookingService: {
       fontSize: typography.sizes.md,
@@ -83,23 +124,23 @@ export default function BookingsScreen() {
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
       borderRadius: radius.full,
-      backgroundColor: 'rgba(154,154,158,0.18)',
     },
     statusBadgeActive: {
-      backgroundColor: colors.primary[600],
+      backgroundColor: colors.accent[500],
     },
     statusTextActive: {
-      color: colors.neutral[0],
+      color: colors.neutral[100],
     },
     statusText: {
-      fontSize: typography.sizes.xs,
-      fontWeight: '600',
-      fontFamily: typography.fontFamilyMedium,
+      fontSize: 10,
+      fontWeight: '700',
+      fontFamily: typography.fontFamilyBold,
+      textTransform: 'uppercase',
     },
     bookingProvider: {
       fontSize: typography.sizes.sm,
       color: colors.neutral[500],
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
       fontFamily: typography.fontFamilyRegular,
     },
     bookingMeta: {
@@ -118,15 +159,15 @@ export default function BookingsScreen() {
     },
     metaPrice: {
       fontSize: typography.sizes.xs,
-      color: colors.primary[700],
-      fontWeight: '600',
-      fontFamily: typography.fontFamilyMedium,
+      color: colors.accent[500],
+      fontWeight: '700',
+      fontFamily: typography.fontFamilyBold,
     },
     bookingActions: {
       flexDirection: 'row',
       gap: spacing.sm,
-      marginTop: spacing.sm,
-      paddingTop: spacing.sm,
+      marginTop: spacing.md,
+      paddingTop: spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.neutral[200],
     },
@@ -134,20 +175,22 @@ export default function BookingsScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
-      backgroundColor: colors.neutral[200],
+      paddingVertical: 8,
+      backgroundColor: colors.neutral[50],
       borderRadius: radius.full,
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
       gap: 4,
     },
     actionChipText: {
-      fontSize: typography.sizes.xs,
-      color: colors.neutral[600],
-      fontWeight: '600',
+      fontSize: 11,
+      color: colors.neutral[900],
+      fontWeight: '700',
       fontFamily: typography.fontFamilyMedium,
     },
     chevronRow: {
       position: 'absolute',
-      right: spacing.md,
+      right: spacing.lg,
       top: '50%',
       transform: [{ translateY: -9 }],
     },
@@ -163,7 +206,6 @@ export default function BookingsScreen() {
     if (!session?.user?.id) return;
     try {
       setError(null);
-      // Mock bookings to bypass Failed to fetch error
       const mockBookings = [
         {
           id: '1',
@@ -229,32 +271,36 @@ export default function BookingsScreen() {
   if (error) return <ErrorState message={error} onRetry={fetchBookings} />;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <View style={styles.header}>
+        <View style={styles.topCircle1} />
+        <View style={styles.topCircle2} />
         <Text style={styles.headerTitle}>{t('myBookings')}</Text>
       </View>
 
-      {/* Tab bar */}
+      {/* Pill tabs list */}
       <View style={styles.tabBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={styles.tabBarScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {tabs.map((tab) => (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+                onPress={() => setActiveTab(tab.key)}
+              >
+                <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: spacing.xl }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        contentContainerStyle={{ paddingBottom: 110 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent[500]} />}
       >
         {filteredBookings.length === 0 ? (
           <EmptyState title={t('noBookings')} description={t('noBookingsDesc')} />
@@ -273,8 +319,8 @@ export default function BookingsScreen() {
                   <Text style={styles.bookingService}>
                     {lang === 'ml' ? sub?.name_ml : sub?.name_en}
                   </Text>
-                  <View style={[styles.statusBadge, isActiveStatus(booking.status) && styles.statusBadgeActive, !isActiveStatus(booking.status) && { backgroundColor: getStatusColor(booking.status) + '22' }]}>
-                    <Text style={[styles.statusText, isActiveStatus(booking.status) && styles.statusTextActive, { color: getStatusColor(booking.status) }]}>
+                  <View style={[styles.statusBadge, isActiveStatus(booking.status) && styles.statusBadgeActive, !isActiveStatus(booking.status) && { backgroundColor: getStatusColor(booking.status) + '15' }]}>
+                    <Text style={[styles.statusText, isActiveStatus(booking.status) && styles.statusTextActive, { color: isActiveStatus(booking.status) ? colors.neutral[100] : getStatusColor(booking.status) }]}>
                       {t(booking.status as any) || booking.status}
                     </Text>
                   </View>
@@ -288,7 +334,7 @@ export default function BookingsScreen() {
 
                 <View style={styles.bookingMeta}>
                   <View style={styles.metaItem}>
-                    <Calendar size={14} color={colors.neutral[400]} strokeWidth={2} />
+                    <Calendar size={14} color={colors.neutral[500]} strokeWidth={2} />
                     <Text style={styles.metaText}>
                       {booking.scheduled_at
                         ? new Date(booking.scheduled_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -296,7 +342,7 @@ export default function BookingsScreen() {
                     </Text>
                   </View>
                   <View style={styles.metaItem}>
-                    <Clock size={14} color={colors.neutral[400]} strokeWidth={2} />
+                    <Clock size={14} color={colors.neutral[500]} strokeWidth={2} />
                     <Text style={styles.metaText}>
                       {booking.scheduled_at
                         ? new Date(booking.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
@@ -304,7 +350,7 @@ export default function BookingsScreen() {
                     </Text>
                   </View>
                   <View style={styles.metaItem}>
-                    <IndianRupee size={14} color={colors.primary[600]} strokeWidth={2.5} />
+                    <IndianRupee size={14} color={colors.accent[500]} strokeWidth={2.5} />
                     <Text style={styles.metaPrice}>
                       {booking.final_cost || booking.estimated_cost}
                     </Text>
@@ -314,7 +360,7 @@ export default function BookingsScreen() {
                 {booking.status === 'completed' && (
                   <View style={styles.bookingActions}>
                     <TouchableOpacity style={styles.actionChip} onPress={() => router.push(`/category/${sub?.category_id}`)}>
-                      <RotateCw size={14} color={colors.primary[600]} strokeWidth={2} />
+                      <RotateCw size={14} color={colors.accent[500]} strokeWidth={2} />
                       <Text style={styles.actionChipText}>{t('rebook')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionChip}>
@@ -325,7 +371,7 @@ export default function BookingsScreen() {
                 )}
 
                 <View style={styles.chevronRow}>
-                  <ChevronRight size={18} color={colors.neutral[300]} strokeWidth={2} />
+                  <ChevronRight size={18} color={colors.neutral[500]} strokeWidth={2} />
                 </View>
               </TouchableOpacity>
             );
@@ -342,15 +388,15 @@ function isActiveStatus(status: string): boolean {
 
 function getStatusColor(status: string): string {
   const colorMap: Record<string, string> = {
-    pending: colors.primary[600],
-    accepted: colors.primary[600],
-    on_the_way: colors.primary[600],
-    arrived: colors.primary[600],
-    in_progress: colors.primary[600],
-    awaiting_confirmation: colors.primary[600],
-    completed: colors.neutral[500],
-    cancelled: colors.error[600],
-    rejected: colors.error[600],
+    pending: colors.accent[500],
+    accepted: colors.accent[500],
+    on_the_way: colors.accent[500],
+    arrived: colors.accent[500],
+    in_progress: colors.accent[500],
+    awaiting_confirmation: colors.accent[500],
+    completed: '#4CAF50',
+    cancelled: '#F44336',
+    rejected: '#F44336',
   };
   return colorMap[status] || colors.neutral[500];
 }

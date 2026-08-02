@@ -9,8 +9,9 @@ import {
   ViewStyle,
   TextStyle,
   StyleProp,
+  Platform,
 } from 'react-native';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft } from 'lucide-react-native';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 
 // Build styles fresh on each call so they pick up the current theme values.
@@ -20,62 +21,77 @@ function makeStyles() {
       flex: 1,
       backgroundColor: colors.neutral[50],
     },
+    // Premium round header style with slate blue bg (#334E68)
     header: {
+      backgroundColor: '#334E68',
+      borderBottomLeftRadius: radius.xl,
+      borderBottomRightRadius: radius.xl,
+      paddingHorizontal: spacing.lg,
+      paddingTop: Platform.OS === 'ios' ? 54 : spacing.xl,
+      paddingBottom: spacing.lg,
+      ...shadows.md,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md,
-      backgroundColor: colors.neutral[50],
-      paddingTop: spacing.xl,
     },
     headerBtn: {
-      width: 40,
-      height: 40,
+      width: 42,
+      height: 42,
       borderRadius: radius.full,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.neutral[100],
-    },
-    headerBtnText: {
-      fontSize: 22,
-      color: colors.neutral[700],
-      includeFontPadding: false,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      marginRight: spacing.md,
     },
     headerTitle: {
       flex: 1,
       fontSize: typography.sizes.xl,
       fontWeight: '700',
-      color: colors.neutral[700],
-      marginLeft: spacing.sm,
+      color: '#FFFFFF',
       fontFamily: typography.fontFamilyBold,
       includeFontPadding: false,
     },
     headerRight: {
-      width: 40,
+      minWidth: 42,
+      alignItems: 'flex-end',
+    },
+    headerSubtitle: {
+      fontSize: typography.sizes.xs,
+      color: 'rgba(255, 255, 255, 0.75)',
+      fontFamily: typography.fontFamilyRegular,
+      marginTop: spacing.xs,
+      marginLeft: 42 + spacing.md, // Align with title
     },
     btnBase: {
-      minHeight: 52,
+      minHeight: 54,
       paddingVertical: spacing.sm,
       borderRadius: radius.full,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.xl,
+      ...shadows.sm,
     },
     btnPrimary: {
-      backgroundColor: colors.primary[600],
+      backgroundColor: '#F46A45', // Coral Orange CTA
     },
     btnSecondary: {
-      backgroundColor: colors.neutral[100],
+      backgroundColor: '#FFFFFF',
       borderWidth: 1.5,
-      borderColor: colors.primary[600],
+      borderColor: '#F46A45',
     },
     btnOutline: {
       backgroundColor: 'transparent',
       borderWidth: 1.5,
-      borderColor: colors.primary[600],
+      borderColor: '#F46A45',
     },
     btnGhost: {
       backgroundColor: 'transparent',
+      ...shadows.sm,
+      boxShadow: 'none',
+      elevation: 0,
     },
     btnDanger: {
       backgroundColor: colors.error[500],
@@ -96,37 +112,43 @@ function makeStyles() {
       textAlign: 'center',
     },
     btnPrimaryText: {
-      color: colors.neutral[0],
+      color: '#FFFFFF',
     },
     btnSecondaryText: {
-      color: colors.primary[600],
+      color: '#F46A45',
     },
     btnOutlineText: {
-      color: colors.primary[600],
+      color: '#F46A45',
     },
     btnGhostText: {
-      color: colors.primary[600],
+      color: '#F46A45',
     },
     btnDangerText: {
-      color: colors.neutral[0],
+      color: '#FFFFFF',
     },
     card: {
-      backgroundColor: colors.neutral[100],
-      borderRadius: radius.lg,
-      padding: spacing.md,
+      backgroundColor: '#FFFFFF', // Clean white background
+      borderRadius: radius.xl, // Large rounded corners 22-28px
+      padding: spacing.lg, // Generous padding
+      marginHorizontal: spacing.md,
+      marginVertical: spacing.sm,
+      borderWidth: 1,
+      borderColor: '#E8EEF4',
+      ...shadows.md, // Soft shadow / subtle elevation
     },
     input: {
-      minHeight: 52,
-      borderWidth: 1.5,
-      borderColor: colors.neutral[200],
+      minHeight: 54,
+      borderWidth: 1,
+      borderColor: '#E8EEF4',
       borderRadius: radius.md,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
+      paddingVertical: spacing.sm,
       fontSize: typography.sizes.md,
-      color: colors.neutral[700],
-      backgroundColor: colors.neutral[100],
+      color: '#233142',
+      backgroundColor: '#FFFFFF',
       fontFamily: typography.fontFamilyRegular,
       includeFontPadding: false,
+      ...shadows.sm,
     },
     badge: {
       paddingHorizontal: spacing.sm,
@@ -134,16 +156,16 @@ function makeStyles() {
       borderRadius: radius.full,
     },
     badgeDefault: {
-      backgroundColor: colors.primary[50],
+      backgroundColor: 'rgba(255, 140, 90, 0.12)',
     },
     badgeSuccess: {
-      backgroundColor: colors.success[50],
+      backgroundColor: 'rgba(76, 175, 80, 0.12)',
     },
     badgeWarning: {
-      backgroundColor: colors.warning[50],
+      backgroundColor: 'rgba(245, 166, 35, 0.12)',
     },
     badgeError: {
-      backgroundColor: colors.error[50],
+      backgroundColor: 'rgba(244, 67, 54, 0.12)',
     },
     badgeText: {
       fontSize: typography.sizes.xs,
@@ -151,16 +173,16 @@ function makeStyles() {
       fontFamily: typography.fontFamilyBold,
     },
     badgeDefaultText: {
-      color: colors.primary[600],
+      color: '#FF8C5A',
     },
     badgeSuccessText: {
-      color: colors.success[600],
+      color: '#4CAF50',
     },
     badgeWarningText: {
-      color: colors.warning[600],
+      color: '#F5A623',
     },
     badgeErrorText: {
-      color: colors.error[600],
+      color: '#F44336',
     },
     loading: {
       flex: 1,
@@ -172,7 +194,7 @@ function makeStyles() {
     loadingText: {
       marginTop: spacing.md,
       fontSize: typography.sizes.sm,
-      color: colors.neutral[500],
+      color: '#7B8794',
       fontFamily: typography.fontFamilyRegular,
     },
     empty: {
@@ -184,13 +206,13 @@ function makeStyles() {
     emptyTitle: {
       fontSize: typography.sizes.lg,
       fontWeight: '600',
-      color: colors.neutral[500],
+      color: '#7B8794',
       fontFamily: typography.fontFamilyMedium,
     },
     emptyDesc: {
       marginTop: spacing.sm,
       fontSize: typography.sizes.sm,
-      color: colors.neutral[400],
+      color: '#7B8794',
       textAlign: 'center',
       fontFamily: typography.fontFamilyRegular,
     },
@@ -203,7 +225,7 @@ function makeStyles() {
     },
     errorText: {
       fontSize: typography.sizes.md,
-      color: colors.error[600],
+      color: '#F44336',
       textAlign: 'center',
       fontFamily: typography.fontFamilyRegular,
     },
@@ -211,14 +233,14 @@ function makeStyles() {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: spacing.md,
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.xl,
+      marginBottom: spacing.md,
     },
     sectionTitle: {
       fontSize: typography.sizes.lg,
       fontWeight: '700',
-      color: colors.neutral[700],
+      color: '#233142',
       fontFamily: typography.fontFamilyBold,
     },
   });
@@ -233,21 +255,49 @@ export function Header({
   title,
   onBack,
   right,
+  subtitle,
 }: {
   title: string;
   onBack?: () => void;
   right?: React.ReactNode;
+  subtitle?: string;
 }) {
   const styles = makeStyles();
   return (
     <View style={styles.header}>
-      {onBack && (
-        <TouchableOpacity onPress={onBack} style={styles.headerBtn}>
-          <Text style={styles.headerBtnText}>←</Text>
-        </TouchableOpacity>
-      )}
-      <Text style={styles.headerTitle}>{title}</Text>
-      <View style={styles.headerRight}>{right}</View>
+      {/* Soft decorative background shape */}
+      <View
+        style={{
+          position: 'absolute',
+          top: -40,
+          right: -40,
+          width: 140,
+          height: 140,
+          borderRadius: radius.full,
+          backgroundColor: 'rgba(255,255,255,0.06)',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          bottom: -50,
+          left: -20,
+          width: 100,
+          height: 100,
+          borderRadius: radius.full,
+          backgroundColor: 'rgba(255,255,255,0.04)',
+        }}
+      />
+      <View style={styles.headerRow}>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.headerBtn} activeOpacity={0.7}>
+            <ChevronLeft size={22} color="#FFFFFF" strokeWidth={2.5} />
+          </TouchableOpacity>
+        )}
+        <Text style={styles.headerTitle}>{title}</Text>
+        <View style={styles.headerRight}>{right}</View>
+      </View>
+      {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
     </View>
   );
 }
@@ -286,13 +336,14 @@ export function Button({
     danger: styles.btnDangerText,
   }[variant];
 
-  const iconColor = variant === 'primary' || variant === 'secondary' || variant === 'danger' ? colors.neutral[0] : colors.primary[600];
+  const iconColor = variant === 'primary' ? '#FFFFFF' : '#F46A45';
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
       style={[styles.btnBase, variantStyle, disabled && styles.btnDisabled, style]}
+      activeOpacity={0.8}
     >
       {loading ? (
         <ActivityIndicator color={iconColor} />
@@ -341,7 +392,7 @@ export function Input({
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor={colors.neutral[400]}
+      placeholderTextColor="#7B8794"
       secureTextEntry={secureTextEntry}
       keyboardType={keyboardType}
       autoCapitalize={autoCapitalize}
@@ -375,7 +426,7 @@ export function LoadingState({ label }: { label?: string }) {
   const styles = makeStyles();
   return (
     <View style={styles.loading}>
-      <ActivityIndicator size="large" color={colors.primary[600]} />
+      <ActivityIndicator size="large" color="#F46A45" />
       {label && <Text style={styles.loadingText}>{label}</Text>}
     </View>
   );

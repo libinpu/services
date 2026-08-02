@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
@@ -27,66 +27,101 @@ export default function LoginScreen() {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.primary[50],
+      backgroundColor: colors.neutral[50], // light theme background per guideline
     },
-    scrollContent: {
-      flexGrow: 1,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xl,
-    },
-    logoWrap: {
+    // Large rounded colored top section with soft decorative background shapes
+    topSection: {
+      backgroundColor: colors.primary[600], // Deep Slate Blue header
+      borderBottomLeftRadius: 36,
+      borderBottomRightRadius: 36,
+      paddingTop: Platform.OS === 'ios' ? 70 : 50,
+      paddingBottom: 60,
       alignItems: 'center',
-      marginBottom: spacing.xl,
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+      ...shadows.lg,
+    },
+    topCircle1: {
+      position: 'absolute',
+      top: -30,
+      left: -30,
+      width: 140,
+      height: 140,
+      borderRadius: radius.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    topCircle2: {
+      position: 'absolute',
+      bottom: -40,
+      right: -20,
+      width: 120,
+      height: 120,
+      borderRadius: radius.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.04)',
     },
     logoCircle: {
-      width: 80,
-      height: 80,
+      width: 84,
+      height: 84,
       borderRadius: radius.full,
       alignItems: 'center',
       justifyContent: 'center',
-      ...shadows.lg,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      ...shadows.md,
+      marginBottom: spacing.md,
     },
     appName: {
-      fontSize: typography.sizes.xxxl,
+      fontSize: 26,
       fontWeight: '700',
-      color: colors.primary[700],
-      marginTop: spacing.md,
+      color: colors.neutral[100],
       fontFamily: typography.fontFamilyBold,
     },
     tagline: {
       fontSize: typography.sizes.sm,
-      color: colors.neutral[500],
-      marginTop: spacing.xs,
+      color: 'rgba(255, 255, 255, 0.75)',
+      marginTop: 4,
       fontFamily: typography.fontFamilyRegular,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingBottom: spacing.xxl,
     },
     formCard: {
       backgroundColor: colors.neutral[100],
-      borderRadius: radius.xl,
-      padding: spacing.lg,
+      borderRadius: radius.xl, // 22-28px rounded corners
+      padding: spacing.xl,
+      marginHorizontal: spacing.lg,
+      marginTop: -30, // overlapping the header per guidelines
       ...shadows.lg,
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
     },
     welcomeText: {
-      fontSize: typography.sizes.xxl,
+      fontSize: 22,
       fontWeight: '700',
-      color: colors.neutral[900],
+      color: colors.neutral[900], // primary text color
       marginBottom: spacing.xs,
       fontFamily: typography.fontFamilyBold,
+      textAlign: 'center',
     },
     subtitle: {
       fontSize: typography.sizes.sm,
-      color: colors.neutral[500],
+      color: colors.neutral[500], // secondary text
       marginBottom: spacing.lg,
       fontFamily: typography.fontFamilyRegular,
+      textAlign: 'center',
     },
     socialBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       height: 52,
       borderRadius: radius.full,
-      borderWidth: 1.5,
-      borderColor: colors.primary[600],
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
+      backgroundColor: colors.neutral[100],
       paddingHorizontal: spacing.md,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
+      ...shadows.sm,
     },
     socialIcon: {
       width: 24,
@@ -95,9 +130,9 @@ export default function LoginScreen() {
       justifyContent: 'center',
     },
     googleIcon: {
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: '700',
-      color: colors.accent[600],
+      color: colors.accent[500], // accent orange
       fontFamily: typography.fontFamilyBold,
     },
     socialBtnText: {
@@ -105,11 +140,10 @@ export default function LoginScreen() {
       textAlign: 'center',
       fontSize: typography.sizes.md,
       fontWeight: '600',
-      color: colors.primary[600],
+      color: colors.neutral[900],
       fontFamily: typography.fontFamilyMedium,
       marginRight: spacing.md,
     },
-
     divider: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -123,24 +157,27 @@ export default function LoginScreen() {
     dividerText: {
       paddingHorizontal: spacing.md,
       fontSize: typography.sizes.sm,
-      color: colors.neutral[400],
+      color: colors.neutral[500],
       fontFamily: typography.fontFamilyRegular,
     },
     modeToggle: {
       flexDirection: 'row',
-      backgroundColor: colors.neutral[100],
-      borderRadius: radius.md,
+      backgroundColor: colors.neutral[50],
+      borderRadius: radius.full,
       padding: 4,
-      marginBottom: spacing.md,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
     },
     modeTab: {
       flex: 1,
       paddingVertical: spacing.sm,
       alignItems: 'center',
-      borderRadius: radius.sm,
+      borderRadius: radius.full,
     },
     modeTabActive: {
       backgroundColor: colors.neutral[100],
+      ...shadows.sm,
     },
     modeTabText: {
       fontSize: typography.sizes.sm,
@@ -149,18 +186,20 @@ export default function LoginScreen() {
       fontFamily: typography.fontFamilyMedium,
     },
     modeTabTextActive: {
-      color: colors.primary[700],
+      color: colors.accent[500], // orange state
     },
     input: {
       backgroundColor: colors.neutral[100],
       borderColor: colors.neutral[200],
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
+      borderRadius: radius.md,
     },
     errorText: {
       fontSize: typography.sizes.sm,
-      color: colors.error[600],
+      color: '#F44336',
       marginBottom: spacing.sm,
       fontFamily: typography.fontFamilyRegular,
+      textAlign: 'center',
     },
     submitBtn: {
       width: '100%',
@@ -209,106 +248,97 @@ export default function LoginScreen() {
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.logoWrap}>
-          <LinearGradient
-            colors={[colors.primary[500], colors.primary[700]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.logoCircle}
-          >
-            <Wrench size={36} color={colors.neutral[0]} strokeWidth={2} />
-          </LinearGradient>
+        <View style={styles.topSection}>
+          <View style={styles.topCircle1} />
+          <View style={styles.topCircle2} />
+          <View style={styles.logoCircle}>
+            <Wrench size={34} color={colors.neutral[100]} strokeWidth={2} />
+          </View>
           <Text style={styles.appName}>{t('appName')}</Text>
           <Text style={styles.tagline}>{t('tagline')}</Text>
         </View>
 
         <View style={styles.formCard}>
-          <>
-            <Text style={styles.welcomeText}>{t('welcomeBack')}</Text>
-            <Text style={styles.subtitle}>{t('loginSubtitle')}</Text>
+          <Text style={styles.welcomeText}>{t('welcomeBack')}</Text>
+          <Text style={styles.subtitle}>{t('loginSubtitle')}</Text>
 
-            <TouchableOpacity style={styles.socialBtn} onPress={handleGoogleSignIn} activeOpacity={0.8}>
-              <View style={styles.socialIcon}>
-                <Text style={styles.googleIcon}>G</Text>
-              </View>
-              <Text style={styles.socialBtnText}>{t('continueWithGoogle')}</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>{t('or')}</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-            <View style={styles.modeToggle}>
-              <TouchableOpacity
-                style={[styles.modeTab, mode === 'signin' && styles.modeTabActive]}
-                onPress={() => setMode('signin')}
-              >
-                <Text style={[styles.modeTabText, mode === 'signin' && styles.modeTabTextActive]}>
-                  {t('signIn')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modeTab, mode === 'signup' && styles.modeTabActive]}
-                onPress={() => setMode('signup')}
-              >
-                <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
-                  {t('signUp')}
-                </Text>
-              </TouchableOpacity>
+          <TouchableOpacity style={styles.socialBtn} onPress={handleGoogleSignIn} activeOpacity={0.8}>
+            <View style={styles.socialIcon}>
+              <Text style={styles.googleIcon}>G</Text>
             </View>
+            <Text style={styles.socialBtnText}>{t('continueWithGoogle')}</Text>
+          </TouchableOpacity>
 
-            {mode === 'signup' && (
-              <>
-                <Input
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder={t('fullName')}
-                  autoCapitalize="words"
-                  style={styles.input}
-                />
-                <Input
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder={t('phoneNumber')}
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                />
-              </>
-            )}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t('or')}</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-            <Input
-              value={email}
-              onChangeText={setEmail}
-              placeholder={t('email')}
-              keyboardType="email-address"
-              style={styles.input}
-            />
-            <Input
-              value={password}
-              onChangeText={setPassword}
-              placeholder={t('password')}
-              secureTextEntry
-              style={styles.input}
-            />
+          <View style={styles.modeToggle}>
+            <TouchableOpacity
+              style={[styles.modeTab, mode === 'signin' && styles.modeTabActive]}
+              onPress={() => setMode('signin')}
+            >
+              <Text style={[styles.modeTabText, mode === 'signin' && styles.modeTabTextActive]}>
+                {t('signIn')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeTab, mode === 'signup' && styles.modeTabActive]}
+              onPress={() => setMode('signup')}
+            >
+              <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
+                {t('signUp')}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-            {error && <Text style={styles.errorText}>{error}</Text>}
+          {mode === 'signup' && (
+            <>
+              <Input
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder={t('fullName')}
+                autoCapitalize="words"
+                style={styles.input}
+              />
+              <Input
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t('phoneNumber')}
+                keyboardType="phone-pad"
+                style={styles.input}
+              />
+            </>
+          )}
 
-            <Button
-              label={mode === 'signin' ? t('signIn') : t('createAccount')}
-              onPress={handleSubmit}
-              loading={loading}
-              style={styles.submitBtn}
-            />
-          </>
+          <Input
+            value={email}
+            onChangeText={setEmail}
+            placeholder={t('email')}
+            keyboardType="email-address"
+            style={styles.input}
+          />
+          <Input
+            value={password}
+            onChangeText={setPassword}
+            placeholder={t('password')}
+            secureTextEntry
+            style={styles.input}
+          />
+
+          {error && <Text style={styles.errorText}>{error}</Text>}
+
+          <Button
+            label={mode === 'signin' ? t('signIn') : t('createAccount')}
+            onPress={handleSubmit}
+            loading={loading}
+            style={styles.submitBtn}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

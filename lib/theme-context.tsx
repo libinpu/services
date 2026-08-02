@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { useColorScheme, Appearance } from 'react-native';
+import { Appearance } from 'react-native';
 import { setActiveTheme, getThemeMode, type ThemeMode } from './theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const THEME_STORAGE_KEY = '@seva_theme_mode';
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -12,28 +15,38 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>(systemScheme === 'light' ? 'light' : 'dark');
+  const [mode, setModeState] = useState<ThemeMode>('dark');
+
+  // Load saved preference on mount
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_STORAGE_KEY).then((saved) => {
+      if (saved === 'light' || saved === 'dark') {
+        applyMode(saved);
+      } else {
+        // Default to dark theme per design
+        applyMode('dark');
+      }
+    }).catch(() => {
+      applyMode('dark');
+    });
+  }, []);
 
   const applyMode = useCallback((newMode: ThemeMode) => {
     setActiveTheme(newMode);
     setModeState(newMode);
+    AsyncStorage.setItem(THEME_STORAGE_KEY, newMode).catch(() => {});
   }, []);
 
-  // Sync when the system appearance changes
+  // Sync when the system appearance changes (only if user hasn't set a preference yet)
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      const newMode: ThemeMode = colorScheme === 'light' ? 'light' : 'dark';
-      applyMode(newMode);
+      // We intentionally do NOT auto-follow system theme once user has set a preference
+      // Uncomment below to re-enable system-following behaviour:
+      // const newMode: ThemeMode = colorScheme === 'light' ? 'light' : 'dark';
+      // applyMode(newMode);
     });
     return () => subscription.remove();
   }, [applyMode]);
-
-  // Also sync if useColorScheme changes (web / initial load)
-  useEffect(() => {
-    const newMode: ThemeMode = systemScheme === 'light' ? 'light' : 'dark';
-    applyMode(newMode);
-  }, [systemScheme, applyMode]);
 
   const toggle = useCallback(() => {
     applyMode(mode === 'dark' ? 'light' : 'dark');

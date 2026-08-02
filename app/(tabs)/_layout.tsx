@@ -1,8 +1,9 @@
 import { Tabs } from 'expo-router';
-import { Hop as Home, Calendar, User } from 'lucide-react-native';
+import { Home, Calendar, User } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { useLanguage } from '@/lib/language-context';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   const { t } = useLanguage();
@@ -12,23 +13,31 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary[600],
-        tabBarInactiveTintColor: colors.neutral[400],
+        tabBarActiveTintColor: colors.accent[500], // Coral Orange for active tabs
+        tabBarInactiveTintColor: colors.neutral[500], // Inactive gray icons
         tabBarStyle: {
-          backgroundColor: colors.neutral[50],
+          backgroundColor: colors.neutral[100],
           borderTopColor: colors.neutral[200],
           borderTopWidth: 1,
-          paddingBottom: 4,
-          paddingTop: 4,
-          height: 60,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 8,
+          height: Platform.OS === 'ios' ? 88 : 68,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          boxShadow: '0 -4px 16px rgba(51, 78, 104, 0.08)',
+          elevation: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '600',
-          fontFamily: 'Inter, Noto Sans Malayalam, system-ui, sans-serif',
+          fontFamily: 'Inter, system-ui, sans-serif',
         },
         tabBarIconStyle: {
-          marginTop: 2,
+          marginBottom: 2,
         },
       }}
     >
@@ -37,7 +46,7 @@ export default function TabLayout() {
         options={{
           title: t('homeTab'),
           tabBarIcon: ({ size, color, focused }) => (
-            <Home size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? colors.primary[50] : 'transparent'} />
+            <Home size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
       />
@@ -46,7 +55,7 @@ export default function TabLayout() {
         options={{
           title: t('bookingsTab'),
           tabBarIcon: ({ size, color, focused }) => (
-            <Calendar size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? colors.primary[50] : 'transparent'} />
+            <Calendar size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
       />
@@ -55,7 +64,7 @@ export default function TabLayout() {
         options={{
           title: t('profileTab'),
           tabBarIcon: ({ size, color, focused }) => (
-            <User size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? colors.primary[50] : 'transparent'} />
+            <User size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
       />

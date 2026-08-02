@@ -1,3 +1,4 @@
+import 'react-native-url-polyfill/auto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
@@ -5,10 +6,8 @@ import { Platform } from 'react-native';
 // Fallbacks ensure the client initializes even when the bundler fails to
 // inline the EXPO_PUBLIC_* env vars (e.g. stale cache or missing .env in the
 // build environment). The anon key is safe to ship to the client by design.
-const FALLBACK_SUPABASE_URL = 'https://0ec90b57d6e95fcbda19832f.supabase.co';
-const FALLBACK_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJib2x0IiwicmVmIjoiMGVjOTBiNTdkNmU5NWZjYmRhMTk4MzJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4ODE1NzQsImV4cCI6MTc1ODg4MTU3NH0.9I8-U0x86Ak8t2DGaIk0HfvTSLsAyzdnz-Nw00mMkKw';
-
+const FALLBACK_SUPABASE_URL = 'https://xugtikrvmwuchqonkshz.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY ='sb_publishable_SmAXUHEujeENP8dlkOdkFA_BstGJKeX';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
 const supabaseAnonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;

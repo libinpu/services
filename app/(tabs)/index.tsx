@@ -43,14 +43,6 @@ const iconMap: Record<string, any> = {
   GraduationCap, Car, Bike, Laptop, Leaf,
 };
 
-const groupThemes: Record<string, { bg: string; fg: string }> = {
-  blue: { bg: colors.primary[50], fg: colors.primary[600] },
-  teal: { bg: colors.secondary[50], fg: colors.secondary[600] },
-  amber: { bg: colors.accent[50], fg: colors.accent[600] },
-};
-
-const DEFAULT_THEME = groupThemes.blue;
-
 const serviceImages: Record<string, string> = {
   Wrench: 'https://images.unsplash.com/photo-1607472829122-ed2b2a996393?w=400&auto=format&fit=crop&q=60',
   Zap: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&auto=format&fit=crop&q=60',
@@ -85,290 +77,20 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
-  const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.neutral[50] },
-    scroll: { flex: 1 },
-    heroBlock: {
-      backgroundColor: colors.neutral[100],
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.sm,
-      paddingBottom: spacing.lg,
-    },
-    heroTop: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: spacing.md,
-    },
-    heroLeft: { flex: 1 },
-    locationLabel: {
-      fontSize: typography.sizes.xs,
-      color: colors.neutral[500],
-      fontFamily: typography.fontFamilyRegular,
-      marginBottom: 2,
-    },
-    locationRow: { flexDirection: 'row', alignItems: 'center' },
-    locationText: {
-      fontSize: typography.sizes.xl,
-      fontWeight: '700',
-      color: colors.neutral[700],
-      marginLeft: spacing.xs,
-      marginRight: 2,
-      fontFamily: typography.fontFamilyBold,
-    },
-    heroIcons: { flexDirection: 'row', gap: spacing.sm },
-    iconBtn: {
-      width: 44, height: 44, borderRadius: radius.full,
-      backgroundColor: colors.neutral[200],
-      alignItems: 'center', justifyContent: 'center',
-    },
-    iconBtnPressed: { backgroundColor: colors.neutral[300] },
-    bellDot: {
-      position: 'absolute', top: 10, right: 11, width: 8, height: 8,
-      borderRadius: radius.full, backgroundColor: colors.error[500],
-      borderWidth: 2, borderColor: colors.neutral[100],
-    },
-    searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    searchBar: {
-      flex: 1, flexDirection: 'row', alignItems: 'center', height: 52,
-      backgroundColor: colors.neutral[200], borderRadius: radius.full,
-      paddingHorizontal: spacing.md,
-    },
-    searchBarPressed: { transform: [{ scale: 0.99 }] },
-    searchPlaceholder: {
-      flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
-      color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
-    },
-    filterBtn: {
-      width: 52, height: 52, borderRadius: radius.full,
-      backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
-    },
-    filterBtnPressed: { backgroundColor: colors.primary[700] },
-    statsRow: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.md,
-      paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg,
-    },
-    statItem: { flex: 1, alignItems: 'center' },
-    statValue: {
-      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.primary[600],
-      fontFamily: typography.fontFamilyBold,
-    },
-    statLabel: {
-      fontSize: typography.sizes.xs, color: colors.neutral[500], marginTop: 2,
-      fontFamily: typography.fontFamilyRegular, textAlign: 'center',
-    },
-    statDivider: { width: 1, height: 32, backgroundColor: colors.neutral[200] },
-    section: { marginTop: spacing.lg },
-    sectionHeader: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
-    },
-    groupTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    groupIconWrap: {
-      width: 36, height: 36, borderRadius: radius.md,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    sectionTitle: {
-      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[700],
-      fontFamily: typography.fontFamilyBold, paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
-    },
-    sectionTitleInline: {
-      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[700],
-      fontFamily: typography.fontFamilyBold,
-    },
-    viewAllText: {
-      fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
-      fontFamily: typography.fontFamilyMedium,
-    },
-    quickRow: { flexDirection: 'row', paddingHorizontal: spacing.lg },
-    quickCard: {
-      flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-      padding: spacing.sm, marginHorizontal: spacing.xs / 2, alignItems: 'center',
-    },
-    quickCardPressed: { transform: [{ scale: 0.96 }] },
-    quickIcon: {
-      width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
-      marginBottom: spacing.xs, backgroundColor: colors.primary[50],
-    },
-    quickLabel: {
-      fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[700],
-      fontFamily: typography.fontFamilyBold, textAlign: 'center',
-    },
-    quickDesc: {
-      fontSize: 10, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
-      textAlign: 'center', marginTop: 2,
-    },
-    servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg },
-    serviceItem: { width: CATEGORY_TILE_SIZE, alignItems: 'center', marginBottom: spacing.lg },
-    serviceItemPressed: { transform: [{ scale: 0.95 }] },
-    serviceIcon: {
-      width: 64, height: 64, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
-      marginBottom: spacing.xs,
-    },
-    serviceName: {
-      fontSize: typography.sizes.xs, fontWeight: '600', color: colors.neutral[600],
-      textAlign: 'center', fontFamily: typography.fontFamilyMedium, lineHeight: 15,
-    },
-    popularScroll: { paddingHorizontal: spacing.lg },
-    popularCard: {
-      width: 170, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-      marginRight: spacing.md, overflow: 'hidden',
-    },
-    popularImageWrap: { width: '100%', height: 110, position: 'relative' },
-    popularImage: { width: '100%', height: '100%' },
-    popularRatingBadge: {
-      position: 'absolute', top: spacing.xs, left: spacing.xs, flexDirection: 'row', alignItems: 'center',
-      backgroundColor: colors.neutral[200], borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 3, gap: 3,
-    },
-    popularRatingText: {
-      fontSize: 11, fontWeight: '700', color: colors.neutral[700], fontFamily: typography.fontFamilyBold,
-    },
-    popularHeartBtn: {
-      position: 'absolute', top: spacing.xs, right: spacing.xs, width: 28, height: 28,
-      borderRadius: radius.full, backgroundColor: colors.neutral[200], alignItems: 'center', justifyContent: 'center',
-    },
-    popularBody: { padding: spacing.sm },
-    popularName: {
-      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[700],
-      marginBottom: 2, fontFamily: typography.fontFamilyBold,
-    },
-    popularSubtitle: {
-      fontSize: typography.sizes.xs, color: colors.neutral[400],
-      fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm,
-    },
-    popularFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    popularBookBtn: {
-      backgroundColor: colors.primary[600], paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.full, alignSelf: 'flex-start',
-    },
-    popularBookBtnText: {
-      fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
-    },
-    howItWorksRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, alignItems: 'flex-start' },
-    howItWorksStep: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.xs },
-    howItWorksIconWrap: {
-      width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary[50],
-      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
-      borderWidth: 1.5, borderColor: colors.primary[200],
-    },
-    howItWorksNum: {
-      position: 'absolute', top: -4, right: -4, width: 22, height: 22, borderRadius: radius.full,
-      backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
-      borderWidth: 2, borderColor: colors.neutral[50],
-    },
-    howItWorksNumText: {
-      fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
-    },
-    howItWorksTitle: {
-      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[700],
-      textAlign: 'center', marginBottom: 4, fontFamily: typography.fontFamilyBold,
-    },
-    howItWorksDesc: {
-      fontSize: 11, color: colors.neutral[500], textAlign: 'center',
-      fontFamily: typography.fontFamilyRegular, lineHeight: 15,
-    },
-    howItWorksConnector: { width: 24, height: 2, backgroundColor: colors.neutral[200], marginTop: 28 },
-    trustRow: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.lg,
-      paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg,
-    },
-    trustItem: { flex: 1, alignItems: 'center' },
-    trustText: {
-      fontSize: typography.sizes.xs, color: colors.neutral[600], marginTop: spacing.xs,
-      fontFamily: typography.fontFamilyMedium, textAlign: 'center', lineHeight: 15,
-    },
-    trustDivider: { width: 1, height: 36, backgroundColor: colors.neutral[200] },
-    referCard: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      marginHorizontal: spacing.lg, padding: spacing.lg, borderRadius: radius.lg,
-      backgroundColor: colors.primary[600], ...shadows.lg,
-    },
-    referLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-    referIconWrap: {
-      width: 48, height: 48, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.2)',
-      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-    },
-    referTextWrap: { flex: 1 },
-    referTitle: {
-      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
-      fontFamily: typography.fontFamilyBold,
-    },
-    referDesc: {
-      fontSize: typography.sizes.xs, color: 'rgba(255,255,255,0.85)',
-      fontFamily: typography.fontFamilyRegular, marginTop: 2, lineHeight: 17,
-    },
-    referCta: {
-      flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm,
-      backgroundColor: colors.neutral[0], paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-      borderRadius: radius.full, alignSelf: 'flex-start', gap: spacing.xs,
-    },
-    referCtaText: {
-      fontSize: typography.sizes.xs, fontWeight: '700', color: colors.primary[700],
-      fontFamily: typography.fontFamilyBold,
-    },
-    referRight: { alignItems: 'flex-end' },
-    referAmount: {
-      fontSize: typography.sizes.xxxl, fontWeight: '700', color: colors.neutral[0],
-      fontFamily: typography.fontFamilyBold,
-    },
-    searchModal: { flex: 1, backgroundColor: colors.neutral[50] },
-    searchHeader: {
-      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-      paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-      borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
-    },
-    searchBackBtn: {
-      width: 40, height: 40, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: colors.neutral[200],
-    },
-    searchInputWrap: {
-      flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: spacing.sm, height: 44,
-      backgroundColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md,
-    },
-    searchInput: {
-      flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
-      color: colors.neutral[700], fontFamily: typography.fontFamilyRegular,
-    },
-    searchEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-    searchEmptyTitle: {
-      fontSize: typography.sizes.lg, fontWeight: '600', color: colors.neutral[700],
-      marginTop: spacing.md, fontFamily: typography.fontFamilyMedium,
-    },
-    searchEmptyDesc: {
-      fontSize: typography.sizes.sm, color: colors.neutral[400], marginTop: spacing.xs,
-      fontFamily: typography.fontFamilyRegular,
-    },
-    searchResultsList: { padding: spacing.md },
-    searchResult: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
-    searchResultIcon: {
-      width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
-    },
-    searchResultText: { flex: 1, marginLeft: spacing.md },
-    searchResultLabel: {
-      fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[700],
-      fontFamily: typography.fontFamilyMedium,
-    },
-    searchResultSubtitle: {
-      fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
-      fontFamily: typography.fontFamilyRegular,
-    },
-    searchResultDivider: { height: 1, backgroundColor: colors.neutral[200], marginHorizontal: spacing.md },
-  });
-
   const fetchData = useCallback(async () => {
     try {
-      setError(null);
-      const [catRes, groupRes] = await Promise.all([
-        supabase.from('service_categories').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
-        supabase.from('service_category_groups').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+      const [catsRes, groupsRes] = await Promise.all([
+        supabase.from('service_categories').select('*').order('name_en'),
+        supabase.from('service_category_groups').select('*').order('name_en'),
       ]);
-      if (catRes.error) throw catRes.error;
-      if (groupRes.error) throw groupRes.error;
-      setCategories((catRes.data || []) as ServiceCategory[]);
-      setGroups((groupRes.data || []) as ServiceCategoryGroup[]);
-    } catch (e: any) {
-      setError(e.message || 'Failed to load data');
+
+      if (catsRes.error) throw catsRes.error;
+      if (groupsRes.error) throw groupsRes.error;
+
+      setCategories(catsRes.data || []);
+      setGroups(groupsRes.data || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch dashboard data');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -420,26 +142,295 @@ export default function HomeScreen() {
     router.push(`/category/${catId}`);
   };
 
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    scroll: { flex: 1 },
+    // Large rounded header card in deep slate blue with decorative shapes
+    heroBlock: {
+      backgroundColor: colors.primary[600],
+      borderBottomLeftRadius: 36,
+      borderBottomRightRadius: 36,
+      paddingHorizontal: spacing.lg,
+      paddingTop: Platform.OS === 'ios' ? 30 : spacing.sm,
+      paddingBottom: spacing.xl,
+      ...shadows.lg,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    heroCircle1: {
+      position: 'absolute',
+      top: -40,
+      right: -40,
+      width: 160,
+      height: 160,
+      borderRadius: radius.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    heroCircle2: {
+      position: 'absolute',
+      bottom: -60,
+      left: -20,
+      width: 120,
+      height: 120,
+      borderRadius: radius.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    },
+    heroTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.lg,
+    },
+    heroLeft: { flex: 1 },
+    locationLabel: {
+      fontSize: 11,
+      color: 'rgba(255, 255, 255, 0.7)',
+      fontFamily: typography.fontFamilyRegular,
+      marginBottom: 2,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    locationRow: { flexDirection: 'row', alignItems: 'center' },
+    locationText: {
+      fontSize: typography.sizes.md,
+      fontWeight: '700',
+      color: colors.neutral[100],
+      marginLeft: spacing.xs,
+      marginRight: 2,
+      fontFamily: typography.fontFamilyBold,
+    },
+    heroIcons: { flexDirection: 'row', gap: spacing.sm },
+    iconBtn: {
+      width: 44, height: 44, borderRadius: radius.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    iconBtnPressed: { backgroundColor: 'rgba(255, 255, 255, 0.25)' },
+    bellDot: {
+      position: 'absolute', top: 11, right: 12, width: 8, height: 8,
+      borderRadius: radius.full, backgroundColor: colors.accent[500], // orange dot badge
+      borderWidth: 1.5, borderColor: colors.primary[600],
+    },
+    searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    searchBar: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', height: 54,
+      backgroundColor: colors.neutral[100], borderRadius: radius.full, // pill shaped
+      paddingHorizontal: spacing.md,
+      ...shadows.sm,
+    },
+    searchBarPressed: { transform: [{ scale: 0.99 }] },
+    searchPlaceholder: {
+      flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
+      color: colors.neutral[500], fontFamily: typography.fontFamilyRegular,
+    },
+    filterBtn: {
+      width: 54, height: 54, borderRadius: radius.full,
+      backgroundColor: colors.accent[500], alignItems: 'center', justifyContent: 'center', // active state accent color
+      ...shadows.md,
+    },
+    filterBtnPressed: { backgroundColor: '#FF8C5A' },
+    
+    // Stats Block
+    statsRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.md,
+      paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.xl,
+      borderWidth: 1, borderColor: colors.neutral[200],
+      ...shadows.md,
+    },
+    statItem: { flex: 1, alignItems: 'center' },
+    statValue: {
+      fontSize: typography.sizes.lg, fontWeight: '800', color: colors.primary[600],
+      fontFamily: typography.fontFamilyBold,
+    },
+    statLabel: {
+      fontSize: 11, color: colors.neutral[500], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular, textAlign: 'center',
+    },
+    statDivider: { width: 1, height: 32, backgroundColor: colors.neutral[200] },
+    
+    // Sections & Headers
+    section: { marginTop: spacing.xl },
+    sectionHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg, marginBottom: spacing.md,
+    },
+    groupTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    groupIconWrap: {
+      width: 38, height: 38, borderRadius: 10,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    sectionTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '800', color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold, paddingHorizontal: spacing.lg, marginBottom: spacing.md,
+    },
+    sectionTitleInline: {
+      fontSize: typography.sizes.lg, fontWeight: '800', color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    viewAllText: {
+      fontSize: typography.sizes.sm, color: colors.accent[500], fontWeight: '700', // orange color for CTA links
+      fontFamily: typography.fontFamilyMedium,
+    },
+    
+    // Quick Actions Section
+    quickRow: { flexDirection: 'row', paddingHorizontal: spacing.md, gap: spacing.xs },
+    servicesGrid: { 
+      flexDirection: 'row', 
+      flexWrap: 'wrap', 
+      paddingHorizontal: spacing.lg, 
+      backgroundColor: colors.neutral[100], 
+      borderRadius: radius.xl,
+      paddingVertical: spacing.lg,
+      marginHorizontal: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
+      ...shadows.sm,
+    },
+    serviceItem: { width: (width - spacing.lg * 4) / 4, alignItems: 'center', marginBottom: spacing.md },
+    serviceItemPressed: { transform: [{ scale: 0.95 }] },
+    serviceIcon: {
+      width: 58, height: 58, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
+      marginBottom: spacing.xs,
+      ...shadows.sm,
+    },
+    serviceName: {
+      fontSize: 11, fontWeight: '600', color: colors.neutral[900],
+      textAlign: 'center', fontFamily: typography.fontFamilyMedium, lineHeight: 14,
+    },
+    
+    // Popular Cards list
+    popularScroll: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+    popularCard: {
+      width: 200, backgroundColor: colors.neutral[100], borderRadius: radius.xl, // rounded corners 22-28px
+      marginRight: spacing.md, overflow: 'hidden',
+      borderWidth: 1, borderColor: colors.neutral[200],
+      ...shadows.md,
+    },
+    popularImageWrap: { width: '100%', height: 120, position: 'relative' },
+    popularImage: { width: '100%', height: '100%' },
+    popularRatingBadge: {
+      position: 'absolute', top: spacing.sm, left: spacing.sm, flexDirection: 'row', alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 3, gap: 3,
+      ...shadows.sm,
+    },
+    popularRatingText: {
+      fontSize: 11, fontWeight: '700', color: colors.neutral[900], fontFamily: typography.fontFamilyBold,
+    },
+    popularHeartBtn: {
+      position: 'absolute', top: spacing.sm, right: spacing.sm, width: 32, height: 32,
+      borderRadius: radius.full, backgroundColor: 'rgba(255, 255, 255, 0.9)', alignItems: 'center', justifyContent: 'center',
+      ...shadows.sm,
+    },
+    popularBody: { padding: spacing.md },
+    popularName: {
+      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: 2, fontFamily: typography.fontFamilyBold,
+    },
+    popularSubtitle: {
+      fontSize: 11, color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular, marginBottom: spacing.md,
+    },
+    popularFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    popularBookBtn: {
+      backgroundColor: colors.accent[500], paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.full, alignSelf: 'flex-start',
+      ...shadows.sm,
+    },
+    popularBookBtnText: {
+      fontSize: 11, fontWeight: '700', color: colors.neutral[100], fontFamily: typography.fontFamilyBold,
+    },
+    
+    // How It Works
+    howItWorksRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, alignItems: 'flex-start' },
+    howItWorksConnector: { flex: 1, height: 2, backgroundColor: colors.neutral[200], marginTop: 28 },
+    
+    // Trust Row
+    trustRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.xl,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.xl,
+      borderWidth: 1, borderColor: colors.neutral[200], ...shadows.sm,
+    },
+    trustItem: { flex: 1, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 },
+    trustText: {
+      fontSize: 11, color: colors.neutral[900], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    trustDivider: { width: 1, height: 20, backgroundColor: colors.neutral[200] },
+    
+    // Refer Section
+    referCard: {
+      flexDirection: 'row', backgroundColor: colors.primary[600], borderRadius: radius.xl,
+      marginHorizontal: spacing.lg, padding: spacing.lg, alignItems: 'center', justifyContent: 'space-between',
+      overflow: 'hidden', position: 'relative',
+      ...shadows.md,
+    },
+    referLeft: { flexDirection: 'row', gap: spacing.md, flex: 1, alignItems: 'center' },
+    referIconWrap: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+    referTextWrap: { flex: 1 },
+    referTitle: { fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[100], fontFamily: typography.fontFamilyBold },
+    referDesc: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2, fontFamily: typography.fontFamilyRegular },
+    referCta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm },
+    referCtaText: { fontSize: 12, color: '#FF8C5A', fontWeight: '700' },
+    referRight: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md },
+    referAmount: { fontSize: typography.sizes.lg, fontWeight: '800', color: '#FF8C5A' },
+    
+    // Search Modal
+    searchModal: { flex: 1, backgroundColor: colors.neutral[50] },
+    searchHeader: {
+      flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.neutral[200], backgroundColor: colors.neutral[100],
+    },
+    searchBackBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    searchInputWrap: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', height: 46,
+      backgroundColor: colors.neutral[50], borderRadius: radius.full, paddingHorizontal: spacing.md, marginLeft: spacing.xs,
+    },
+    searchInput: {
+      flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md, color: colors.neutral[900],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    searchEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+    searchEmptyTitle: { fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900], marginTop: spacing.md },
+    searchEmptyDesc: { fontSize: typography.sizes.sm, color: colors.neutral[500], marginTop: spacing.xs, textAlign: 'center' },
+    searchResultsList: { padding: spacing.lg },
+    searchResult: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md },
+    searchResultIcon: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+    searchResultText: { flex: 1 },
+    searchResultLabel: { fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900] },
+    searchResultSubtitle: { fontSize: typography.sizes.xs, color: colors.neutral[500], marginTop: 2 },
+    searchResultDivider: { height: 1, backgroundColor: colors.neutral[200], marginVertical: spacing.xs },
+  });
+
   if (loading) return <LoadingState label={t('loading')} />;
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
 
+  const groupThemes: Record<string, { bg: string; fg: string }> = {
+    blue: { bg: 'rgba(51, 78, 104, 0.08)', fg: colors.primary[600] },
+    teal: { bg: 'rgba(244, 106, 69, 0.08)', fg: colors.accent[500] },
+    amber: { bg: 'rgba(255, 140, 90, 0.12)', fg: '#FF8C5A' },
+  };
+  const DEFAULT_THEME = groupThemes.blue;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.neutral[100]} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary[600]} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary[600]} colors={[colors.primary[600]]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent[500]} colors={[colors.accent[500]]} />}
         style={styles.scroll}
       >
-        {/* Hero Header */}
+        {/* Welcome Section Header */}
         <View style={styles.heroBlock}>
+          <View style={styles.heroCircle1} />
+          <View style={styles.heroCircle2} />
           <View style={styles.heroTop}>
             <View style={styles.heroLeft}>
               <Text style={styles.locationLabel}>Location</Text>
               <TouchableOpacity style={styles.locationRow} activeOpacity={0.7}>
-                <MapPin size={16} color={colors.neutral[700]} strokeWidth={2.5} />
+                <MapPin size={16} color={colors.neutral[100]} strokeWidth={2.5} />
                 <Text style={styles.locationText}>Thrissur, Kerala</Text>
-                <ChevronRight size={16} color={colors.neutral[700]} strokeWidth={2.5} />
+                <ChevronRight size={16} color={colors.neutral[100]} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
             <View style={styles.heroIcons}>
@@ -447,28 +438,28 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
                 onPress={() => router.push('/(tabs)/bookings')}
               >
-                <Bell size={20} color={colors.neutral[700]} strokeWidth={2.2} />
+                <Bell size={20} color={colors.neutral[100]} strokeWidth={2.2} />
                 <View style={styles.bellDot} />
               </Pressable>
             </View>
           </View>
 
-          {/* Search Bar */}
+          {/* Pill Search Bar */}
           <View style={styles.searchRow}>
             <Pressable
               style={({ pressed }) => [styles.searchBar, pressed && styles.searchBarPressed]}
               onPress={() => setSearchOpen(true)}
             >
-              <Search size={20} color={colors.neutral[400]} strokeWidth={2.2} />
+              <Search size={20} color={colors.neutral[500]} strokeWidth={2.2} />
               <Text style={styles.searchPlaceholder}>{t('searchServices')}</Text>
             </Pressable>
             <Pressable style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}>
-              <SlidersHorizontal size={20} color={colors.neutral[0]} strokeWidth={2.2} />
+              <SlidersHorizontal size={20} color={colors.neutral[100]} strokeWidth={2.2} />
             </Pressable>
           </View>
         </View>
 
-        {/* Stats Row */}
+        {/* Stats Row Card */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>12K+</Text>
@@ -497,7 +488,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Categories grouped by service group */}
+        {/* Categories Section */}
         {groups.map((group) => {
           const groupCats = categoriesByGroup[group.id] || [];
           if (groupCats.length === 0) return null;
@@ -526,7 +517,7 @@ export default function HomeScreen() {
                       onPress={() => router.push(`/category/${cat.id}`)}
                     >
                       <View style={[styles.serviceIcon, { backgroundColor: theme.bg }]}>
-                        <Icon size={26} color={theme.fg} strokeWidth={1.8} />
+                        <Icon size={24} color={theme.fg} strokeWidth={1.8} />
                       </View>
                       <Text style={styles.serviceName} numberOfLines={2}>
                         {lang === 'ml' ? cat.name_ml : cat.name_en}
@@ -539,35 +530,7 @@ export default function HomeScreen() {
           );
         })}
 
-        {/* Ungrouped categories fallback */}
-        {(categoriesByGroup['ungrouped'] || []).length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitleInline}>{t('subcategories')}</Text>
-            </View>
-            <View style={styles.servicesGrid}>
-              {categoriesByGroup['ungrouped'].map((cat) => {
-                const Icon = iconMap[cat.icon_name] || Wrench;
-                return (
-                  <Pressable
-                    key={cat.id}
-                    style={({ pressed }) => [styles.serviceItem, pressed && styles.serviceItemPressed]}
-                    onPress={() => router.push(`/category/${cat.id}`)}
-                  >
-                    <View style={[styles.serviceIcon, { backgroundColor: DEFAULT_THEME.bg }]}>
-                      <Icon size={26} color={DEFAULT_THEME.fg} strokeWidth={1.8} />
-                    </View>
-                    <Text style={styles.serviceName} numberOfLines={2}>
-                      {lang === 'ml' ? cat.name_ml : cat.name_en}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {/* Popular Near You */}
+        {/* Popular Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitleInline}>{t('popularNearYou')}</Text>
@@ -589,7 +552,7 @@ export default function HomeScreen() {
                   <View style={styles.popularImageWrap}>
                     <Image source={{ uri: imageUri }} style={styles.popularImage} resizeMode="cover" />
                     <View style={styles.popularRatingBadge}>
-                      <Star size={11} color={colors.accent[500]} fill={colors.accent[500]} strokeWidth={0} />
+                      <Star size={11} color="#FF8C5A" fill="#FF8C5A" strokeWidth={0} />
                       <Text style={styles.popularRatingText}>4.8</Text>
                     </View>
                     <Pressable
@@ -599,8 +562,8 @@ export default function HomeScreen() {
                     >
                       <Heart
                         size={16}
-                        color={isFav ? colors.error[500] : colors.neutral[400]}
-                        fill={isFav ? colors.error[500] : 'transparent'}
+                        color={isFav ? '#F44336' : colors.neutral[500]}
+                        fill={isFav ? '#F44336' : 'transparent'}
                         strokeWidth={2}
                       />
                     </Pressable>
@@ -641,17 +604,17 @@ export default function HomeScreen() {
         {/* Trust Indicators */}
         <View style={styles.trustRow}>
           <View style={styles.trustItem}>
-            <ShieldCheck size={22} color={colors.primary[600]} strokeWidth={2.2} />
+            <ShieldCheck size={20} color={colors.primary[600]} strokeWidth={2.2} />
             <Text style={styles.trustText}>Verified</Text>
           </View>
           <View style={styles.trustDivider} />
           <View style={styles.trustItem}>
-            <BadgeCheck size={22} color={colors.secondary[600]} strokeWidth={2.2} />
-            <Text style={styles.trustText}>Background{'\n'}Checked</Text>
+            <BadgeCheck size={20} color="#FF8C5A" strokeWidth={2.2} />
+            <Text style={styles.trustText}>BG Checked</Text>
           </View>
           <View style={styles.trustDivider} />
           <View style={styles.trustItem}>
-            <Star size={22} color={colors.accent[500]} fill={colors.accent[500]} strokeWidth={0} />
+            <Star size={20} color={colors.accent[500]} fill={colors.accent[500]} strokeWidth={0} />
             <Text style={styles.trustText}>4.9 Rated</Text>
           </View>
         </View>
@@ -661,14 +624,14 @@ export default function HomeScreen() {
           <View style={styles.referCard}>
             <View style={styles.referLeft}>
               <View style={styles.referIconWrap}>
-                <Gift size={24} color={colors.neutral[0]} strokeWidth={2} />
+                <Gift size={22} color={colors.neutral[100]} strokeWidth={2} />
               </View>
               <View style={styles.referTextWrap}>
                 <Text style={styles.referTitle}>{t('referEarn')}</Text>
                 <Text style={styles.referDesc}>{t('referEarnDesc')}</Text>
                 <TouchableOpacity style={styles.referCta} activeOpacity={0.85}>
                   <Text style={styles.referCtaText}>{t('inviteFriends')}</Text>
-                  <ArrowRight size={14} color={colors.primary[700]} strokeWidth={2.5} />
+                  <ArrowRight size={14} color="#FF8C5A" strokeWidth={2.5} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -678,7 +641,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{ height: spacing.xxl }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Search Modal */}
@@ -691,14 +654,14 @@ export default function HomeScreen() {
         <SafeAreaView style={styles.searchModal} edges={['top']}>
           <View style={styles.searchHeader}>
             <TouchableOpacity style={styles.searchBackBtn} onPress={() => setSearchOpen(false)} activeOpacity={0.6}>
-              <X size={22} color={colors.neutral[300]} strokeWidth={2.2} />
+              <X size={22} color={colors.neutral[500]} strokeWidth={2.2} />
             </TouchableOpacity>
             <View style={styles.searchInputWrap}>
-              <Search size={20} color={colors.neutral[400]} strokeWidth={2.2} />
+              <Search size={20} color={colors.neutral[500]} strokeWidth={2.2} />
               <TextInput
                 style={styles.searchInput}
                 placeholder={t('searchServices')}
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={colors.neutral[500]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoFocus
@@ -706,7 +669,7 @@ export default function HomeScreen() {
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
-                  <X size={18} color={colors.neutral[400]} strokeWidth={2} />
+                  <X size={18} color={colors.neutral[500]} strokeWidth={2} />
                 </TouchableOpacity>
               )}
             </View>
@@ -744,7 +707,7 @@ export default function HomeScreen() {
                       <Text style={styles.searchResultLabel}>{item.label}</Text>
                       <Text style={styles.searchResultSubtitle}>{item.subtitle}</Text>
                     </View>
-                    <ChevronRight size={18} color={colors.neutral[300]} strokeWidth={2} />
+                    <ChevronRight size={18} color={colors.neutral[500]} strokeWidth={2} />
                   </TouchableOpacity>
                 );
               }}
@@ -771,30 +734,31 @@ function GroupIcon({ name, color }: { name: string; color: string }) {
 function QuickAction({ icon: Icon, label, desc, onPress }: {
   icon: any; label: string; desc: string; onPress: () => void;
 }) {
-  const { isDark } = useTheme();
   const styles = StyleSheet.create({
     quickCard: {
-      flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-      padding: spacing.sm, marginHorizontal: spacing.xs / 2, alignItems: 'center',
+      flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.xl,
+      padding: spacing.md, alignItems: 'center',
+      borderWidth: 1, borderColor: colors.neutral[200],
+      ...shadows.sm,
     },
     quickCardPressed: { transform: [{ scale: 0.96 }] },
     quickIcon: {
-      width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
-      marginBottom: spacing.xs, backgroundColor: colors.primary[50],
+      width: 48, height: 48, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
+      marginBottom: spacing.xs, backgroundColor: 'rgba(255, 140, 90, 0.12)',
     },
     quickLabel: {
-      fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[700],
+      fontSize: 11, fontWeight: '700', color: colors.neutral[900],
       fontFamily: typography.fontFamilyBold, textAlign: 'center',
     },
     quickDesc: {
-      fontSize: 10, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
+      fontSize: 9, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular,
       textAlign: 'center', marginTop: 2,
     },
   });
   return (
     <Pressable style={({ pressed }) => [styles.quickCard, pressed && styles.quickCardPressed]} onPress={onPress}>
       <View style={styles.quickIcon}>
-        <Icon size={22} color={colors.primary[600]} strokeWidth={2} />
+        <Icon size={20} color={colors.accent[500]} strokeWidth={2} />
       </View>
       <Text style={styles.quickLabel} numberOfLines={1}>{label}</Text>
       <Text style={styles.quickDesc} numberOfLines={1}>{desc}</Text>
@@ -805,29 +769,29 @@ function QuickAction({ icon: Icon, label, desc, onPress }: {
 function HowItWorksStep({ num, title, desc, icon: Icon }: {
   num: string; title: string; desc: string; icon: any;
 }) {
-  const { isDark } = useTheme();
   const styles = StyleSheet.create({
     howItWorksStep: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.xs },
     howItWorksIconWrap: {
-      width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary[50],
+      width: 56, height: 56, borderRadius: radius.full, backgroundColor: 'rgba(51, 78, 104, 0.08)',
       alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
-      borderWidth: 1.5, borderColor: colors.primary[200],
+      borderWidth: 1.5, borderColor: colors.primary[600],
+      position: 'relative',
     },
     howItWorksNum: {
       position: 'absolute', top: -4, right: -4, width: 22, height: 22, borderRadius: radius.full,
-      backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.accent[500], alignItems: 'center', justifyContent: 'center',
       borderWidth: 2, borderColor: colors.neutral[50],
     },
     howItWorksNumText: {
-      fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
+      fontSize: 11, fontWeight: '700', color: colors.neutral[100], fontFamily: typography.fontFamilyBold,
     },
     howItWorksTitle: {
-      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[700],
+      fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[900],
       textAlign: 'center', marginBottom: 4, fontFamily: typography.fontFamilyBold,
     },
     howItWorksDesc: {
-      fontSize: 11, color: colors.neutral[500], textAlign: 'center',
-      fontFamily: typography.fontFamilyRegular, lineHeight: 15,
+      fontSize: 10, color: colors.neutral[500], textAlign: 'center',
+      fontFamily: typography.fontFamilyRegular, lineHeight: 14,
     },
   });
   return (
@@ -843,6 +807,3 @@ function HowItWorksStep({ num, title, desc, icon: Icon }: {
     </View>
   );
 }
-
-// Styles are now defined inside their respective components so they rebuild
-// on theme changes (colors is a mutable singleton).

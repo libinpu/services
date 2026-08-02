@@ -11,183 +11,186 @@ type ColorPalette = {
   neutral: ColorRamp;
 };
 
-// ─── Dark palette ─────────────────────────────────────────────
+// ─── Dark palette (deep slate + coral orange) ───────────────
 const darkColors: ColorPalette = {
   primary: {
-    50: 'rgba(255,145,66,0.12)',
-    100: 'rgba(255,145,66,0.18)',
-    200: 'rgba(255,145,66,0.25)',
-    300: '#FF9142',
-    400: '#FF9142',
-    500: '#FF9142',
-    600: '#FF9142',
-    700: '#F5821F',
-    800: '#F5821F',
-    900: '#F5821F',
+    50: 'rgba(56, 189, 248, 0.1)',
+    100: '#E0F2FE',
+    200: '#BAE6FD',
+    300: '#7DD3FC',
+    400: '#38BDF8',
+    500: '#0EA5E9',
+    600: '#38BDF8', // Vibrant Sky Blue for CTA/active
+    700: '#0369A1',
+    800: '#075985',
+    900: '#0C4A6E',
   },
   secondary: {
-    50: 'rgba(255,145,66,0.12)',
-    100: 'rgba(255,145,66,0.18)',
-    200: 'rgba(255,145,66,0.25)',
-    300: '#FF9142',
-    400: '#FF9142',
-    500: '#FF9142',
-    600: '#F5821F',
-    700: '#F5821F',
-    800: '#F5821F',
-    900: '#F5821F',
+    50: 'rgba(255,140,90,0.1)',
+    100: '#FFEDD5',
+    200: '#FED7AA',
+    300: '#FDBA74',
+    400: '#FB923C',
+    500: '#F97316',
+    600: '#EA580C',
+    700: '#C2410C',
+    800: '#9A3412',
+    900: '#7C2D12',
   },
   accent: {
-    50: 'rgba(255,145,66,0.12)',
-    100: 'rgba(255,145,66,0.18)',
-    200: 'rgba(255,145,66,0.25)',
-    300: '#FF9142',
-    400: '#FF9142',
-    500: '#FF9142',
-    600: '#F5821F',
-    700: '#F5821F',
-    800: '#F5821F',
-    900: '#F5821F',
+    50: 'rgba(244,106,69,0.1)',
+    100: '#FFE4E0',
+    200: '#FFC8C0',
+    300: '#FFA093',
+    400: '#FF7D6A',
+    500: '#F46A45',
+    600: '#F46A45', // Coral Orange for accents
+    700: '#BF3D1B',
+    800: '#9C2A0F',
+    900: '#7A1C08',
   },
   success: {
-    50: 'rgba(48,209,88,0.12)',
-    100: 'rgba(48,209,88,0.18)',
-    200: 'rgba(48,209,88,0.25)',
-    300: '#30D158',
-    400: '#30D158',
-    500: '#30D158',
-    600: '#30D158',
-    700: '#28B84C',
-    800: '#28B84C',
-    900: '#28B84C',
+    50: 'rgba(74, 222, 128, 0.1)',
+    100: '#DCFCE7',
+    200: '#BBF7D0',
+    300: '#86EFAC',
+    400: '#4ADE80',
+    500: '#22C55E',
+    600: '#22C55E',
+    700: '#15803D',
+    800: '#166534',
+    900: '#14532D',
   },
   warning: {
-    50: 'rgba(255,214,10,0.12)',
-    100: 'rgba(255,214,10,0.18)',
-    200: 'rgba(255,214,10,0.25)',
-    300: '#FFD60A',
-    400: '#FFD60A',
-    500: '#FFD60A',
-    600: '#E6C109',
-    700: '#E6C109',
-    800: '#E6C109',
-    900: '#E6C109',
+    50: 'rgba(250, 204, 21, 0.1)',
+    100: '#FEF9C3',
+    200: '#FEF08A',
+    300: '#FDE047',
+    400: '#FACC15',
+    500: '#EAB308',
+    600: '#EAB308',
+    700: '#A16207',
+    800: '#854D0E',
+    900: '#713F12',
   },
   error: {
-    50: 'rgba(255,69,58,0.12)',
-    100: 'rgba(255,69,58,0.18)',
-    200: 'rgba(255,69,58,0.25)',
-    300: '#FF453A',
-    400: '#FF453A',
-    500: '#FF453A',
-    600: '#FF453A',
-    700: '#E03E34',
-    800: '#E03E34',
-    900: '#E03E34',
+    50: 'rgba(248, 113, 113, 0.1)',
+    100: '#FEE2E2',
+    200: '#FECACA',
+    300: '#FCA5A5',
+    400: '#F87171',
+    500: '#EF4444',
+    600: '#EF4444',
+    700: '#B91C1C',
+    800: '#991B1B',
+    900: '#7F1D1D',
   },
   neutral: {
-    0: '#FFFFFF',
-    50: '#1C1C1E',
-    100: '#2A2A2D',
-    200: '#3A3A3D',
-    300: '#8E8E93',
-    400: '#8E8E93',
-    500: '#9A9A9E',
-    600: '#9A9A9E',
-    700: '#FFFFFF',
-    800: '#FFFFFF',
+    0: '#000000',
+    50: '#0B111A',   // App Background (Deep Slate)
+    100: '#131A26',  // Cards background
+    200: '#1E293B',  // Borders / Dividers
+    300: '#334155',  // Strong borders / Divider
+    400: '#475569',  // Placeholder / light secondary
+    500: '#94A3B8',  // Secondary Text
+    600: '#CBD5E1',  // Medium text
+    700: '#F1F5F9',  // Primary Text
+    800: '#F8FAFC',
     900: '#FFFFFF',
-    950: '#1C1C1E',
+    950: '#0B111A',
   },
 };
 
-// ─── Light palette ────────────────────────────────────────────
+// ─── Light palette (premium modern design) ────────────
 const lightColors: ColorPalette = {
   primary: {
-    50: 'rgba(255,145,66,0.10)',
-    100: 'rgba(255,145,66,0.15)',
-    200: 'rgba(255,145,66,0.22)',
-    300: '#FF9142',
-    400: '#FF9142',
-    500: '#FF9142',
-    600: '#F5821F',
-    700: '#E6730E',
-    800: '#E6730E',
-    900: '#E6730E',
+    // Deep Slate Blue #334E68
+    50: 'rgba(51,78,104,0.08)',
+    100: 'rgba(51,78,104,0.15)',
+    200: 'rgba(51,78,104,0.25)',
+    300: '#334E68',
+    400: '#334E68',
+    500: '#334E68',
+    600: '#334E68', // Deep Slate Blue
+    700: '#243B53',
+    800: '#102A43',
+    900: '#0A1C30',
   },
   secondary: {
-    50: 'rgba(255,145,66,0.10)',
-    100: 'rgba(255,145,66,0.15)',
-    200: 'rgba(255,145,66,0.22)',
-    300: '#FF9142',
-    400: '#FF9142',
-    500: '#FF9142',
-    600: '#F5821F',
-    700: '#E6730E',
-    800: '#E6730E',
-    900: '#E6730E',
+    // Soft Orange #FF8C5A
+    50: 'rgba(255,140,90,0.08)',
+    100: '#FF8C5A',
+    200: '#FF8C5A',
+    300: '#FF8C5A',
+    400: '#FF8C5A',
+    500: '#FF8C5A',
+    600: '#FF8C5A',
+    700: '#E07A1F',
+    800: '#C06000',
+    900: '#A05000',
   },
   accent: {
-    50: 'rgba(255,145,66,0.10)',
-    100: 'rgba(255,145,66,0.15)',
-    200: 'rgba(255,145,66,0.22)',
-    300: '#FF9142',
-    400: '#FF9142',
-    500: '#FF9142',
-    600: '#F5821F',
-    700: '#E6730E',
-    800: '#E6730E',
-    900: '#E6730E',
+    // Coral Orange #F46A45
+    50: 'rgba(244,106,69,0.08)',
+    100: '#F46A45',
+    200: '#F46A45',
+    300: '#F46A45',
+    400: '#F46A45',
+    500: '#F46A45',
+    600: '#F46A45',
+    700: '#D05030',
+    800: '#B04020',
+    900: '#903010',
   },
   success: {
-    50: 'rgba(48,209,88,0.10)',
-    100: 'rgba(48,209,88,0.15)',
-    200: 'rgba(48,209,88,0.22)',
-    300: '#30D158',
-    400: '#30D158',
-    500: '#28B84C',
-    600: '#24A843',
-    700: '#1F9238',
-    800: '#1F9238',
-    900: '#1F9238',
+    50: 'rgba(76,175,80,0.10)',
+    100: 'rgba(76,175,80,0.15)',
+    200: 'rgba(76,175,80,0.22)',
+    300: '#4CAF50',
+    400: '#4CAF50',
+    500: '#4CAF50',
+    600: '#4CAF50',
+    700: '#388E3C',
+    800: '#388E3C',
+    900: '#388E3C',
   },
   warning: {
-    50: 'rgba(255,214,10,0.10)',
-    100: 'rgba(255,214,10,0.15)',
-    200: 'rgba(255,214,10,0.22)',
-    300: '#FFD60A',
-    400: '#FFD60A',
-    500: '#E6C109',
-    600: '#D4AF09',
-    700: '#D4AF09',
-    800: '#D4AF09',
-    900: '#D4AF09',
+    50: 'rgba(245,166,35,0.10)',
+    100: 'rgba(245,166,35,0.15)',
+    200: 'rgba(245,166,35,0.22)',
+    300: '#F5A623',
+    400: '#F5A623',
+    500: '#F5A623',
+    600: '#F5A623',
+    700: '#E69512',
+    800: '#E69512',
+    900: '#E69512',
   },
   error: {
-    50: 'rgba(255,69,58,0.10)',
-    100: 'rgba(255,69,58,0.15)',
-    200: 'rgba(255,69,58,0.22)',
-    300: '#FF453A',
-    400: '#FF453A',
-    500: '#FF453A',
-    600: '#E03E34',
-    700: '#CC352C',
-    800: '#CC352C',
-    900: '#CC352C',
+    50: 'rgba(244,67,54,0.10)',
+    100: 'rgba(244,67,54,0.15)',
+    200: 'rgba(244,67,54,0.22)',
+    300: '#F44336',
+    400: '#F44336',
+    500: '#F44336',
+    600: '#F44336',
+    700: '#D32F2F',
+    800: '#D32F2F',
+    900: '#D32F2F',
   },
   neutral: {
     0: '#FFFFFF',
-    50: '#F2F2F7',
-    100: '#FFFFFF',
-    200: '#E5E5EA',
-    300: '#C7C7CC',
-    400: '#8E8E93',
-    500: '#636366',
-    600: '#48484A',
-    700: '#1C1C1E',
-    800: '#1C1C1E',
-    900: '#000000',
-    950: '#F2F2F7',
+    50: '#F7F9FC',   // Background
+    100: '#FFFFFF',  // Cards background
+    200: '#E8EEF4',  // Borders
+    300: '#DCE2E7',  // Divider
+    400: '#9FB3C8',  // Placeholder / light secondary
+    500: '#7B8794',  // Secondary Text
+    600: '#627D98',  // Medium text
+    700: '#233142',  // Primary Text
+    800: '#233142',
+    900: '#102A43',
+    950: '#F7F9FC',
   },
 };
 
@@ -197,11 +200,11 @@ function deepClone<T>(obj: T): T {
 }
 
 // ─── Mutable colors object (swapped in-place by setActiveTheme) ──
-export const colors: ColorPalette = deepClone(darkColors);
+export const colors: ColorPalette = deepClone(lightColors);
 
 export type ThemeMode = 'light' | 'dark';
 
-let _currentMode: ThemeMode = 'dark';
+let _currentMode: ThemeMode = 'light';
 
 export function getThemeMode(): ThemeMode {
   return _currentMode;
@@ -251,32 +254,32 @@ const darkShadows = {
 
 const lightShadows = {
   sm: Platform.select({
-    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 },
+    ios: { shadowColor: '#334E68', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
     android: { elevation: 1 },
-    default: { boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)' },
+    default: { boxShadow: '0 2px 6px rgba(51, 78, 104, 0.04)' },
   }),
   md: Platform.select({
-    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 12 },
+    ios: { shadowColor: '#334E68', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16 },
     android: { elevation: 3 },
-    default: { boxShadow: '0 3px 12px rgba(0, 0, 0, 0.12)' },
+    default: { boxShadow: '0 4px 16px rgba(51, 78, 104, 0.06)' },
   }),
   lg: Platform.select({
-    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 20 },
+    ios: { shadowColor: '#334E68', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.09, shadowRadius: 24 },
     android: { elevation: 6 },
-    default: { boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)' },
+    default: { boxShadow: '0 8px 24px rgba(51, 78, 104, 0.09)' },
   }),
   xl: Platform.select({
-    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.20, shadowRadius: 32 },
+    ios: { shadowColor: '#334E68', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.12, shadowRadius: 36 },
     android: { elevation: 10 },
-    default: { boxShadow: '0 10px 32px rgba(0, 0, 0, 0.20)' },
+    default: { boxShadow: '0 16px 36px rgba(51, 78, 104, 0.12)' },
   }),
 };
 
 export const shadows: { sm: any; md: any; lg: any; xl: any } = {
-  sm: darkShadows.sm,
-  md: darkShadows.md,
-  lg: darkShadows.lg,
-  xl: darkShadows.xl,
+  sm: lightShadows.sm,
+  md: lightShadows.md,
+  lg: lightShadows.lg,
+  xl: lightShadows.xl,
 };
 
 export const spacing = {
@@ -291,9 +294,9 @@ export const spacing = {
 export const radius = {
   sm: 8,
   md: 16,
-  lg: 20,
-  xl: 32,
-  full: 9999,
+  lg: 24, // Generous 24px rounded corners per guideline
+  xl: 28, // High end card corners
+  full: 9999, // Pill shape
 };
 
 export const typography = {
