@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { Button, Input } from '@/components/ui';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Wrench } from 'lucide-react-native';
@@ -13,6 +14,7 @@ export default function LoginScreen() {
   const { t } = useLanguage();
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -21,6 +23,150 @@ export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.primary[50],
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.xl,
+    },
+    logoWrap: {
+      alignItems: 'center',
+      marginBottom: spacing.xl,
+    },
+    logoCircle: {
+      width: 80,
+      height: 80,
+      borderRadius: radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.lg,
+    },
+    appName: {
+      fontSize: typography.sizes.xxxl,
+      fontWeight: '700',
+      color: colors.primary[700],
+      marginTop: spacing.md,
+      fontFamily: typography.fontFamilyBold,
+    },
+    tagline: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[500],
+      marginTop: spacing.xs,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    formCard: {
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.xl,
+      padding: spacing.lg,
+      ...shadows.lg,
+    },
+    welcomeText: {
+      fontSize: typography.sizes.xxl,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      marginBottom: spacing.xs,
+      fontFamily: typography.fontFamilyBold,
+    },
+    subtitle: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[500],
+      marginBottom: spacing.lg,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    socialBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: 52,
+      borderRadius: radius.full,
+      borderWidth: 1.5,
+      borderColor: colors.primary[600],
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    socialIcon: {
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    googleIcon: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.accent[600],
+      fontFamily: typography.fontFamilyBold,
+    },
+    socialBtnText: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: typography.sizes.md,
+      fontWeight: '600',
+      color: colors.primary[600],
+      fontFamily: typography.fontFamilyMedium,
+      marginRight: spacing.md,
+    },
+
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: spacing.md,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.neutral[200],
+    },
+    dividerText: {
+      paddingHorizontal: spacing.md,
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[400],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    modeToggle: {
+      flexDirection: 'row',
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.md,
+      padding: 4,
+      marginBottom: spacing.md,
+    },
+    modeTab: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      alignItems: 'center',
+      borderRadius: radius.sm,
+    },
+    modeTabActive: {
+      backgroundColor: colors.neutral[100],
+    },
+    modeTabText: {
+      fontSize: typography.sizes.sm,
+      fontWeight: '600',
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    modeTabTextActive: {
+      color: colors.primary[700],
+    },
+    input: {
+      backgroundColor: colors.neutral[100],
+      borderColor: colors.neutral[200],
+      marginBottom: spacing.sm,
+    },
+    errorText: {
+      fontSize: typography.sizes.sm,
+      color: colors.error[600],
+      marginBottom: spacing.sm,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    submitBtn: {
+      width: '100%',
+      marginTop: spacing.sm,
+    },
+  });
 
   const handleSubmit = async () => {
     setError(null);
@@ -168,148 +314,3 @@ export default function LoginScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.primary[50],
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-  },
-  logoWrap: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.lg,
-  },
-  appName: {
-    fontSize: typography.sizes.xxxl,
-    fontWeight: '700',
-    color: colors.primary[700],
-    marginTop: spacing.md,
-    fontFamily: typography.fontFamilyBold,
-  },
-  tagline: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[500],
-    marginTop: spacing.xs,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  formCard: {
-    backgroundColor: colors.neutral[100],
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    ...shadows.lg,
-  },
-  welcomeText: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    marginBottom: spacing.xs,
-    fontFamily: typography.fontFamilyBold,
-  },
-  subtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[500],
-    marginBottom: spacing.lg,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  socialBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 52,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.primary[600],
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  socialIcon: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleIcon: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.accent[600],
-    fontFamily: typography.fontFamilyBold,
-  },
-  socialBtnText: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: typography.sizes.md,
-    fontWeight: '600',
-    color: colors.primary[600],
-    fontFamily: typography.fontFamilyMedium,
-    marginRight: spacing.md,
-  },
-
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.neutral[200],
-  },
-  dividerText: {
-    paddingHorizontal: spacing.md,
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[400],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  modeToggle: {
-    flexDirection: 'row',
-    backgroundColor: colors.neutral[100],
-    borderRadius: radius.md,
-    padding: 4,
-    marginBottom: spacing.md,
-  },
-  modeTab: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    borderRadius: radius.sm,
-  },
-  modeTabActive: {
-    backgroundColor: colors.neutral[100],
-  },
-  modeTabText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  modeTabTextActive: {
-    color: colors.primary[700],
-  },
-  input: {
-    backgroundColor: colors.neutral[100],
-    borderColor: colors.neutral[200],
-    marginBottom: spacing.sm,
-  },
-  errorText: {
-    fontSize: typography.sizes.sm,
-    color: colors.error[600],
-    marginBottom: spacing.sm,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  submitBtn: {
-    width: '100%',
-    marginTop: spacing.sm,
-  },
-
-});

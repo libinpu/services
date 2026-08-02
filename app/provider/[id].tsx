@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
+import { useTheme } from '@/lib/theme-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
@@ -13,11 +14,120 @@ export default function ProviderProfileScreen() {
   const { id, subId } = useLocalSearchParams<{ id: string; subId: string }>();
   const { t, lang } = useLanguage();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [provider, setProvider] = useState<ProviderWithProfile | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    profileHeader: { flexDirection: 'row', backgroundColor: colors.neutral[100], padding: spacing.lg },
+    avatarWrap: {
+      width: 80, height: 80, borderRadius: radius.full, backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    avatarPlaceholder: { width: 80, height: 80, borderRadius: radius.full, backgroundColor: colors.neutral[200] },
+    profileInfo: { flex: 1, justifyContent: 'center' },
+    nameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs, flexWrap: 'wrap' },
+    name: {
+      fontSize: typography.sizes.xxl, fontWeight: '700', color: colors.neutral[900],
+      marginRight: spacing.sm, fontFamily: typography.fontFamilyBold,
+    },
+    verifiedBadge: {
+      flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+      backgroundColor: colors.success[50], borderRadius: radius.full,
+    },
+    verifiedText: {
+      fontSize: typography.sizes.xs, color: colors.success[700], fontWeight: '600',
+      marginLeft: 4, fontFamily: typography.fontFamilyMedium,
+    },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
+    ratingText: {
+      fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[700],
+      marginLeft: 4, fontFamily: typography.fontFamilyMedium,
+    },
+    ratingCount: {
+      fontSize: typography.sizes.sm, color: colors.neutral[400],
+      marginLeft: 4, fontFamily: typography.fontFamilyRegular,
+    },
+    dot: { fontSize: typography.sizes.sm, color: colors.neutral[300], marginHorizontal: spacing.xs },
+    jobsText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular,
+    },
+    locationRow: { flexDirection: 'row', alignItems: 'center' },
+    locationText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500],
+      marginLeft: 4, fontFamily: typography.fontFamilyRegular,
+    },
+    statsRow: {
+      flexDirection: 'row', backgroundColor: colors.neutral[100], marginHorizontal: spacing.md,
+      marginTop: spacing.md, borderRadius: radius.lg, padding: spacing.md,
+    },
+    statItem: { flex: 1, alignItems: 'center' },
+    statValue: {
+      fontSize: typography.sizes.xxl, fontWeight: '700', color: colors.primary[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+    statLabel: {
+      fontSize: typography.sizes.xs, color: colors.neutral[500], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    statDivider: { width: 1, backgroundColor: colors.neutral[200] },
+    section: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
+    sectionTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
+    },
+    bioText: {
+      fontSize: typography.sizes.md, color: colors.neutral[600],
+      lineHeight: 22, fontFamily: typography.fontFamilyRegular,
+    },
+    tagsWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+    skillTag: {
+      paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+      backgroundColor: colors.primary[50], borderRadius: radius.full,
+      marginRight: spacing.sm, marginBottom: spacing.sm,
+    },
+    skillTagText: {
+      fontSize: typography.sizes.sm, color: colors.primary[700], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    noReviewsText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
+    },
+    reviewCard: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.md, marginBottom: spacing.sm,
+    },
+    reviewHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs,
+    },
+    reviewStars: { flexDirection: 'row' },
+    reviewDate: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
+    },
+    reviewComment: {
+      fontSize: typography.sizes.sm, color: colors.neutral[600],
+      lineHeight: 20, marginBottom: spacing.xs, fontFamily: typography.fontFamilyRegular,
+    },
+    reviewTags: { flexDirection: 'row', flexWrap: 'wrap' },
+    reviewTag: {
+      paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+      backgroundColor: colors.neutral[200], borderRadius: radius.full,
+      marginRight: spacing.xs, marginBottom: spacing.xs,
+    },
+    reviewTagText: {
+      fontSize: typography.sizes.xs, color: colors.neutral[600], fontFamily: typography.fontFamilyRegular,
+    },
+    bottomBar: {
+      position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[100],
+      paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+      borderTopWidth: 1, borderTopColor: colors.neutral[200],
+    },
+    bookBtn: { width: '100%', borderRadius: radius.full },
+  });
 
   const fetchData = useCallback(async () => {
     try {
@@ -196,111 +306,3 @@ export default function ProviderProfileScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  profileHeader: { flexDirection: 'row', backgroundColor: colors.neutral[100], padding: spacing.lg },
-  avatarWrap: {
-    width: 80, height: 80, borderRadius: radius.full, backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  avatarPlaceholder: { width: 80, height: 80, borderRadius: radius.full, backgroundColor: colors.neutral[200] },
-  profileInfo: { flex: 1, justifyContent: 'center' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs, flexWrap: 'wrap' },
-  name: {
-    fontSize: typography.sizes.xxl, fontWeight: '700', color: colors.neutral[900],
-    marginRight: spacing.sm, fontFamily: typography.fontFamilyBold,
-  },
-  verifiedBadge: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-    backgroundColor: colors.success[50], borderRadius: radius.full,
-  },
-  verifiedText: {
-    fontSize: typography.sizes.xs, color: colors.success[700], fontWeight: '600',
-    marginLeft: 4, fontFamily: typography.fontFamilyMedium,
-  },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
-  ratingText: {
-    fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[700],
-    marginLeft: 4, fontFamily: typography.fontFamilyMedium,
-  },
-  ratingCount: {
-    fontSize: typography.sizes.sm, color: colors.neutral[400],
-    marginLeft: 4, fontFamily: typography.fontFamilyRegular,
-  },
-  dot: { fontSize: typography.sizes.sm, color: colors.neutral[300], marginHorizontal: spacing.xs },
-  jobsText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular,
-  },
-  locationRow: { flexDirection: 'row', alignItems: 'center' },
-  locationText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500],
-    marginLeft: 4, fontFamily: typography.fontFamilyRegular,
-  },
-  statsRow: {
-    flexDirection: 'row', backgroundColor: colors.neutral[100], marginHorizontal: spacing.md,
-    marginTop: spacing.md, borderRadius: radius.lg, padding: spacing.md,
-  },
-  statItem: { flex: 1, alignItems: 'center' },
-  statValue: {
-    fontSize: typography.sizes.xxl, fontWeight: '700', color: colors.primary[700],
-    fontFamily: typography.fontFamilyBold,
-  },
-  statLabel: {
-    fontSize: typography.sizes.xs, color: colors.neutral[500], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  statDivider: { width: 1, backgroundColor: colors.neutral[200] },
-  section: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
-  sectionTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
-  },
-  bioText: {
-    fontSize: typography.sizes.md, color: colors.neutral[600],
-    lineHeight: 22, fontFamily: typography.fontFamilyRegular,
-  },
-  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  skillTag: {
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    backgroundColor: colors.primary[50], borderRadius: radius.full,
-    marginRight: spacing.sm, marginBottom: spacing.sm,
-  },
-  skillTagText: {
-    fontSize: typography.sizes.sm, color: colors.primary[700], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  noReviewsText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
-  },
-  reviewCard: {
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    padding: spacing.md, marginBottom: spacing.sm,
-  },
-  reviewHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs,
-  },
-  reviewStars: { flexDirection: 'row' },
-  reviewDate: {
-    fontSize: typography.sizes.xs, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
-  },
-  reviewComment: {
-    fontSize: typography.sizes.sm, color: colors.neutral[600],
-    lineHeight: 20, marginBottom: spacing.xs, fontFamily: typography.fontFamilyRegular,
-  },
-  reviewTags: { flexDirection: 'row', flexWrap: 'wrap' },
-  reviewTag: {
-    paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-    backgroundColor: colors.neutral[200], borderRadius: radius.full,
-    marginRight: spacing.xs, marginBottom: spacing.xs,
-  },
-  reviewTagText: {
-    fontSize: typography.sizes.xs, color: colors.neutral[600], fontFamily: typography.fontFamilyRegular,
-  },
-  bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
-    borderTopWidth: 1, borderTopColor: colors.neutral[200],
-  },
-  bookBtn: { width: '100%', borderRadius: radius.full },
-});

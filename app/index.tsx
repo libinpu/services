@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ScrollView, ViewS
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLanguage } from '@/lib/language-context';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { Button } from '@/components/ui';
 import { Wrench, ShieldCheck, MapPin } from 'lucide-react-native';
 
@@ -30,6 +31,86 @@ export default function OnboardingScreen() {
   const { t, lang } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+  const { isDark } = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.neutral[50],
+    },
+    skipRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+    },
+    skipText: {
+      fontSize: typography.sizes.md,
+      color: colors.neutral[500],
+      fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    slide: {
+      width,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.xl,
+    },
+    iconWrap: {
+      width: 140,
+      height: 140,
+      borderRadius: radius.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xl,
+    },
+    slideTitle: {
+      fontSize: typography.sizes.xxxl,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      textAlign: 'center',
+      marginBottom: spacing.md,
+      lineHeight: 36,
+      fontFamily: typography.fontFamilyBold,
+    },
+    slideDesc: {
+      fontSize: typography.sizes.md,
+      color: colors.neutral[500],
+      textAlign: 'center',
+      lineHeight: 24,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    dotsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.md,
+    },
+    dot: {
+      height: 8,
+      borderRadius: radius.full,
+      marginHorizontal: spacing.xs,
+    },
+    dotActive: {
+      width: 24,
+      backgroundColor: colors.primary[600],
+    },
+    dotInactive: {
+      width: 8,
+      backgroundColor: colors.neutral[300],
+    },
+    bottomArea: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.xl,
+    },
+    ctaBtn: {
+      width: '100%',
+    },
+  });
 
   const titles = [t('intro1Title'), t('intro2Title'), t('intro3Title')];
   const descs = [t('intro1Desc'), t('intro2Desc'), t('intro3Desc')];
@@ -115,82 +196,3 @@ export default function OnboardingScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  skipRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-  },
-  skipText: {
-    fontSize: typography.sizes.md,
-    color: colors.neutral[500],
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  slide: {
-    width,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-  },
-  iconWrap: {
-    width: 140,
-    height: 140,
-    borderRadius: radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xl,
-  },
-  slideTitle: {
-    fontSize: typography.sizes.xxxl,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    textAlign: 'center',
-    marginBottom: spacing.md,
-    lineHeight: 36,
-    fontFamily: typography.fontFamilyBold,
-  },
-  slideDesc: {
-    fontSize: typography.sizes.md,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    lineHeight: 24,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-  },
-  dot: {
-    height: 8,
-    borderRadius: radius.full,
-    marginHorizontal: spacing.xs,
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: colors.primary[600],
-  },
-  dotInactive: {
-    width: 8,
-    backgroundColor: colors.neutral[300],
-  },
-  bottomArea: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  ctaBtn: {
-    width: '100%',
-  },
-});

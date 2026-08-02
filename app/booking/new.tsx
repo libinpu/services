@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { ServiceSubcategory, Address, Profile } from '@/lib/types';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
@@ -15,6 +16,7 @@ export default function BookingConfirmationScreen() {
   const { t, lang } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [subcategory, setSubcategory] = useState<ServiceSubcategory | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -26,6 +28,105 @@ export default function BookingConfirmationScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    section: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
+    sectionTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
+    },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    changeText: {
+      fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    summaryCard: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.md,
+    },
+    serviceName: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
+    },
+    providerName: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500],
+      marginBottom: spacing.sm, fontFamily: typography.fontFamilyRegular,
+    },
+    timeRow: { flexDirection: 'row', alignItems: 'center' },
+    timeText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[600],
+      marginLeft: 6, fontFamily: typography.fontFamilyMedium,
+    },
+    scheduleToggle: {
+      flexDirection: 'row', backgroundColor: colors.neutral[100],
+      borderRadius: radius.md, padding: 4,
+    },
+    scheduleTab: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.sm },
+    scheduleTabActive: { backgroundColor: colors.neutral[200] },
+    scheduleTabText: {
+      fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[500],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    scheduleTabTextActive: { color: colors.primary[700] },
+    dateTimePicker: { marginTop: spacing.md },
+    dateRow: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+      borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    dateText: {
+      fontSize: typography.sizes.md, color: colors.neutral[700],
+      marginLeft: spacing.sm, fontFamily: typography.fontFamilyMedium,
+    },
+    timeSlots: { flexDirection: 'row', flexWrap: 'wrap' },
+    timeSlot: {
+      paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+      backgroundColor: colors.neutral[100], borderRadius: radius.md,
+      borderWidth: 1.5, borderColor: colors.neutral[200],
+      marginRight: spacing.sm, marginBottom: spacing.sm,
+    },
+    timeSlotActive: { borderColor: colors.primary[600], backgroundColor: colors.primary[50] },
+    timeSlotText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[600], fontFamily: typography.fontFamilyMedium,
+    },
+    timeSlotTextActive: { color: colors.primary[700], fontWeight: '700' },
+    addressCard: {
+      flexDirection: 'row', backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.md,
+    },
+    addressIcon: {
+      width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    addressInfo: { flex: 1 },
+    addressLabel: {
+      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: 2, fontFamily: typography.fontFamilyBold,
+    },
+    addressText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500],
+      lineHeight: 18, fontFamily: typography.fontFamilyRegular,
+    },
+    addAddressBtn: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md,
+      alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[300], borderStyle: 'dashed',
+    },
+    addAddressText: {
+      fontSize: typography.sizes.md, color: colors.primary[600], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    errorText: {
+      fontSize: typography.sizes.sm, color: colors.error[600], textAlign: 'center',
+      paddingHorizontal: spacing.md, marginTop: spacing.md, fontFamily: typography.fontFamilyRegular,
+    },
+    bottomBar: {
+      position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[100],
+      paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+      borderTopWidth: 1, borderTopColor: colors.neutral[200],
+    },
+    confirmBtn: { width: '100%', borderRadius: radius.full },
+  });
 
   const fetchData = useCallback(async () => {
     if (!subId) {
@@ -256,102 +357,3 @@ export default function BookingConfirmationScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  section: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
-  sectionTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
-  },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  changeText: {
-    fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  summaryCard: {
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    padding: spacing.md,
-  },
-  serviceName: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
-  },
-  providerName: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500],
-    marginBottom: spacing.sm, fontFamily: typography.fontFamilyRegular,
-  },
-  timeRow: { flexDirection: 'row', alignItems: 'center' },
-  timeText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[600],
-    marginLeft: 6, fontFamily: typography.fontFamilyMedium,
-  },
-  scheduleToggle: {
-    flexDirection: 'row', backgroundColor: colors.neutral[100],
-    borderRadius: radius.md, padding: 4,
-  },
-  scheduleTab: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.sm },
-  scheduleTabActive: { backgroundColor: colors.neutral[200] },
-  scheduleTabText: {
-    fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[500],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  scheduleTabTextActive: { color: colors.primary[700] },
-  dateTimePicker: { marginTop: spacing.md },
-  dateRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-    borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  dateText: {
-    fontSize: typography.sizes.md, color: colors.neutral[700],
-    marginLeft: spacing.sm, fontFamily: typography.fontFamilyMedium,
-  },
-  timeSlots: { flexDirection: 'row', flexWrap: 'wrap' },
-  timeSlot: {
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    backgroundColor: colors.neutral[100], borderRadius: radius.md,
-    borderWidth: 1.5, borderColor: colors.neutral[200],
-    marginRight: spacing.sm, marginBottom: spacing.sm,
-  },
-  timeSlotActive: { borderColor: colors.primary[600], backgroundColor: colors.primary[50] },
-  timeSlotText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[600], fontFamily: typography.fontFamilyMedium,
-  },
-  timeSlotTextActive: { color: colors.primary[700], fontWeight: '700' },
-  addressCard: {
-    flexDirection: 'row', backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    padding: spacing.md,
-  },
-  addressIcon: {
-    width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  addressInfo: { flex: 1 },
-  addressLabel: {
-    fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: 2, fontFamily: typography.fontFamilyBold,
-  },
-  addressText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500],
-    lineHeight: 18, fontFamily: typography.fontFamilyRegular,
-  },
-  addAddressBtn: {
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md,
-    alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[300], borderStyle: 'dashed',
-  },
-  addAddressText: {
-    fontSize: typography.sizes.md, color: colors.primary[600], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  errorText: {
-    fontSize: typography.sizes.sm, color: colors.error[600], textAlign: 'center',
-    paddingHorizontal: spacing.md, marginTop: spacing.md, fontFamily: typography.fontFamilyRegular,
-  },
-  bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
-    borderTopWidth: 1, borderTopColor: colors.neutral[200],
-  },
-  confirmBtn: { width: '100%', borderRadius: radius.full },
-});

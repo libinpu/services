@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
+import { useTheme } from '@/lib/theme-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows, getLangTextStyle } from '@/lib/theme';
 import { LoadingState } from '@/components/ui';
@@ -43,6 +44,145 @@ export default function ProfileScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const { isDark } = useTheme();
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    profileHeader: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+      padding: spacing.lg,
+    },
+    avatarWrap: {
+      width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.primary[600],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    profileInfo: { flex: 1 },
+    profileName: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    profilePhone: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    editBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+      backgroundColor: colors.primary[50], borderRadius: radius.full,
+    },
+    editBtnText: {
+      fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    infoCardsRow: {
+      flexDirection: 'row', paddingHorizontal: spacing.md, marginTop: spacing.md, gap: spacing.sm,
+    },
+    infoCard: {
+      flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.md, alignItems: 'center',
+    },
+    infoCardIcon: {
+      width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs,
+    },
+    infoCardValue: {
+      fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    infoCardLabel: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    section: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
+    providerSwitchCard: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary[600],
+      borderRadius: radius.lg, padding: spacing.lg, ...shadows.md,
+    },
+    providerSwitchIcon: {
+      width: 48, height: 48, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    providerSwitchInfo: { flex: 1 },
+    providerSwitchTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
+      fontFamily: typography.fontFamilyBold,
+    },
+    providerSwitchDesc: {
+      fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.8)', marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    customerSwitchBtn: {
+      marginTop: spacing.sm,
+      backgroundColor: 'transparent',
+      borderRadius: radius.full,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderWidth: 1.5,
+      borderColor: colors.primary[600],
+    },
+    customerSwitchText: {
+      textAlign: 'center',
+      color: colors.primary[600],
+      fontWeight: '700',
+      fontFamily: typography.fontFamilyBold,
+    },
+    sectionTitle: {
+      fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[700],
+      marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
+    },
+    contactCard: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md,
+    },
+    contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs },
+    contactIcon: {
+      width: 32, height: 32, borderRadius: radius.sm, backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm,
+    },
+    contactText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[600],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    langToggle: {
+      flexDirection: 'row', backgroundColor: colors.neutral[200], borderRadius: radius.full, padding: 4,
+    },
+    langBtn: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.full },
+    langBtnActive: { backgroundColor: colors.primary[600] },
+    langBtnText: {
+      fontSize: typography.sizes.md, color: colors.neutral[400], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    langBtnTextActive: { color: colors.neutral[0] },
+    menuItem: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
+    },
+    menuIcon: {
+      width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    menuInfo: { flex: 1 },
+    menuLabel: {
+      fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[700],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    menuSublabel: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    logoutBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.error[50], borderRadius: radius.full, padding: spacing.md, gap: spacing.sm,
+    },
+    logoutText: {
+      fontSize: typography.sizes.md, fontWeight: '600', color: colors.error[600],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    versionText: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400], textAlign: 'center',
+      marginTop: spacing.xl, fontFamily: typography.fontFamilyRegular,
+    },
+  });
 
   const handleLogout = () => {
     Alert.alert(t('logout'), 'Are you sure?', [
@@ -253,140 +393,3 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  profileHeader: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-    padding: spacing.lg,
-  },
-  avatarWrap: {
-    width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.primary[600],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  profileInfo: { flex: 1 },
-  profileName: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
-    fontFamily: typography.fontFamilyBold,
-  },
-  profilePhone: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  editBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    backgroundColor: colors.primary[50], borderRadius: radius.full,
-  },
-  editBtnText: {
-    fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  infoCardsRow: {
-    flexDirection: 'row', paddingHorizontal: spacing.md, marginTop: spacing.md, gap: spacing.sm,
-  },
-  infoCard: {
-    flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    padding: spacing.md, alignItems: 'center',
-  },
-  infoCardIcon: {
-    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs,
-  },
-  infoCardValue: {
-    fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900],
-    fontFamily: typography.fontFamilyBold,
-  },
-  infoCardLabel: {
-    fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  section: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
-  providerSwitchCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary[600],
-    borderRadius: radius.lg, padding: spacing.lg, ...shadows.md,
-  },
-  providerSwitchIcon: {
-    width: 48, height: 48, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  providerSwitchInfo: { flex: 1 },
-  providerSwitchTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold,
-  },
-  providerSwitchDesc: {
-    fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.8)', marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  customerSwitchBtn: {
-    marginTop: spacing.sm,
-    backgroundColor: 'transparent',
-    borderRadius: radius.full,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1.5,
-    borderColor: colors.primary[600],
-  },
-  customerSwitchText: {
-    textAlign: 'center',
-    color: colors.primary[600],
-    fontWeight: '700',
-    fontFamily: typography.fontFamilyBold,
-  },
-  sectionTitle: {
-    fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[0],
-    marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
-  },
-  contactCard: {
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md,
-  },
-  contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs },
-  contactIcon: {
-    width: 32, height: 32, borderRadius: radius.sm, backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm,
-  },
-  contactText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[600],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  langToggle: {
-    flexDirection: 'row', backgroundColor: colors.neutral[200], borderRadius: radius.full, padding: 4,
-  },
-  langBtn: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.full },
-  langBtnActive: { backgroundColor: colors.primary[600] },
-  langBtnText: {
-    fontSize: typography.sizes.md, color: colors.neutral[400], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  langBtnTextActive: { color: colors.neutral[0] },
-  menuItem: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
-  },
-  menuIcon: {
-    width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  menuInfo: { flex: 1 },
-  menuLabel: {
-    fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  menuSublabel: {
-    fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  logoutBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.error[50], borderRadius: radius.full, padding: spacing.md, gap: spacing.sm,
-  },
-  logoutText: {
-    fontSize: typography.sizes.md, fontWeight: '600', color: colors.error[600],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  versionText: {
-    fontSize: typography.sizes.xs, color: colors.neutral[400], textAlign: 'center',
-    marginTop: spacing.xl, fontFamily: typography.fontFamilyRegular,
-  },
-});

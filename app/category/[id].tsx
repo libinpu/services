@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
+import { useTheme } from '@/lib/theme-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { Header, LoadingState, ErrorState } from '@/components/ui';
@@ -24,6 +25,98 @@ export default function CategoryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSub, setSelectedSub] = useState<ServiceSubcategory | null>(null);
+  const { isDark } = useTheme();
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    scroll: { flex: 1, paddingHorizontal: spacing.md },
+    introText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500],
+      paddingVertical: spacing.md, fontFamily: typography.fontFamilyRegular,
+    },
+    emptyState: { padding: spacing.xl, alignItems: 'center' },
+    emptyText: {
+      fontSize: typography.sizes.md, color: colors.neutral[400],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    subCard: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.sm,
+    },
+    subCardContent: { flex: 1 },
+    subName: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
+    },
+    subDesc: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500],
+      marginBottom: spacing.sm, lineHeight: 20, fontFamily: typography.fontFamilyRegular,
+    },
+    subMetaRow: { flexDirection: 'row', alignItems: 'center' },
+    timeTag: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+      backgroundColor: colors.neutral[200], borderRadius: radius.sm,
+    },
+    timeText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[600],
+      marginLeft: 4, fontFamily: typography.fontFamilyRegular,
+    },
+    sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    sheetCard: {
+      backgroundColor: colors.neutral[100], borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl, paddingBottom: spacing.xl, maxHeight: '80%',
+    },
+    sheetHandle: {
+      width: 40, height: 4, borderRadius: radius.full, backgroundColor: colors.neutral[200],
+      alignSelf: 'center', marginTop: spacing.sm, marginBottom: spacing.sm,
+    },
+    sheetHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg, paddingBottom: spacing.sm,
+    },
+    sheetTitle: {
+      flex: 1, fontSize: typography.sizes.xxl, fontWeight: '700',
+      color: colors.neutral[900], fontFamily: typography.fontFamilyBold,
+    },
+    sheetCloseBtn: {
+      width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    sheetBody: { paddingHorizontal: spacing.lg },
+    sheetDesc: {
+      fontSize: typography.sizes.md, color: colors.neutral[600],
+      lineHeight: 24, marginBottom: spacing.lg, fontFamily: typography.fontFamilyRegular,
+    },
+    sheetInfoRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+    sheetInfoCard: {
+      flex: 1, backgroundColor: colors.primary[50], borderRadius: radius.lg,
+      padding: spacing.md, alignItems: 'center',
+    },
+    sheetInfoLabel: {
+      fontSize: typography.sizes.xs, color: colors.neutral[500],
+      marginTop: spacing.xs, fontFamily: typography.fontFamilyRegular,
+    },
+    sheetInfoValue: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.primary[700],
+      marginTop: 2, fontFamily: typography.fontFamilyBold,
+    },
+    sheetFeatures: { gap: spacing.sm, marginBottom: spacing.xxl },
+    sheetFeature: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    sheetFeatureText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[700],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    sheetBookBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.primary[600], borderRadius: radius.full,
+      paddingVertical: spacing.md, gap: spacing.xs,
+    },
+    sheetBookBtnText: {
+      fontSize: typography.sizes.lg, fontWeight: '700',
+      color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
+    },
+  });
 
   const fetchData = useCallback(async () => {
     if (!id) {
@@ -186,93 +279,3 @@ export default function CategoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  scroll: { flex: 1, paddingHorizontal: spacing.md },
-  introText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500],
-    paddingVertical: spacing.md, fontFamily: typography.fontFamilyRegular,
-  },
-  emptyState: { padding: spacing.xl, alignItems: 'center' },
-  emptyText: {
-    fontSize: typography.sizes.md, color: colors.neutral[400],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  subCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.sm,
-  },
-  subCardContent: { flex: 1 },
-  subName: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
-  },
-  subDesc: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500],
-    marginBottom: spacing.sm, lineHeight: 20, fontFamily: typography.fontFamilyRegular,
-  },
-  subMetaRow: { flexDirection: 'row', alignItems: 'center' },
-  timeTag: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-    backgroundColor: colors.neutral[200], borderRadius: radius.sm,
-  },
-  timeText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[600],
-    marginLeft: 4, fontFamily: typography.fontFamilyRegular,
-  },
-  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheetCard: {
-    backgroundColor: colors.neutral[100], borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl, paddingBottom: spacing.xl, maxHeight: '80%',
-  },
-  sheetHandle: {
-    width: 40, height: 4, borderRadius: radius.full, backgroundColor: colors.neutral[200],
-    alignSelf: 'center', marginTop: spacing.sm, marginBottom: spacing.sm,
-  },
-  sheetHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingBottom: spacing.sm,
-  },
-  sheetTitle: {
-    flex: 1, fontSize: typography.sizes.xxl, fontWeight: '700',
-    color: colors.neutral[900], fontFamily: typography.fontFamilyBold,
-  },
-  sheetCloseBtn: {
-    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center',
-  },
-  sheetBody: { paddingHorizontal: spacing.lg },
-  sheetDesc: {
-    fontSize: typography.sizes.md, color: colors.neutral[600],
-    lineHeight: 24, marginBottom: spacing.lg, fontFamily: typography.fontFamilyRegular,
-  },
-  sheetInfoRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
-  sheetInfoCard: {
-    flex: 1, backgroundColor: colors.primary[50], borderRadius: radius.lg,
-    padding: spacing.md, alignItems: 'center',
-  },
-  sheetInfoLabel: {
-    fontSize: typography.sizes.xs, color: colors.neutral[500],
-    marginTop: spacing.xs, fontFamily: typography.fontFamilyRegular,
-  },
-  sheetInfoValue: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.primary[700],
-    marginTop: 2, fontFamily: typography.fontFamilyBold,
-  },
-  sheetFeatures: { gap: spacing.sm, marginBottom: spacing.xl },
-  sheetFeature: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  sheetFeatureText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[700],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  sheetBookBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.primary[600], borderRadius: radius.full,
-    paddingVertical: spacing.md, gap: spacing.xs,
-  },
-  sheetBookBtnText: {
-    fontSize: typography.sizes.lg, fontWeight: '700',
-    color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
-  },
-});

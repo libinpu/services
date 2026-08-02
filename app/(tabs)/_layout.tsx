@@ -1,10 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Hop as Home, Calendar, User } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { useLanguage } from '@/lib/language-context';
 
 export default function TabLayout() {
   const { t } = useLanguage();
+  const { isDark } = useTheme();
 
   return (
     <Tabs
@@ -13,8 +15,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary[600],
         tabBarInactiveTintColor: colors.neutral[400],
         tabBarStyle: {
-          backgroundColor: '#1C1C1E',
-          borderTopColor: '#3A3A3D',
+          backgroundColor: colors.neutral[50],
+          borderTopColor: colors.neutral[200],
           borderTopWidth: 1,
           paddingBottom: 4,
           paddingTop: 4,
@@ -35,7 +37,7 @@ export default function TabLayout() {
         options={{
           title: t('homeTab'),
           tabBarIcon: ({ size, color, focused }) => (
-            <Home size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? 'rgba(255,145,66,0.2)' : 'transparent'} />
+            <Home size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? colors.primary[50] : 'transparent'} />
           ),
         }}
       />
@@ -44,7 +46,7 @@ export default function TabLayout() {
         options={{
           title: t('bookingsTab'),
           tabBarIcon: ({ size, color, focused }) => (
-            <Calendar size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? 'rgba(255,145,66,0.2)' : 'transparent'} />
+            <Calendar size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? colors.primary[50] : 'transparent'} />
           ),
         }}
       />
@@ -53,7 +55,7 @@ export default function TabLayout() {
         options={{
           title: t('profileTab'),
           tabBarIcon: ({ size, color, focused }) => (
-            <User size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? 'rgba(255,145,66,0.2)' : 'transparent'} />
+            <User size={size} color={color} strokeWidth={focused ? 2.5 : 2} fill={focused ? colors.primary[50] : 'transparent'} />
           ),
         }}
       />

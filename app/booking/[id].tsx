@@ -9,6 +9,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { BookingWithDetails, ChatMessage, ProviderWithProfile } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, Share2, User, Briefcase, Award, Image as ImageIcon } from 'lucide-react-native';
@@ -20,6 +21,7 @@ export default function BookingDetailScreen() {
   const { t, lang } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [booking, setBooking] = useState<BookingWithDetails | null>(null);
   const [providerProfile, setProviderProfile] = useState<ProviderWithProfile | null>(null);
@@ -35,6 +37,368 @@ export default function BookingDetailScreen() {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    statusBanner: {
+      flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md, marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: radius.full,
+    },
+    statusDot: { width: 10, height: 10, borderRadius: radius.full, marginRight: spacing.sm },
+    statusText: { fontSize: typography.sizes.md, fontWeight: '700', fontFamily: typography.fontFamilyBold },
+    waitingCard: {
+      alignItems: 'center', padding: spacing.xl, margin: spacing.md,
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    },
+    waitingIconWrap: {
+      width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.warning[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+    },
+    waitingTitle: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
+    },
+    waitingDesc: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center',
+      lineHeight: 20, marginBottom: spacing.lg, fontFamily: typography.fontFamilyRegular,
+    },
+    waitingPulse: {
+      width: 60, height: 60, borderRadius: radius.full, backgroundColor: colors.warning[100],
+      position: 'absolute', top: 40, opacity: 0.3,
+    },
+    cancelBtn: { width: '100%', borderRadius: radius.full },
+
+    // Map styles — Zomato/Swiggy style
+    mapContainer: { marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: radius.lg, overflow: 'hidden', ...shadows.md },
+    mapArea: { height: 220, backgroundColor: colors.neutral[100], position: 'relative', overflow: 'hidden' },
+    mapGrid: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: colors.neutral[100],
+    } as any,
+    mapRoads: {
+      position: 'absolute', top: '50%', left: 0, right: 0, height: 3, backgroundColor: colors.neutral[300],
+    },
+    mapProviderMarker: {
+      position: 'absolute', top: 30, left: '50%', marginLeft: -18,
+    },
+    mapProviderPin: {
+      width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.primary[600],
+      alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.neutral[0], ...shadows.md,
+    },
+    mapPath: {
+      position: 'absolute', top: 60, left: '50%', width: 2, height: 100,
+      backgroundColor: colors.primary[400], borderStyle: 'dashed',
+    },
+    mapUserMarker: {
+      position: 'absolute', bottom: 30, left: '50%', marginLeft: -18,
+    },
+    mapUserPin: {
+      width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[0],
+      alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.primary[600], ...shadows.md,
+    },
+    mapEtaBadge: {
+      position: 'absolute', top: spacing.sm, right: spacing.sm,
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: colors.primary[700], paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+      borderRadius: radius.full, ...shadows.md,
+    },
+    mapEtaText: {
+      fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
+    },
+
+    // Tracking bar
+    trackingBar: {
+      flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md, backgroundColor: colors.neutral[100], marginHorizontal: spacing.md,
+      borderRadius: radius.lg, marginTop: spacing.sm,
+    },
+    trackingStep: { alignItems: 'center', width: 50 },
+    trackingDot: {
+      width: 28, height: 28, borderRadius: radius.full, backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+    },
+    trackingDotDone: { backgroundColor: colors.primary[600] },
+    trackingDotCurrent: { backgroundColor: colors.primary[700], borderWidth: 3, borderColor: colors.primary[200] },
+    trackingLabel: {
+      fontSize: 9, color: colors.neutral[400], textAlign: 'center', fontFamily: typography.fontFamilyRegular,
+    },
+    trackingLabelDone: { color: colors.neutral[600] },
+    trackingLabelCurrent: { color: colors.primary[700], fontWeight: '700' },
+    trackingLine: { flex: 1, height: 2, backgroundColor: colors.neutral[200], marginBottom: 16, marginHorizontal: -2 },
+    trackingLineDone: { backgroundColor: colors.primary[500] },
+
+    // Provider card
+    providerCardWrap: { paddingHorizontal: spacing.md, marginTop: spacing.sm },
+    providerCard: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg, padding: spacing.md,
+    },
+    providerAvatarLarge: {
+      width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.primary[100],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md, overflow: 'hidden',
+    },
+    providerAvatarImg: {
+      width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.neutral[200],
+    },
+    providerAvatar: {
+      width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary[100],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    providerAvatarText: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.primary[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+    providerCardInfo: { flex: 1 },
+    providerCardName: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    providerCardService: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    providerCardMeta: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
+    providerRatingRow: { flexDirection: 'row', alignItems: 'center' },
+    providerRatingText: {
+      fontSize: typography.sizes.xs, fontWeight: '600', color: colors.neutral[700],
+      marginLeft: 2, fontFamily: typography.fontFamilyMedium,
+    },
+    providerDot: { fontSize: typography.sizes.xs, color: colors.neutral[300], marginHorizontal: spacing.xs },
+    providerJobs: { fontSize: typography.sizes.xs, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular },
+    providerNameRow: {
+      flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+    },
+    providerVerifiedBadge: {
+      width: 18, height: 18, borderRadius: radius.full, backgroundColor: colors.success[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    providerSkillsRow: {
+      flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.xs, gap: 4,
+    },
+    providerSkillTag: {
+      paddingHorizontal: spacing.xs, paddingVertical: 2,
+      backgroundColor: colors.primary[50], borderRadius: radius.sm,
+    },
+    providerSkillText: {
+      fontSize: 10, color: colors.primary[700], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    providerCardActions: { flexDirection: 'row', gap: spacing.xs },
+    providerCallBtn: {
+      width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    providerChatBtn: {
+      width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+
+    // OTP section
+    otpSection: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.lg,
+      marginTop: spacing.sm,
+    },
+    otpInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
+    otpInfoText: { marginLeft: spacing.sm, flex: 1 },
+    otpTitle: {
+      fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    otpDesc: {
+      fontSize: typography.sizes.xs, color: colors.neutral[500], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    otpDigitsDisplay: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
+    otpDigitBox: {
+      width: 56, height: 64, borderRadius: radius.md, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.primary[300],
+    },
+    otpDigitText: {
+      fontSize: typography.sizes.xxxl, fontWeight: '700', color: colors.primary[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+
+    // Action buttons
+    actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+    actionBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      height: 48, backgroundColor: colors.neutral[100], borderRadius: radius.md, gap: spacing.xs,
+    },
+    actionBtnText: {
+      fontSize: typography.sizes.sm, fontWeight: '600', color: colors.primary[600],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    sosBtn: { backgroundColor: colors.neutral[200] },
+
+    // In progress
+    progressSection: { paddingHorizontal: spacing.md, marginTop: spacing.md },
+    progressHeader: {
+      alignItems: 'center', padding: spacing.xl, backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg,
+    },
+    progressIcon: {
+      width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+    },
+    progressTitle: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
+    },
+    progressDesc: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular,
+    },
+    otpVerifiedBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+      backgroundColor: colors.success[50], borderRadius: radius.full,
+    },
+    otpVerifiedText: {
+      fontSize: typography.sizes.xs, fontWeight: '600', color: colors.success[700],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    section: { marginTop: spacing.lg },
+    sectionTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
+    },
+    chargeCard: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: colors.warning[50], borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
+    },
+    chargeInfo: { flex: 1 },
+    chargeDesc: {
+      fontSize: typography.sizes.sm, color: colors.neutral[700], marginBottom: spacing.xs,
+      fontFamily: typography.fontFamilyMedium,
+    },
+    approveBtn: { paddingHorizontal: spacing.md, height: 40, borderRadius: radius.full },
+    completeBtn: { marginTop: spacing.md, borderRadius: radius.full },
+
+    // Awaiting confirmation
+    confirmCard: {
+      alignItems: 'center', padding: spacing.xl, margin: spacing.md,
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    },
+    confirmIcon: {
+      width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.success[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+    },
+    confirmTitle: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
+    },
+    confirmDesc: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center',
+      marginBottom: spacing.lg, fontFamily: typography.fontFamilyRegular,
+    },
+    confirmBtn: { width: '100%', borderRadius: radius.full },
+
+    // Completed
+    completedCard: {
+      alignItems: 'center', padding: spacing.xl, margin: spacing.md,
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    },
+    completedIcon: {
+      width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.success[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+    },
+    completedTitle: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.lg, fontFamily: typography.fontFamilyBold,
+    },
+    feedbackBtn: { width: '100%', borderRadius: radius.full },
+
+    // Cancelled
+    cancelledCard: {
+      alignItems: 'center', padding: spacing.xl, margin: spacing.md,
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+    },
+    cancelledTitle: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.error[600],
+      marginTop: spacing.md, fontFamily: typography.fontFamilyBold,
+    },
+
+    // Detail card
+    detailCard: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md,
+    },
+    detailRow: {
+      flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm,
+      borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
+    },
+    detailLabel: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular,
+    },
+    detailValue: {
+      fontSize: typography.sizes.sm, color: colors.neutral[900], fontWeight: '600',
+      textAlign: 'right', flex: 1, marginLeft: spacing.md, fontFamily: typography.fontFamilyMedium,
+    },
+
+    // Chat
+    chatOverlay: {
+      position: 'absolute', bottom: 0, left: 0, right: 0, height: 400,
+      backgroundColor: colors.neutral[100], borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, ...shadows.lg,
+    },
+    chatHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
+    },
+    chatTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    chatCloseBtn: {
+      width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[100],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    chatMessages: { flex: 1, padding: spacing.md },
+    chatEmptyText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[400], textAlign: 'center',
+      marginTop: spacing.xl, fontFamily: typography.fontFamilyRegular,
+    },
+    chatBubble: {
+      maxWidth: '80%', paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+      borderRadius: radius.lg, marginBottom: spacing.sm,
+    },
+    chatBubbleMine: { alignSelf: 'flex-end', backgroundColor: colors.primary[600] },
+    chatBubbleTheirs: { alignSelf: 'flex-start', backgroundColor: colors.neutral[100] },
+    chatBubbleText: { fontSize: typography.sizes.sm, fontFamily: typography.fontFamilyRegular },
+    chatBubbleTextMine: { color: colors.neutral[0] },
+    chatBubbleTextTheirs: { color: colors.neutral[700] },
+    chatInputRow: { flexDirection: 'row', padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.neutral[200] },
+    chatInput: {
+      flex: 1, height: 44, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md,
+      paddingHorizontal: spacing.md, fontSize: typography.sizes.sm, color: colors.neutral[900],
+      backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular,
+    },
+    chatSendBtn: {
+      width: 44, height: 44, borderRadius: radius.full, backgroundColor: colors.primary[600],
+      alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm,
+    },
+    chatSendText: { fontSize: 20, color: colors.neutral[0] },
+
+    // SOS
+    sosOverlay: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center',
+    },
+    sosCard: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.xl, padding: spacing.xl,
+      margin: spacing.xl, alignItems: 'center',
+    },
+    sosIcon: {
+      width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.error[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+    },
+    sosTitle: {
+      fontSize: typography.sizes.xxl, fontWeight: '700', color: colors.error[600],
+      marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
+    },
+    sosDesc: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center',
+      lineHeight: 20, marginBottom: spacing.lg, fontFamily: typography.fontFamilyRegular,
+    },
+    sosSendBtn: { width: '100%', borderRadius: radius.full },
+    sosCloseBtn: { width: '100%', marginTop: spacing.sm },
+  });
 
   const fetchBooking = useCallback(async () => {
     try {
@@ -546,7 +910,7 @@ export default function BookingDetailScreen() {
                     msg.sender_id === session?.user?.id ? styles.chatBubbleMine : styles.chatBubbleTheirs,
                   ]}
                 >
-                  <Text style={styles.chatBubbleText}>{msg.message}</Text>
+                  <Text style={[styles.chatBubbleText, msg.sender_id === session?.user?.id ? styles.chatBubbleTextMine : styles.chatBubbleTextTheirs]}>{msg.message}</Text>
                 </View>
               ))
             )}
@@ -608,363 +972,3 @@ export default function BookingDetailScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  statusBanner: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md, marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: radius.full,
-  },
-  statusDot: { width: 10, height: 10, borderRadius: radius.full, marginRight: spacing.sm },
-  statusText: { fontSize: typography.sizes.md, fontWeight: '700', fontFamily: typography.fontFamilyBold },
-  waitingCard: {
-    alignItems: 'center', padding: spacing.xl, margin: spacing.md,
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-  },
-  waitingIconWrap: {
-    width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.warning[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
-  },
-  waitingTitle: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
-  },
-  waitingDesc: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center',
-    lineHeight: 20, marginBottom: spacing.lg, fontFamily: typography.fontFamilyRegular,
-  },
-  waitingPulse: {
-    width: 60, height: 60, borderRadius: radius.full, backgroundColor: colors.warning[100],
-    position: 'absolute', top: 40, opacity: 0.3,
-  },
-  cancelBtn: { width: '100%', borderRadius: radius.full },
-
-  // Map styles — Zomato/Swiggy style
-  mapContainer: { marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: radius.lg, overflow: 'hidden', ...shadows.md },
-  mapArea: { height: 220, backgroundColor: colors.neutral[100], position: 'relative', overflow: 'hidden' },
-  mapGrid: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: colors.neutral[100],
-  } as any,
-  mapRoads: {
-    position: 'absolute', top: '50%', left: 0, right: 0, height: 3, backgroundColor: colors.neutral[300],
-  },
-  mapProviderMarker: {
-    position: 'absolute', top: 30, left: '50%', marginLeft: -18,
-  },
-  mapProviderPin: {
-    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.primary[600],
-    alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.neutral[0], ...shadows.md,
-  },
-  mapPath: {
-    position: 'absolute', top: 60, left: '50%', width: 2, height: 100,
-    backgroundColor: colors.primary[400], borderStyle: 'dashed',
-  },
-  mapUserMarker: {
-    position: 'absolute', bottom: 30, left: '50%', marginLeft: -18,
-  },
-  mapUserPin: {
-    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[0],
-    alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.primary[600], ...shadows.md,
-  },
-  mapEtaBadge: {
-    position: 'absolute', top: spacing.sm, right: spacing.sm,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.primary[700], paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
-    borderRadius: radius.full, ...shadows.md,
-  },
-  mapEtaText: {
-    fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
-  },
-
-  // Tracking bar
-  trackingBar: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md, backgroundColor: colors.neutral[100], marginHorizontal: spacing.md,
-    borderRadius: radius.lg, marginTop: spacing.sm,
-  },
-  trackingStep: { alignItems: 'center', width: 50 },
-  trackingDot: {
-    width: 28, height: 28, borderRadius: radius.full, backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center', marginBottom: 4,
-  },
-  trackingDotDone: { backgroundColor: colors.primary[600] },
-  trackingDotCurrent: { backgroundColor: colors.primary[700], borderWidth: 3, borderColor: colors.primary[200] },
-  trackingLabel: {
-    fontSize: 9, color: colors.neutral[400], textAlign: 'center', fontFamily: typography.fontFamilyRegular,
-  },
-  trackingLabelDone: { color: colors.neutral[600] },
-  trackingLabelCurrent: { color: colors.primary[700], fontWeight: '700' },
-  trackingLine: { flex: 1, height: 2, backgroundColor: colors.neutral[200], marginBottom: 16, marginHorizontal: -2 },
-  trackingLineDone: { backgroundColor: colors.primary[500] },
-
-  // Provider card
-  providerCardWrap: { paddingHorizontal: spacing.md, marginTop: spacing.sm },
-  providerCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg, padding: spacing.md,
-  },
-  providerAvatarLarge: {
-    width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.primary[100],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md, overflow: 'hidden',
-  },
-  providerAvatarImg: {
-    width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.neutral[200],
-  },
-  providerAvatar: {
-    width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary[100],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  providerAvatarText: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.primary[700],
-    fontFamily: typography.fontFamilyBold,
-  },
-  providerCardInfo: { flex: 1 },
-  providerCardName: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
-    fontFamily: typography.fontFamilyBold,
-  },
-  providerCardService: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  providerCardMeta: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
-  providerRatingRow: { flexDirection: 'row', alignItems: 'center' },
-  providerRatingText: {
-    fontSize: typography.sizes.xs, fontWeight: '600', color: colors.neutral[700],
-    marginLeft: 2, fontFamily: typography.fontFamilyMedium,
-  },
-  providerDot: { fontSize: typography.sizes.xs, color: colors.neutral[300], marginHorizontal: spacing.xs },
-  providerJobs: { fontSize: typography.sizes.xs, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular },
-  providerNameRow: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
-  },
-  providerVerifiedBadge: {
-    width: 18, height: 18, borderRadius: radius.full, backgroundColor: colors.success[50],
-    alignItems: 'center', justifyContent: 'center',
-  },
-  providerSkillsRow: {
-    flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.xs, gap: 4,
-  },
-  providerSkillTag: {
-    paddingHorizontal: spacing.xs, paddingVertical: 2,
-    backgroundColor: colors.primary[50], borderRadius: radius.sm,
-  },
-  providerSkillText: {
-    fontSize: 10, color: colors.primary[700], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  providerCardActions: { flexDirection: 'row', gap: spacing.xs },
-  providerCallBtn: {
-    width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center',
-  },
-  providerChatBtn: {
-    width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center',
-  },
-
-  // OTP section
-  otpSection: {
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.lg,
-    marginTop: spacing.sm,
-  },
-  otpInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  otpInfoText: { marginLeft: spacing.sm, flex: 1 },
-  otpTitle: {
-    fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900],
-    fontFamily: typography.fontFamilyBold,
-  },
-  otpDesc: {
-    fontSize: typography.sizes.xs, color: colors.neutral[500], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  otpDigitsDisplay: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
-  otpDigitBox: {
-    width: 56, height: 64, borderRadius: radius.md, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.primary[300],
-  },
-  otpDigitText: {
-    fontSize: typography.sizes.xxxl, fontWeight: '700', color: colors.primary[700],
-    fontFamily: typography.fontFamilyBold,
-  },
-
-  // Action buttons
-  actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  actionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    height: 48, backgroundColor: colors.neutral[100], borderRadius: radius.md, gap: spacing.xs,
-  },
-  actionBtnText: {
-    fontSize: typography.sizes.sm, fontWeight: '600', color: colors.primary[600],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  sosBtn: { backgroundColor: colors.neutral[200] },
-
-  // In progress
-  progressSection: { paddingHorizontal: spacing.md, marginTop: spacing.md },
-  progressHeader: {
-    alignItems: 'center', padding: spacing.xl, backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg,
-  },
-  progressIcon: {
-    width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
-  },
-  progressTitle: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
-  },
-  progressDesc: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular,
-  },
-  otpVerifiedBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
-    backgroundColor: colors.success[50], borderRadius: radius.full,
-  },
-  otpVerifiedText: {
-    fontSize: typography.sizes.xs, fontWeight: '600', color: colors.success[700],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  section: { marginTop: spacing.lg },
-  sectionTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
-  },
-  chargeCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.warning[50], borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
-  },
-  chargeInfo: { flex: 1 },
-  chargeDesc: {
-    fontSize: typography.sizes.sm, color: colors.neutral[700], marginBottom: spacing.xs,
-    fontFamily: typography.fontFamilyMedium,
-  },
-  approveBtn: { paddingHorizontal: spacing.md, height: 40, borderRadius: radius.full },
-  completeBtn: { marginTop: spacing.md, borderRadius: radius.full },
-
-  // Awaiting confirmation
-  confirmCard: {
-    alignItems: 'center', padding: spacing.xl, margin: spacing.md,
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-  },
-  confirmIcon: {
-    width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.success[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
-  },
-  confirmTitle: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
-  },
-  confirmDesc: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center',
-    marginBottom: spacing.lg, fontFamily: typography.fontFamilyRegular,
-  },
-  confirmBtn: { width: '100%', borderRadius: radius.full },
-
-  // Completed
-  completedCard: {
-    alignItems: 'center', padding: spacing.xl, margin: spacing.md,
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-  },
-  completedIcon: {
-    width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.success[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
-  },
-  completedTitle: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.lg, fontFamily: typography.fontFamilyBold,
-  },
-  feedbackBtn: { width: '100%', borderRadius: radius.full },
-
-  // Cancelled
-  cancelledCard: {
-    alignItems: 'center', padding: spacing.xl, margin: spacing.md,
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-  },
-  cancelledTitle: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.error[600],
-    marginTop: spacing.md, fontFamily: typography.fontFamilyBold,
-  },
-
-  // Detail card
-  detailCard: {
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md,
-  },
-  detailRow: {
-    flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm,
-    borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
-  },
-  detailLabel: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500], fontFamily: typography.fontFamilyRegular,
-  },
-  detailValue: {
-    fontSize: typography.sizes.sm, color: colors.neutral[900], fontWeight: '600',
-    textAlign: 'right', flex: 1, marginLeft: spacing.md, fontFamily: typography.fontFamilyMedium,
-  },
-
-  // Chat
-  chatOverlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 400,
-    backgroundColor: colors.neutral[100], borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, ...shadows.lg,
-  },
-  chatHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
-  },
-  chatTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900],
-    fontFamily: typography.fontFamilyBold,
-  },
-  chatCloseBtn: {
-    width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[100],
-    alignItems: 'center', justifyContent: 'center',
-  },
-  chatMessages: { flex: 1, padding: spacing.md },
-  chatEmptyText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[400], textAlign: 'center',
-    marginTop: spacing.xl, fontFamily: typography.fontFamilyRegular,
-  },
-  chatBubble: {
-    maxWidth: '80%', paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: radius.lg, marginBottom: spacing.sm,
-  },
-  chatBubbleMine: { alignSelf: 'flex-end', backgroundColor: colors.primary[600] },
-  chatBubbleTheirs: { alignSelf: 'flex-start', backgroundColor: colors.neutral[100] },
-  chatBubbleText: { fontSize: typography.sizes.sm, color: colors.neutral[0], fontFamily: typography.fontFamilyRegular },
-  chatInputRow: { flexDirection: 'row', padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.neutral[200] },
-  chatInput: {
-    flex: 1, height: 44, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md,
-    paddingHorizontal: spacing.md, fontSize: typography.sizes.sm, color: colors.neutral[900],
-    backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular,
-  },
-  chatSendBtn: {
-    width: 44, height: 44, borderRadius: radius.full, backgroundColor: colors.primary[600],
-    alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm,
-  },
-  chatSendText: { fontSize: 20, color: colors.neutral[0] },
-
-  // SOS
-  sosOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center',
-  },
-  sosCard: {
-    backgroundColor: colors.neutral[100], borderRadius: radius.xl, padding: spacing.xl,
-    margin: spacing.xl, alignItems: 'center',
-  },
-  sosIcon: {
-    width: 80, height: 80, borderRadius: radius.xl, backgroundColor: colors.error[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
-  },
-  sosTitle: {
-    fontSize: typography.sizes.xxl, fontWeight: '700', color: colors.error[600],
-    marginBottom: spacing.sm, fontFamily: typography.fontFamilyBold,
-  },
-  sosDesc: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center',
-    lineHeight: 20, marginBottom: spacing.lg, fontFamily: typography.fontFamilyRegular,
-  },
-  sosSendBtn: { width: '100%', borderRadius: radius.full },
-  sosCloseBtn: { width: '100%', marginTop: spacing.sm },
-});

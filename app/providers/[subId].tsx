@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
+import { useTheme } from '@/lib/theme-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
@@ -13,12 +14,105 @@ export default function ProvidersScreen() {
   const { subId } = useLocalSearchParams<{ subId: string }>();
   const { t, lang } = useLanguage();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [subcategory, setSubcategory] = useState<ServiceSubcategory | null>(null);
   const [providers, setProviders] = useState<ProviderWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'auto' | 'manual'>('auto');
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    modeContainer: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingVertical: spacing.md, gap: spacing.sm },
+    modeCard: {
+      flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.md, borderWidth: 2, borderColor: 'transparent',
+    },
+    modeCardActive: { borderColor: colors.primary[600], backgroundColor: colors.primary[50] },
+    modeIcon: {
+      width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
+    },
+    modeIconActive: { backgroundColor: colors.primary[600] },
+    modeTitle: {
+      fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[700],
+      marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
+    },
+    modeTitleActive: { color: colors.primary[700] },
+    modeDesc: {
+      fontSize: typography.sizes.xs, color: colors.neutral[500],
+      lineHeight: 16, fontFamily: typography.fontFamilyRegular,
+    },
+    modeDescActive: { color: colors.primary[600] },
+    autoContent: { paddingHorizontal: spacing.md },
+    autoInfoCard: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.xl, alignItems: 'center',
+    },
+    autoInfoIcon: {
+      width: 64, height: 64, borderRadius: radius.xl, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+    },
+    autoInfoTitle: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
+      marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
+    },
+    autoInfoDesc: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500],
+      textAlign: 'center', marginBottom: spacing.md, fontFamily: typography.fontFamilyRegular,
+    },
+    autoBtn: { width: '100%', marginTop: spacing.lg, borderRadius: radius.full },
+    providersList: { paddingHorizontal: spacing.md },
+    noProviders: { padding: spacing.xl, alignItems: 'center' },
+    noProvidersText: {
+      fontSize: typography.sizes.md, color: colors.neutral[500],
+      textAlign: 'center', fontFamily: typography.fontFamilyRegular,
+    },
+    providerCard: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
+    },
+    providerAvatar: {
+      width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    providerAvatarPlaceholder: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[200] },
+    providerInfo: { flex: 1 },
+    providerNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
+    providerName: {
+      fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900],
+      marginRight: spacing.sm, fontFamily: typography.fontFamilyBold,
+    },
+    verifiedBadge: {
+      flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs, paddingVertical: 2,
+      backgroundColor: colors.success[50], borderRadius: radius.full,
+    },
+    verifiedText: {
+      fontSize: typography.sizes.xs, color: colors.success[700], fontWeight: '600',
+      marginLeft: 2, fontFamily: typography.fontFamilyMedium,
+    },
+    providerMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.md },
+    ratingText: {
+      fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[700],
+      marginLeft: 2, fontFamily: typography.fontFamilyMedium,
+    },
+    jobsText: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400],
+      marginLeft: 4, fontFamily: typography.fontFamilyRegular,
+    },
+    expText: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    distanceRow: { flexDirection: 'row', alignItems: 'center' },
+    distanceTag: { flexDirection: 'row', alignItems: 'center' },
+    distanceText: {
+      fontSize: typography.sizes.xs, color: colors.neutral[500],
+      marginLeft: 2, fontFamily: typography.fontFamilyRegular,
+    },
+  });
 
   const fetchData = useCallback(async () => {
     try {
@@ -174,95 +268,3 @@ export default function ProvidersScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  modeContainer: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingVertical: spacing.md, gap: spacing.sm },
-  modeCard: {
-    flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    padding: spacing.md, borderWidth: 2, borderColor: 'transparent',
-  },
-  modeCardActive: { borderColor: colors.primary[600], backgroundColor: colors.primary[50] },
-  modeIcon: {
-    width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
-  },
-  modeIconActive: { backgroundColor: colors.primary[600] },
-  modeTitle: {
-    fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[700],
-    marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
-  },
-  modeTitleActive: { color: colors.primary[700] },
-  modeDesc: {
-    fontSize: typography.sizes.xs, color: colors.neutral[500],
-    lineHeight: 16, fontFamily: typography.fontFamilyRegular,
-  },
-  modeDescActive: { color: colors.primary[600] },
-  autoContent: { paddingHorizontal: spacing.md },
-  autoInfoCard: {
-    backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    padding: spacing.xl, alignItems: 'center',
-  },
-  autoInfoIcon: {
-    width: 64, height: 64, borderRadius: radius.xl, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
-  },
-  autoInfoTitle: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.neutral[900],
-    marginBottom: spacing.xs, fontFamily: typography.fontFamilyBold,
-  },
-  autoInfoDesc: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500],
-    textAlign: 'center', marginBottom: spacing.md, fontFamily: typography.fontFamilyRegular,
-  },
-  autoBtn: { width: '100%', marginTop: spacing.lg, borderRadius: radius.full },
-  providersList: { paddingHorizontal: spacing.md },
-  noProviders: { padding: spacing.xl, alignItems: 'center' },
-  noProvidersText: {
-    fontSize: typography.sizes.md, color: colors.neutral[500],
-    textAlign: 'center', fontFamily: typography.fontFamilyRegular,
-  },
-  providerCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
-  },
-  providerAvatar: {
-    width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  providerAvatarPlaceholder: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[200] },
-  providerInfo: { flex: 1 },
-  providerNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
-  providerName: {
-    fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900],
-    marginRight: spacing.sm, fontFamily: typography.fontFamilyBold,
-  },
-  verifiedBadge: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs, paddingVertical: 2,
-    backgroundColor: colors.success[50], borderRadius: radius.full,
-  },
-  verifiedText: {
-    fontSize: typography.sizes.xs, color: colors.success[700], fontWeight: '600',
-    marginLeft: 2, fontFamily: typography.fontFamilyMedium,
-  },
-  providerMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.md },
-  ratingText: {
-    fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[700],
-    marginLeft: 2, fontFamily: typography.fontFamilyMedium,
-  },
-  jobsText: {
-    fontSize: typography.sizes.xs, color: colors.neutral[400],
-    marginLeft: 4, fontFamily: typography.fontFamilyRegular,
-  },
-  expText: {
-    fontSize: typography.sizes.sm, color: colors.neutral[500],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  distanceRow: { flexDirection: 'row', alignItems: 'center' },
-  distanceTag: { flexDirection: 'row', alignItems: 'center' },
-  distanceText: {
-    fontSize: typography.sizes.xs, color: colors.neutral[500],
-    marginLeft: 2, fontFamily: typography.fontFamilyRegular,
-  },
-});

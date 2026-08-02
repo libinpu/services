@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { Header } from '@/components/ui';
 import { User, Phone, Mail, MapPin, Save, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 
@@ -16,6 +17,7 @@ export default function EditProfileScreen() {
   const { t } = useLanguage();
   const { session, profile, refreshProfile } = useAuth();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -23,6 +25,86 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    flex1: { flex: 1 },
+    scroll: { flex: 1, paddingHorizontal: spacing.lg },
+    avatarSection: {
+      alignItems: 'center', paddingVertical: spacing.xl,
+    },
+    avatarCircle: {
+      width: 96, height: 96, borderRadius: radius.full, backgroundColor: colors.primary[700],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm, ...shadows.md,
+    },
+    avatarHint: {
+      fontSize: typography.sizes.sm, color: colors.neutral[400],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    formSection: { marginTop: spacing.sm },
+    fieldLabel: {
+      fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[700],
+      marginBottom: spacing.xs, marginTop: spacing.md, fontFamily: typography.fontFamilyMedium,
+    },
+    inputWrap: {
+      flexDirection: 'row', alignItems: 'center', height: 52,
+      backgroundColor: colors.neutral[100], borderRadius: radius.md,
+      paddingHorizontal: spacing.md, borderWidth: 1.5, borderColor: colors.neutral[200],
+    },
+    input: {
+      flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
+      color: colors.neutral[900], fontFamily: typography.fontFamilyRegular,
+    },
+    locationCard: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.xl,
+    },
+    locationIcon: {
+      width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    locationInfo: { flex: 1 },
+    locationTitle: {
+      fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[800],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    locationDesc: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    locationCta: {
+      fontSize: typography.sizes.sm, color: colors.primary[700], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    messageCardError: {
+      flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+      backgroundColor: colors.error[50], borderRadius: radius.md,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: spacing.lg,
+    },
+    messageErrorText: {
+      flex: 1, fontSize: typography.sizes.sm, color: colors.error[700],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    messageCardSuccess: {
+      flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+      backgroundColor: colors.success[50], borderRadius: radius.md,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: spacing.lg,
+    },
+    messageSuccessText: {
+      fontSize: typography.sizes.sm, color: colors.success[700], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    saveBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+      backgroundColor: colors.primary[700], borderRadius: radius.full,
+      paddingVertical: spacing.md, marginTop: spacing.xl, ...shadows.md,
+    },
+    saveBtnDisabled: { opacity: 0.6 },
+    saveBtnText: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
+      fontFamily: typography.fontFamilyBold,
+    },
+  });
 
   useEffect(() => {
     if (profile) {
@@ -190,82 +272,3 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  flex1: { flex: 1 },
-  scroll: { flex: 1, paddingHorizontal: spacing.lg },
-  avatarSection: {
-    alignItems: 'center', paddingVertical: spacing.xl,
-  },
-  avatarCircle: {
-    width: 96, height: 96, borderRadius: radius.full, backgroundColor: colors.primary[700],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm, ...shadows.md,
-  },
-  avatarHint: {
-    fontSize: typography.sizes.sm, color: colors.neutral[400],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  formSection: { marginTop: spacing.sm },
-  fieldLabel: {
-    fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[700],
-    marginBottom: spacing.xs, marginTop: spacing.md, fontFamily: typography.fontFamilyMedium,
-  },
-  inputWrap: {
-    flexDirection: 'row', alignItems: 'center', height: 52,
-    backgroundColor: colors.neutral[100], borderRadius: radius.md,
-    paddingHorizontal: spacing.md, borderWidth: 1.5, borderColor: colors.neutral[200],
-  },
-  input: {
-    flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
-    color: colors.neutral[900], fontFamily: typography.fontFamilyRegular,
-  },
-  locationCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.xl,
-  },
-  locationIcon: {
-    width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  locationInfo: { flex: 1 },
-  locationTitle: {
-    fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[800],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  locationDesc: {
-    fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  locationCta: {
-    fontSize: typography.sizes.sm, color: colors.primary[700], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  messageCardError: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.error[50], borderRadius: radius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: spacing.lg,
-  },
-  messageErrorText: {
-    flex: 1, fontSize: typography.sizes.sm, color: colors.error[700],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  messageCardSuccess: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.success[50], borderRadius: radius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: spacing.lg,
-  },
-  messageSuccessText: {
-    fontSize: typography.sizes.sm, color: colors.success[700], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  saveBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-    backgroundColor: colors.primary[700], borderRadius: radius.full,
-    paddingVertical: spacing.md, marginTop: spacing.xl, ...shadows.md,
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold,
-  },
-});

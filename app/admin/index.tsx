@@ -17,6 +17,7 @@ import { ShieldCheck, LayoutDashboard, FileCheck, CalendarClock, Database, Users
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { colors, radius } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { ProviderProfile, Booking, Profile } from '@/lib/types';
 
 type AdminTab = 'dashboard' | 'approvals' | 'requests' | 'tables' | 'users';
@@ -24,6 +25,7 @@ type AdminTab = 'dashboard' | 'approvals' | 'requests' | 'tables' | 'users';
 export default function AdminScreen() {
   const router = useRouter();
   const { profile, loading: authLoading } = useAuth();
+  const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -49,6 +51,352 @@ export default function AdminScreen() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.neutral[50],
+    },
+    header: {
+      height: 64,
+      backgroundColor: colors.neutral[100],
+      borderBottomWidth: 1,
+      borderBottomColor: colors.neutral[200],
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    backBtn: {
+      padding: 6,
+    },
+    logoBadge: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: colors.primary[500],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.neutral[700],
+    },
+    headerSub: {
+      fontSize: 11,
+      color: colors.neutral[400],
+    },
+    refreshBtn: {
+      padding: 8,
+      backgroundColor: colors.neutral[200],
+      borderRadius: 8,
+    },
+    tabsContainer: {
+      backgroundColor: colors.neutral[100],
+      borderBottomWidth: 1,
+      borderBottomColor: colors.neutral[200],
+    },
+    tabsScroll: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 8,
+    },
+    tabItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: colors.neutral[200],
+    },
+    activeTabItem: {
+      backgroundColor: colors.primary[50],
+      borderWidth: 1,
+      borderColor: colors.primary[200],
+    },
+    tabText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.neutral[400],
+    },
+    activeTabText: {
+      color: colors.primary[400],
+    },
+    centerContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    loadingText: {
+      color: colors.neutral[400],
+      fontSize: 13,
+      marginTop: 12,
+    },
+    contentBody: {
+      flex: 1,
+      padding: 16,
+    },
+    sectionContainer: {
+      gap: 16,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: colors.neutral[100],
+      padding: 14,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
+    },
+    statLabel: {
+      fontSize: 11,
+      color: colors.neutral[400],
+      fontWeight: '500',
+    },
+    statValAlert: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: colors.primary[600],
+      marginVertical: 4,
+    },
+    statValSuccess: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: colors.success[600],
+      marginVertical: 4,
+    },
+    statValInfo: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: colors.primary[600],
+      marginVertical: 4,
+    },
+    statDesc: {
+      fontSize: 10,
+      color: colors.neutral[500],
+    },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: 'bold',
+      color: colors.neutral[700],
+      marginTop: 8,
+    },
+    emptyCard: {
+      backgroundColor: colors.neutral[100],
+      padding: 20,
+      borderRadius: 16,
+      alignItems: 'center',
+      gap: 8,
+    },
+    emptyText: {
+      color: colors.neutral[400],
+      fontSize: 13,
+    },
+    cardItem: {
+      backgroundColor: colors.neutral[100],
+      borderRadius: 16,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
+      gap: 12,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    cardTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.neutral[700],
+    },
+    cardSub: {
+      fontSize: 12,
+      color: colors.neutral[400],
+      marginTop: 2,
+    },
+    badgePending: {
+      backgroundColor: colors.primary[50],
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: radius.full,
+      borderWidth: 1,
+      borderColor: colors.primary[200],
+    },
+    badgePendingText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: colors.primary[600],
+    },
+    badgeApproved: {
+      backgroundColor: colors.success[50],
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: radius.full,
+      borderWidth: 1,
+      borderColor: colors.success[200],
+    },
+    badgeRejected: {
+      backgroundColor: colors.error[50],
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: radius.full,
+      borderWidth: 1,
+      borderColor: colors.error[200],
+    },
+    badgeText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: colors.neutral[0],
+    },
+    proofsRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    proofPill: {
+      backgroundColor: colors.neutral[200],
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    proofPillText: {
+      fontSize: 11,
+      color: colors.neutral[500],
+    },
+    cardActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    btnInspect: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: colors.neutral[200],
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
+    btnInspectText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.neutral[700],
+    },
+    btnApprove: {
+      backgroundColor: colors.success[600],
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+    },
+    btnApproveText: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: colors.neutral[0],
+    },
+    btnReject: {
+      backgroundColor: colors.error[50],
+      borderWidth: 1,
+      borderColor: colors.error[200],
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
+    btnRejectText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.error[600],
+    },
+    costText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.success[600],
+    },
+    tableCard: {
+      backgroundColor: colors.neutral[100],
+      borderRadius: 16,
+      padding: 16,
+      gap: 10,
+    },
+    tableCardTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.neutral[700],
+    },
+    tableRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.neutral[200],
+    },
+    rowName: {
+      color: colors.neutral[500],
+      fontSize: 13,
+    },
+    rowRole: {
+      color: colors.primary[400],
+      fontSize: 11,
+      fontWeight: 'bold',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    modalContent: {
+      width: '100%',
+      maxWidth: 500,
+      backgroundColor: colors.neutral[100],
+      borderRadius: 24,
+      padding: 20,
+      gap: 14,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    modalTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.neutral[700],
+    },
+    docLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.neutral[400],
+      marginTop: 10,
+      marginBottom: 6,
+    },
+    certImg: {
+      width: '100%',
+      height: 160,
+      borderRadius: 12,
+      backgroundColor: colors.neutral[200],
+    },
+    modalFooter: {
+      marginTop: 10,
+    },
+    btnApproveFull: {
+      backgroundColor: colors.success[600],
+      paddingVertical: 12,
+      borderRadius: radius.full,
+      alignItems: 'center',
+    },
+  });
 
   const fetchData = async () => {
     setLoading(true);
@@ -179,7 +527,7 @@ export default function AdminScreen() {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutral[50], padding: 32 }}>
         <ShieldCheck size={64} color={colors.error[400]} strokeWidth={1.5} />
-        <Text style={{ color: colors.neutral[0], fontSize: 22, fontWeight: '700', marginTop: 20, textAlign: 'center' }}>
+        <Text style={{ color: colors.neutral[700], fontSize: 22, fontWeight: '700', marginTop: 20, textAlign: 'center' }}>
           Access Denied
         </Text>
         <Text style={{ color: colors.neutral[500], fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 22 }}>
@@ -201,7 +549,7 @@ export default function AdminScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ArrowLeft color={colors.neutral[0]} size={20} />
+            <ArrowLeft color={colors.neutral[700]} size={20} />
           </TouchableOpacity>
           <View style={styles.logoBadge}>
             <ShieldCheck color={colors.neutral[0]} size={20} />
@@ -324,7 +672,7 @@ export default function AdminScreen() {
 
                     <View style={styles.cardActions}>
                       <TouchableOpacity style={styles.btnInspect} onPress={() => setSelectedProvider(prov)}>
-                        <Eye color={colors.neutral[0]} size={14} />
+                        <Eye color={colors.neutral[700]} size={14} />
                         <Text style={styles.btnInspectText}>Inspect Certificate Proofs</Text>
                       </TouchableOpacity>
 
@@ -382,7 +730,7 @@ export default function AdminScreen() {
 
                   <View style={styles.cardActions}>
                     <TouchableOpacity style={styles.btnInspect} onPress={() => setSelectedProvider(prov)}>
-                      <Eye color={colors.neutral[0]} size={14} />
+                      <Eye color={colors.neutral[700]} size={14} />
                       <Text style={styles.btnInspectText}>View Certificates</Text>
                     </TouchableOpacity>
 
@@ -544,349 +892,3 @@ function RouterHook() {
     return { back: () => {} };
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  header: {
-    height: 64,
-    backgroundColor: colors.neutral[100],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backBtn: {
-    padding: 6,
-  },
-  logoBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: colors.primary[500],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  headerSub: {
-    fontSize: 11,
-    color: colors.neutral[400],
-  },
-  refreshBtn: {
-    padding: 8,
-    backgroundColor: colors.neutral[200],
-    borderRadius: 8,
-  },
-  tabsContainer: {
-    backgroundColor: colors.neutral[100],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  tabsScroll: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  tabItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: colors.neutral[200],
-  },
-  activeTabItem: {
-    backgroundColor: colors.primary[50],
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[400],
-  },
-  activeTabText: {
-    color: colors.primary[400],
-  },
-  centerContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  loadingText: {
-    color: colors.neutral[400],
-    fontSize: 13,
-    marginTop: 12,
-  },
-  contentBody: {
-    flex: 1,
-    padding: 16,
-  },
-  sectionContainer: {
-    gap: 16,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.neutral[100],
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  statLabel: {
-    fontSize: 11,
-    color: colors.neutral[400],
-    fontWeight: '500',
-  },
-  statValAlert: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.primary[600],
-    marginVertical: 4,
-  },
-  statValSuccess: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.success[600],
-    marginVertical: 4,
-  },
-  statValInfo: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.primary[600],
-    marginVertical: 4,
-  },
-  statDesc: {
-    fontSize: 10,
-    color: colors.neutral[500],
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-    marginTop: 8,
-  },
-  emptyCard: {
-    backgroundColor: colors.neutral[100],
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyText: {
-    color: colors.neutral[400],
-    fontSize: 13,
-  },
-  cardItem: {
-    backgroundColor: colors.neutral[100],
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    gap: 12,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  cardSub: {
-    fontSize: 12,
-    color: colors.neutral[400],
-    marginTop: 2,
-  },
-  badgePending: {
-    backgroundColor: colors.primary[50],
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-  },
-  badgePendingText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.primary[600],
-  },
-  badgeApproved: {
-    backgroundColor: colors.success[50],
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.success[200],
-  },
-  badgeRejected: {
-    backgroundColor: colors.error[50],
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.error[200],
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  proofsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  proofPill: {
-    backgroundColor: colors.neutral[200],
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  proofPillText: {
-    fontSize: 11,
-    color: colors.neutral[500],
-  },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  btnInspect: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.neutral[200],
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  btnInspectText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  btnApprove: {
-    backgroundColor: colors.success[600],
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  btnApproveText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  btnReject: {
-    backgroundColor: colors.error[50],
-    borderWidth: 1,
-    borderColor: colors.error[200],
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  btnRejectText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.error[600],
-  },
-  costText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.success[600],
-  },
-  tableCard: {
-    backgroundColor: colors.neutral[100],
-    borderRadius: 16,
-    padding: 16,
-    gap: 10,
-  },
-  tableCardTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  tableRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  rowName: {
-    color: colors.neutral[500],
-    fontSize: 13,
-  },
-  rowRole: {
-    color: colors.primary[400],
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 500,
-    backgroundColor: colors.neutral[100],
-    borderRadius: 24,
-    padding: 20,
-    gap: 14,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  docLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[400],
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  certImg: {
-    width: '100%',
-    height: 160,
-    borderRadius: 12,
-    backgroundColor: colors.neutral[200],
-  },
-  modalFooter: {
-    marginTop: 10,
-  },
-  btnApproveFull: {
-    backgroundColor: colors.success[600],
-    paddingVertical: 12,
-    borderRadius: radius.full,
-    alignItems: 'center',
-  },
-});

@@ -5,6 +5,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { LoadingState, EmptyState, Button } from '@/components/ui';
 import type { Wallet, WalletTransaction, Offer } from '@/lib/types';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +20,140 @@ export default function WalletScreen() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const { isDark } = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.neutral[50],
+    },
+    walletCardWrap: {
+      margin: spacing.md,
+      borderRadius: radius.xl,
+      ...shadows.lg,
+      overflow: 'hidden',
+    },
+    walletCard: {
+      padding: spacing.xl,
+    },
+    walletHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    walletLabel: {
+      fontSize: typography.sizes.md,
+      color: colors.neutral[100],
+      marginLeft: spacing.sm,
+      fontFamily: typography.fontFamilyMedium,
+    },
+    walletBalance: {
+      fontSize: typography.sizes.display,
+      fontWeight: '700',
+      color: colors.neutral[0],
+      marginBottom: spacing.lg,
+      fontFamily: typography.fontFamilyBold,
+    },
+    walletActions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    walletActionBtn: {
+      flex: 1,
+    },
+    section: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: typography.sizes.lg,
+      fontWeight: '700',
+      color: colors.neutral[700],
+      marginBottom: spacing.sm,
+      fontFamily: typography.fontFamilyBold,
+    },
+    offerCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    offerIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.md,
+      backgroundColor: colors.secondary[50],
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    offerInfo: {
+      flex: 1,
+    },
+    offerTitle: {
+      fontSize: typography.sizes.sm,
+      fontWeight: '700',
+      color: colors.neutral[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+    offerDesc: {
+      fontSize: typography.sizes.xs,
+      color: colors.neutral[500],
+      marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    offerBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      backgroundColor: colors.secondary[100],
+      borderRadius: radius.sm,
+    },
+    offerBadgeText: {
+      fontSize: typography.sizes.xs,
+      fontWeight: '700',
+      color: colors.secondary[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+    txRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    txIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    txInfo: {
+      flex: 1,
+    },
+    txDesc: {
+      fontSize: typography.sizes.sm,
+      fontWeight: '600',
+      color: colors.neutral[700],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    txDate: {
+      fontSize: typography.sizes.xs,
+      color: colors.neutral[400],
+      marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    txAmount: {
+      fontSize: typography.sizes.md,
+      fontWeight: '700',
+      fontFamily: typography.fontFamilyBold,
+    },
+  });
 
   const fetchData = useCallback(async () => {
     if (!session?.user?.id) {
@@ -137,135 +272,3 @@ export default function WalletScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  walletCardWrap: {
-    margin: spacing.md,
-    borderRadius: radius.xl,
-    ...shadows.lg,
-    overflow: 'hidden',
-  },
-  walletCard: {
-    padding: spacing.xl,
-  },
-  walletHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  walletLabel: {
-    fontSize: typography.sizes.md,
-    color: colors.neutral[100],
-    marginLeft: spacing.sm,
-    fontFamily: typography.fontFamilyMedium,
-  },
-  walletBalance: {
-    fontSize: typography.sizes.display,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    marginBottom: spacing.lg,
-    fontFamily: typography.fontFamilyBold,
-  },
-  walletActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  walletActionBtn: {
-    flex: 1,
-  },
-  section: {
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    marginBottom: spacing.sm,
-    fontFamily: typography.fontFamilyBold,
-  },
-  offerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  offerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.secondary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  offerInfo: {
-    flex: 1,
-  },
-  offerTitle: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold,
-  },
-  offerDesc: {
-    fontSize: typography.sizes.xs,
-    color: colors.neutral[500],
-    marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  offerBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.secondary[100],
-    borderRadius: radius.sm,
-  },
-  offerBadgeText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: '700',
-    color: colors.secondary[700],
-    fontFamily: typography.fontFamilyBold,
-  },
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  txIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  txInfo: {
-    flex: 1,
-  },
-  txDesc: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '600',
-    color: colors.neutral[0],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  txDate: {
-    fontSize: typography.sizes.xs,
-    color: colors.neutral[400],
-    marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  txAmount: {
-    fontSize: typography.sizes.md,
-    fontWeight: '700',
-    fontFamily: typography.fontFamilyBold,
-  },
-});

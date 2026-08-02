@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
+import { useTheme } from '@/lib/theme-context';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { LoadingState, ErrorState, Header } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
@@ -37,11 +38,55 @@ export default function CategoryGroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, lang } = useLanguage();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [group, setGroup] = useState<ServiceCategoryGroup | null>(null);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    scroll: { flex: 1, paddingHorizontal: spacing.lg },
+    groupBanner: {
+      flexDirection: 'row', alignItems: 'center', padding: spacing.lg,
+      borderRadius: radius.lg, marginTop: spacing.md,
+    },
+    groupBannerIcon: {
+      width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    groupBannerText: { flex: 1 },
+    groupBannerTitle: {
+      fontSize: typography.sizes.xl, fontWeight: '700', fontFamily: typography.fontFamilyBold,
+    },
+    groupBannerCount: {
+      fontSize: typography.sizes.sm, color: colors.neutral[600], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    grid: {
+      flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: spacing.md,
+    },
+    card: {
+      width: CARD_SIZE, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.md, marginBottom: spacing.md, alignItems: 'center',
+    },
+    cardPressed: { transform: [{ scale: 0.96 }] },
+    cardIcon: {
+      width: 60, height: 60, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
+      marginBottom: spacing.sm,
+    },
+    cardName: {
+      fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[800],
+      textAlign: 'center', fontFamily: typography.fontFamilyMedium, marginBottom: spacing.xs,
+      minHeight: 36,
+    },
+    cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    cardCta: {
+      fontSize: typography.sizes.xs, color: colors.primary[600], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+  });
 
   const fetchData = useCallback(async () => {
     try {
@@ -141,46 +186,3 @@ export default function CategoryGroupScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  scroll: { flex: 1, paddingHorizontal: spacing.lg },
-  groupBanner: {
-    flexDirection: 'row', alignItems: 'center', padding: spacing.lg,
-    borderRadius: radius.lg, marginTop: spacing.md,
-  },
-  groupBannerIcon: {
-    width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  groupBannerText: { flex: 1 },
-  groupBannerTitle: {
-    fontSize: typography.sizes.xl, fontWeight: '700', fontFamily: typography.fontFamilyBold,
-  },
-  groupBannerCount: {
-    fontSize: typography.sizes.sm, color: colors.neutral[600], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  grid: {
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: spacing.md,
-  },
-  card: {
-    width: CARD_SIZE, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    padding: spacing.md, marginBottom: spacing.md, alignItems: 'center',
-  },
-  cardPressed: { transform: [{ scale: 0.96 }] },
-  cardIcon: {
-    width: 60, height: 60, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  cardName: {
-    fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[800],
-    textAlign: 'center', fontFamily: typography.fontFamilyMedium, marginBottom: spacing.xs,
-    minHeight: 36,
-  },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  cardCta: {
-    fontSize: typography.sizes.xs, color: colors.primary[600], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-});

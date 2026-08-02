@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { Star, Camera, Check } from 'lucide-react-native';
 
@@ -23,6 +24,7 @@ export default function FeedbackScreen() {
   const { t, lang } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [rating, setRating] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -31,6 +33,145 @@ export default function FeedbackScreen() {
   const [error, setError] = useState<string | null>(null);
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.neutral[50],
+    },
+    providerCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      margin: spacing.md,
+    },
+    providerAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.full,
+      backgroundColor: colors.primary[100],
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    providerAvatarText: {
+      fontSize: typography.sizes.xl,
+      fontWeight: '700',
+      color: colors.primary[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+    providerName: {
+      fontSize: typography.sizes.lg,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    section: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.lg,
+    },
+    questionText: {
+      fontSize: typography.sizes.xl,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+      fontFamily: typography.fontFamilyBold,
+    },
+    starsRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.sm,
+    },
+    sectionTitle: {
+      fontSize: typography.sizes.md,
+      fontWeight: '600',
+      color: colors.neutral[700],
+      marginBottom: spacing.sm,
+      fontFamily: typography.fontFamilyMedium,
+    },
+    tagsWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    tag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg,
+      borderWidth: 1.5,
+      borderColor: colors.neutral[200],
+      gap: spacing.xs,
+    },
+    tagSelected: {
+      borderColor: colors.primary[600],
+      backgroundColor: colors.primary[50],
+    },
+    tagText: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[600],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    tagTextSelected: {
+      color: colors.primary[700],
+      fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    commentInput: {
+      minHeight: 100,
+      borderWidth: 1.5,
+      borderColor: colors.neutral[200],
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      fontSize: typography.sizes.md,
+      color: colors.neutral[900],
+      backgroundColor: colors.neutral[100],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    photoUpload: {
+      height: 120,
+      borderWidth: 2,
+      borderColor: colors.neutral[300],
+      borderStyle: 'dashed',
+      borderRadius: radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    photoText: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[400],
+      marginTop: spacing.xs,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    errorText: {
+      fontSize: typography.sizes.sm,
+      color: colors.error[600],
+      textAlign: 'center',
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.md,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    bottomBar: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.neutral[100],
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.neutral[200],
+    },
+    submitBtn: {
+      width: '100%',
+      borderRadius: radius.full,
+    },
+  });
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -176,142 +317,3 @@ export default function FeedbackScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  providerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    margin: spacing.md,
-  },
-  providerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary[100],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  providerAvatarText: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '700',
-    color: colors.primary[700],
-    fontFamily: typography.fontFamilyBold,
-  },
-  providerName: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    fontFamily: typography.fontFamilyBold,
-  },
-  section: {
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.lg,
-  },
-  questionText: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-    fontFamily: typography.fontFamilyBold,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: typography.sizes.md,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing.sm,
-    fontFamily: typography.fontFamilyMedium,
-  },
-  tagsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    gap: spacing.xs,
-  },
-  tagSelected: {
-    borderColor: colors.primary[600],
-    backgroundColor: colors.primary[50],
-  },
-  tagText: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[600],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  tagTextSelected: {
-    color: colors.primary[700],
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  commentInput: {
-    minHeight: 100,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    fontSize: typography.sizes.md,
-    color: colors.neutral[900],
-    backgroundColor: colors.neutral[100],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  photoUpload: {
-    height: 120,
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-    borderStyle: 'dashed',
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoText: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[400],
-    marginTop: spacing.xs,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  errorText: {
-    fontSize: typography.sizes.sm,
-    color: colors.error[600],
-    textAlign: 'center',
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.md,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  submitBtn: {
-    width: '100%',
-    borderRadius: radius.full,
-  },
-});

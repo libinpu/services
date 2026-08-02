@@ -13,7 +13,219 @@ import {
 import { ArrowRight } from 'lucide-react-native';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 
+// Build styles fresh on each call so they pick up the current theme values.
+function makeStyles() {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.neutral[50],
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      backgroundColor: colors.neutral[50],
+      paddingTop: spacing.xl,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.neutral[100],
+    },
+    headerBtnText: {
+      fontSize: 22,
+      color: colors.neutral[700],
+      includeFontPadding: false,
+    },
+    headerTitle: {
+      flex: 1,
+      fontSize: typography.sizes.xl,
+      fontWeight: '700',
+      color: colors.neutral[700],
+      marginLeft: spacing.sm,
+      fontFamily: typography.fontFamilyBold,
+      includeFontPadding: false,
+    },
+    headerRight: {
+      width: 40,
+    },
+    btnBase: {
+      minHeight: 52,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    btnPrimary: {
+      backgroundColor: colors.primary[600],
+    },
+    btnSecondary: {
+      backgroundColor: colors.neutral[100],
+      borderWidth: 1.5,
+      borderColor: colors.primary[600],
+    },
+    btnOutline: {
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: colors.primary[600],
+    },
+    btnGhost: {
+      backgroundColor: 'transparent',
+    },
+    btnDanger: {
+      backgroundColor: colors.error[500],
+    },
+    btnDisabled: {
+      opacity: 0.5,
+    },
+    btnContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    btnText: {
+      fontSize: typography.sizes.md,
+      fontWeight: '700',
+      fontFamily: typography.fontFamilyBold,
+      includeFontPadding: false,
+      textAlign: 'center',
+    },
+    btnPrimaryText: {
+      color: colors.neutral[0],
+    },
+    btnSecondaryText: {
+      color: colors.primary[600],
+    },
+    btnOutlineText: {
+      color: colors.primary[600],
+    },
+    btnGhostText: {
+      color: colors.primary[600],
+    },
+    btnDangerText: {
+      color: colors.neutral[0],
+    },
+    card: {
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.lg,
+      padding: spacing.md,
+    },
+    input: {
+      minHeight: 52,
+      borderWidth: 1.5,
+      borderColor: colors.neutral[200],
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      fontSize: typography.sizes.md,
+      color: colors.neutral[700],
+      backgroundColor: colors.neutral[100],
+      fontFamily: typography.fontFamilyRegular,
+      includeFontPadding: false,
+    },
+    badge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.full,
+    },
+    badgeDefault: {
+      backgroundColor: colors.primary[50],
+    },
+    badgeSuccess: {
+      backgroundColor: colors.success[50],
+    },
+    badgeWarning: {
+      backgroundColor: colors.warning[50],
+    },
+    badgeError: {
+      backgroundColor: colors.error[50],
+    },
+    badgeText: {
+      fontSize: typography.sizes.xs,
+      fontWeight: '700',
+      fontFamily: typography.fontFamilyBold,
+    },
+    badgeDefaultText: {
+      color: colors.primary[600],
+    },
+    badgeSuccessText: {
+      color: colors.success[600],
+    },
+    badgeWarningText: {
+      color: colors.warning[600],
+    },
+    badgeErrorText: {
+      color: colors.error[600],
+    },
+    loading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+      backgroundColor: colors.neutral[50],
+    },
+    loadingText: {
+      marginTop: spacing.md,
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    empty: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    emptyTitle: {
+      fontSize: typography.sizes.lg,
+      fontWeight: '600',
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    emptyDesc: {
+      marginTop: spacing.sm,
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[400],
+      textAlign: 'center',
+      fontFamily: typography.fontFamilyRegular,
+    },
+    error: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+      backgroundColor: colors.neutral[50],
+    },
+    errorText: {
+      fontSize: typography.sizes.md,
+      color: colors.error[600],
+      textAlign: 'center',
+      fontFamily: typography.fontFamilyRegular,
+    },
+    sectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    sectionTitle: {
+      fontSize: typography.sizes.lg,
+      fontWeight: '700',
+      color: colors.neutral[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+  });
+}
+
 export function ScreenContainer({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const styles = makeStyles();
   return <View style={[styles.screen, style]}>{children}</View>;
 }
 
@@ -26,6 +238,7 @@ export function Header({
   onBack?: () => void;
   right?: React.ReactNode;
 }) {
+  const styles = makeStyles();
   return (
     <View style={styles.header}>
       {onBack && (
@@ -56,6 +269,7 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   showArrow?: boolean;
 }) {
+  const styles = makeStyles();
   const variantStyle = {
     primary: styles.btnPrimary,
     secondary: styles.btnSecondary,
@@ -93,6 +307,7 @@ export function Button({
 }
 
 export function Card({ children, style, onPress }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
+  const styles = makeStyles();
   if (onPress) {
     return (
       <TouchableOpacity onPress={onPress} style={[styles.card, style]} activeOpacity={0.9}>
@@ -120,6 +335,7 @@ export function Input({
   style?: StyleProp<TextStyle>;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
+  const styles = makeStyles();
   return (
     <TextInput
       value={value}
@@ -135,6 +351,7 @@ export function Input({
 }
 
 export function Badge({ label, variant = 'default' }: { label: string; variant?: 'default' | 'success' | 'warning' | 'error' }) {
+  const styles = makeStyles();
   const variantStyle = {
     default: styles.badgeDefault,
     success: styles.badgeSuccess,
@@ -155,6 +372,7 @@ export function Badge({ label, variant = 'default' }: { label: string; variant?:
 }
 
 export function LoadingState({ label }: { label?: string }) {
+  const styles = makeStyles();
   return (
     <View style={styles.loading}>
       <ActivityIndicator size="large" color={colors.primary[600]} />
@@ -164,6 +382,7 @@ export function LoadingState({ label }: { label?: string }) {
 }
 
 export function EmptyState({ title, description }: { title: string; description?: string }) {
+  const styles = makeStyles();
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyTitle}>{title}</Text>
@@ -173,6 +392,7 @@ export function EmptyState({ title, description }: { title: string; description?
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const styles = makeStyles();
   return (
     <View style={styles.error}>
       <Text style={styles.errorText}>{message}</Text>
@@ -184,6 +404,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 }
 
 export function SectionTitle({ title, action }: { title: string; action?: React.ReactNode }) {
+  const styles = makeStyles();
   return (
     <View style={styles.sectionTitleRow}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -191,215 +412,3 @@ export function SectionTitle({ title, action }: { title: string; action?: React.
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.neutral[50],
-    paddingTop: spacing.xl,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.neutral[100],
-  },
-  headerBtnText: {
-    fontSize: 22,
-    color: colors.neutral[0],
-    includeFontPadding: false,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: typography.sizes.xl,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    marginLeft: spacing.sm,
-    fontFamily: typography.fontFamilyBold,
-    includeFontPadding: false,
-  },
-  headerRight: {
-    width: 40,
-  },
-  btnBase: {
-    minHeight: 52,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  btnPrimary: {
-    backgroundColor: colors.primary[600],
-  },
-  btnSecondary: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1.5,
-    borderColor: colors.primary[600],
-  },
-  btnOutline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.primary[600],
-  },
-  btnGhost: {
-    backgroundColor: 'transparent',
-  },
-  btnDanger: {
-    backgroundColor: colors.error[500],
-  },
-  btnDisabled: {
-    opacity: 0.5,
-  },
-  btnContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  btnText: {
-    fontSize: typography.sizes.md,
-    fontWeight: '700',
-    fontFamily: typography.fontFamilyBold,
-    includeFontPadding: false,
-    textAlign: 'center',
-  },
-  btnPrimaryText: {
-    color: colors.neutral[0],
-  },
-  btnSecondaryText: {
-    color: colors.primary[600],
-  },
-  btnOutlineText: {
-    color: colors.primary[600],
-  },
-  btnGhostText: {
-    color: colors.primary[600],
-  },
-  btnDangerText: {
-    color: colors.neutral[0],
-  },
-  card: {
-    backgroundColor: colors.neutral[100],
-    borderRadius: radius.lg,
-    padding: spacing.md,
-  },
-  input: {
-    minHeight: 52,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    fontSize: typography.sizes.md,
-    color: colors.neutral[0],
-    backgroundColor: colors.neutral[100],
-    fontFamily: typography.fontFamilyRegular,
-    includeFontPadding: false,
-  },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-  },
-  badgeDefault: {
-    backgroundColor: 'rgba(255,145,66,0.18)',
-  },
-  badgeSuccess: {
-    backgroundColor: 'rgba(48,209,88,0.18)',
-  },
-  badgeWarning: {
-    backgroundColor: 'rgba(255,214,10,0.18)',
-  },
-  badgeError: {
-    backgroundColor: 'rgba(255,69,58,0.18)',
-  },
-  badgeText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: '700',
-    fontFamily: typography.fontFamilyBold,
-  },
-  badgeDefaultText: {
-    color: colors.primary[600],
-  },
-  badgeSuccessText: {
-    color: colors.success[600],
-  },
-  badgeWarningText: {
-    color: colors.warning[600],
-  },
-  badgeErrorText: {
-    color: colors.error[600],
-  },
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-    backgroundColor: colors.neutral[50],
-  },
-  loadingText: {
-    marginTop: spacing.md,
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[500],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  emptyTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  secondaryText: {
-    color: colors.neutral[500],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  emptyDesc: {
-    marginTop: spacing.sm,
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[400],
-    textAlign: 'center',
-    fontFamily: typography.fontFamilyRegular,
-  },
-  error: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-    backgroundColor: colors.neutral[50],
-  },
-  errorText: {
-    fontSize: typography.sizes.md,
-    color: colors.error[600],
-    textAlign: 'center',
-    fontFamily: typography.fontFamilyRegular,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold,
-  },
-});

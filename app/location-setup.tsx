@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { Button, Input } from '@/components/ui';
 import { MapPin, Navigation, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Crosshair } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -26,6 +27,7 @@ export default function LocationSetupScreen() {
   const { t } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [step, setStep] = useState<'permission' | 'map' | 'details' | 'outside' | 'denied'>('permission');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -36,6 +38,169 @@ export default function LocationSetupScreen() {
   const [area, setArea] = useState('');
   const [pincode, setPincode] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.neutral[50],
+    },
+    flex1: {
+      flex: 1,
+    },
+    centerContent: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xl,
+    },
+    iconWrap: {
+      width: 120,
+      height: 120,
+      borderRadius: radius.xl,
+      backgroundColor: colors.primary[50],
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xl,
+    },
+    iconWrapError: {
+      backgroundColor: colors.warning[50],
+    },
+    title: {
+      fontSize: typography.sizes.xxl,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+      fontFamily: typography.fontFamilyBold,
+    },
+    desc: {
+      fontSize: typography.sizes.md,
+      color: colors.neutral[500],
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: spacing.xl,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    actionBtn: {
+      width: '100%',
+    },
+    skipBtn: {
+      marginTop: spacing.lg,
+    },
+    skipText: {
+      fontSize: typography.sizes.md,
+      color: colors.primary[700],
+      fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    mapHeader: {
+      padding: spacing.lg,
+      alignItems: 'center',
+    },
+    mapTitle: {
+      fontSize: typography.sizes.xxl,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      marginBottom: spacing.xs,
+      fontFamily: typography.fontFamilyBold,
+    },
+    mapDesc: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    mapArea: {
+      flex: 1,
+      margin: spacing.md,
+      borderRadius: radius.lg,
+      overflow: 'hidden',
+    },
+    mapPlaceholder: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary[50],
+      borderRadius: radius.lg,
+    },
+    mapCoordText: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[600],
+      marginTop: spacing.md,
+      fontFamily: typography.fontFamilyMedium,
+    },
+    mapHintText: {
+      fontSize: typography.sizes.md,
+      color: colors.neutral[700],
+      marginTop: spacing.xs,
+      fontFamily: typography.fontFamilyMedium,
+    },
+    mapBadge: {
+      marginTop: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      backgroundColor: colors.primary[100],
+      borderRadius: radius.full,
+    },
+    mapBadgeText: {
+      fontSize: typography.sizes.xs,
+      color: colors.primary[700],
+      fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    mapFooter: {
+      padding: spacing.lg,
+    },
+    scrollContent: {
+      padding: spacing.lg,
+    },
+    detailsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    fieldLabel: {
+      fontSize: typography.sizes.sm,
+      fontWeight: '600',
+      color: colors.neutral[700],
+      marginBottom: spacing.sm,
+      fontFamily: typography.fontFamilyMedium,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      marginBottom: spacing.md,
+    },
+    labelChip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.full,
+      borderWidth: 1.5,
+      borderColor: colors.neutral[200],
+      marginRight: spacing.sm,
+    },
+    labelChipActive: {
+      borderColor: colors.primary[600],
+      backgroundColor: colors.primary[50],
+    },
+    labelChipText: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[600],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    labelChipTextActive: {
+      color: colors.primary[700],
+      fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    input: {
+      marginBottom: spacing.sm,
+    },
+    errorText: {
+      fontSize: typography.sizes.sm,
+      color: colors.error[600],
+      marginBottom: spacing.sm,
+      fontFamily: typography.fontFamilyRegular,
+    },
+  });
 
   const handleAllowLocation = async () => {
     setLoading(true);
@@ -257,165 +422,3 @@ export default function LocationSetupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  flex1: {
-    flex: 1,
-  },
-  centerContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  iconWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: radius.xl,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xl,
-  },
-  iconWrapError: {
-    backgroundColor: colors.warning[50],
-  },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-    fontFamily: typography.fontFamilyBold,
-  },
-  desc: {
-    fontSize: typography.sizes.md,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: spacing.xl,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  actionBtn: {
-    width: '100%',
-  },
-  skipBtn: {
-    marginTop: spacing.lg,
-  },
-  skipText: {
-    fontSize: typography.sizes.md,
-    color: colors.primary[700],
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  mapHeader: {
-    padding: spacing.lg,
-    alignItems: 'center',
-  },
-  mapTitle: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    marginBottom: spacing.xs,
-    fontFamily: typography.fontFamilyBold,
-  },
-  mapDesc: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[500],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  mapArea: {
-    flex: 1,
-    margin: spacing.md,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-  },
-  mapPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary[50],
-    borderRadius: radius.lg,
-  },
-  mapCoordText: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[600],
-    marginTop: spacing.md,
-    fontFamily: typography.fontFamilyMedium,
-  },
-  mapHintText: {
-    fontSize: typography.sizes.md,
-    color: colors.neutral[700],
-    marginTop: spacing.xs,
-    fontFamily: typography.fontFamilyMedium,
-  },
-  mapBadge: {
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.primary[100],
-    borderRadius: radius.full,
-  },
-  mapBadgeText: {
-    fontSize: typography.sizes.xs,
-    color: colors.primary[700],
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  mapFooter: {
-    padding: spacing.lg,
-  },
-  scrollContent: {
-    padding: spacing.lg,
-  },
-  detailsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  fieldLabel: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing.sm,
-    fontFamily: typography.fontFamilyMedium,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.md,
-  },
-  labelChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    marginRight: spacing.sm,
-  },
-  labelChipActive: {
-    borderColor: colors.primary[600],
-    backgroundColor: colors.primary[50],
-  },
-  labelChipText: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[600],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  labelChipTextActive: {
-    color: colors.primary[700],
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  input: {
-    marginBottom: spacing.sm,
-  },
-  errorText: {
-    fontSize: typography.sizes.sm,
-    color: colors.error[600],
-    marginBottom: spacing.sm,
-    fontFamily: typography.fontFamilyRegular,
-  },
-});

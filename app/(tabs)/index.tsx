@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
+import { useTheme } from '@/lib/theme-context';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { LoadingState, ErrorState } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
@@ -73,6 +74,7 @@ export default function HomeScreen() {
   const { t, lang } = useLanguage();
   const { profile } = useAuth();
   const router = useRouter();
+  const { isDark } = useTheme();
 
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [groups, setGroups] = useState<ServiceCategoryGroup[]>([]);
@@ -82,6 +84,277 @@ export default function HomeScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.neutral[50] },
+    scroll: { flex: 1 },
+    heroBlock: {
+      backgroundColor: colors.neutral[100],
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    heroTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+    },
+    heroLeft: { flex: 1 },
+    locationLabel: {
+      fontSize: typography.sizes.xs,
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+      marginBottom: 2,
+    },
+    locationRow: { flexDirection: 'row', alignItems: 'center' },
+    locationText: {
+      fontSize: typography.sizes.xl,
+      fontWeight: '700',
+      color: colors.neutral[700],
+      marginLeft: spacing.xs,
+      marginRight: 2,
+      fontFamily: typography.fontFamilyBold,
+    },
+    heroIcons: { flexDirection: 'row', gap: spacing.sm },
+    iconBtn: {
+      width: 44, height: 44, borderRadius: radius.full,
+      backgroundColor: colors.neutral[200],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    iconBtnPressed: { backgroundColor: colors.neutral[300] },
+    bellDot: {
+      position: 'absolute', top: 10, right: 11, width: 8, height: 8,
+      borderRadius: radius.full, backgroundColor: colors.error[500],
+      borderWidth: 2, borderColor: colors.neutral[100],
+    },
+    searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    searchBar: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', height: 52,
+      backgroundColor: colors.neutral[200], borderRadius: radius.full,
+      paddingHorizontal: spacing.md,
+    },
+    searchBarPressed: { transform: [{ scale: 0.99 }] },
+    searchPlaceholder: {
+      flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
+      color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
+    },
+    filterBtn: {
+      width: 52, height: 52, borderRadius: radius.full,
+      backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
+    },
+    filterBtnPressed: { backgroundColor: colors.primary[700] },
+    statsRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.md,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg,
+    },
+    statItem: { flex: 1, alignItems: 'center' },
+    statValue: {
+      fontSize: typography.sizes.xl, fontWeight: '700', color: colors.primary[600],
+      fontFamily: typography.fontFamilyBold,
+    },
+    statLabel: {
+      fontSize: typography.sizes.xs, color: colors.neutral[500], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular, textAlign: 'center',
+    },
+    statDivider: { width: 1, height: 32, backgroundColor: colors.neutral[200] },
+    section: { marginTop: spacing.lg },
+    sectionHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
+    },
+    groupTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    groupIconWrap: {
+      width: 36, height: 36, borderRadius: radius.md,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    sectionTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[700],
+      fontFamily: typography.fontFamilyBold, paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
+    },
+    sectionTitleInline: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+    viewAllText: {
+      fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    quickRow: { flexDirection: 'row', paddingHorizontal: spacing.lg },
+    quickCard: {
+      flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.sm, marginHorizontal: spacing.xs / 2, alignItems: 'center',
+    },
+    quickCardPressed: { transform: [{ scale: 0.96 }] },
+    quickIcon: {
+      width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
+      marginBottom: spacing.xs, backgroundColor: colors.primary[50],
+    },
+    quickLabel: {
+      fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[700],
+      fontFamily: typography.fontFamilyBold, textAlign: 'center',
+    },
+    quickDesc: {
+      fontSize: 10, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
+      textAlign: 'center', marginTop: 2,
+    },
+    servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg },
+    serviceItem: { width: CATEGORY_TILE_SIZE, alignItems: 'center', marginBottom: spacing.lg },
+    serviceItemPressed: { transform: [{ scale: 0.95 }] },
+    serviceIcon: {
+      width: 64, height: 64, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    serviceName: {
+      fontSize: typography.sizes.xs, fontWeight: '600', color: colors.neutral[600],
+      textAlign: 'center', fontFamily: typography.fontFamilyMedium, lineHeight: 15,
+    },
+    popularScroll: { paddingHorizontal: spacing.lg },
+    popularCard: {
+      width: 170, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      marginRight: spacing.md, overflow: 'hidden',
+    },
+    popularImageWrap: { width: '100%', height: 110, position: 'relative' },
+    popularImage: { width: '100%', height: '100%' },
+    popularRatingBadge: {
+      position: 'absolute', top: spacing.xs, left: spacing.xs, flexDirection: 'row', alignItems: 'center',
+      backgroundColor: colors.neutral[200], borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 3, gap: 3,
+    },
+    popularRatingText: {
+      fontSize: 11, fontWeight: '700', color: colors.neutral[700], fontFamily: typography.fontFamilyBold,
+    },
+    popularHeartBtn: {
+      position: 'absolute', top: spacing.xs, right: spacing.xs, width: 28, height: 28,
+      borderRadius: radius.full, backgroundColor: colors.neutral[200], alignItems: 'center', justifyContent: 'center',
+    },
+    popularBody: { padding: spacing.sm },
+    popularName: {
+      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[700],
+      marginBottom: 2, fontFamily: typography.fontFamilyBold,
+    },
+    popularSubtitle: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400],
+      fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm,
+    },
+    popularFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    popularBookBtn: {
+      backgroundColor: colors.primary[600], paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.full, alignSelf: 'flex-start',
+    },
+    popularBookBtnText: {
+      fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
+    },
+    howItWorksRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, alignItems: 'flex-start' },
+    howItWorksStep: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.xs },
+    howItWorksIconWrap: {
+      width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
+      borderWidth: 1.5, borderColor: colors.primary[200],
+    },
+    howItWorksNum: {
+      position: 'absolute', top: -4, right: -4, width: 22, height: 22, borderRadius: radius.full,
+      backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: colors.neutral[50],
+    },
+    howItWorksNumText: {
+      fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
+    },
+    howItWorksTitle: {
+      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[700],
+      textAlign: 'center', marginBottom: 4, fontFamily: typography.fontFamilyBold,
+    },
+    howItWorksDesc: {
+      fontSize: 11, color: colors.neutral[500], textAlign: 'center',
+      fontFamily: typography.fontFamilyRegular, lineHeight: 15,
+    },
+    howItWorksConnector: { width: 24, height: 2, backgroundColor: colors.neutral[200], marginTop: 28 },
+    trustRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.lg,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg,
+    },
+    trustItem: { flex: 1, alignItems: 'center' },
+    trustText: {
+      fontSize: typography.sizes.xs, color: colors.neutral[600], marginTop: spacing.xs,
+      fontFamily: typography.fontFamilyMedium, textAlign: 'center', lineHeight: 15,
+    },
+    trustDivider: { width: 1, height: 36, backgroundColor: colors.neutral[200] },
+    referCard: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      marginHorizontal: spacing.lg, padding: spacing.lg, borderRadius: radius.lg,
+      backgroundColor: colors.primary[600], ...shadows.lg,
+    },
+    referLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+    referIconWrap: {
+      width: 48, height: 48, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
+    },
+    referTextWrap: { flex: 1 },
+    referTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
+      fontFamily: typography.fontFamilyBold,
+    },
+    referDesc: {
+      fontSize: typography.sizes.xs, color: 'rgba(255,255,255,0.85)',
+      fontFamily: typography.fontFamilyRegular, marginTop: 2, lineHeight: 17,
+    },
+    referCta: {
+      flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm,
+      backgroundColor: colors.neutral[0], paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+      borderRadius: radius.full, alignSelf: 'flex-start', gap: spacing.xs,
+    },
+    referCtaText: {
+      fontSize: typography.sizes.xs, fontWeight: '700', color: colors.primary[700],
+      fontFamily: typography.fontFamilyBold,
+    },
+    referRight: { alignItems: 'flex-end' },
+    referAmount: {
+      fontSize: typography.sizes.xxxl, fontWeight: '700', color: colors.neutral[0],
+      fontFamily: typography.fontFamilyBold,
+    },
+    searchModal: { flex: 1, backgroundColor: colors.neutral[50] },
+    searchHeader: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
+      paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+      borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
+    },
+    searchBackBtn: {
+      width: 40, height: 40, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.neutral[200],
+    },
+    searchInputWrap: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: spacing.sm, height: 44,
+      backgroundColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md,
+    },
+    searchInput: {
+      flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
+      color: colors.neutral[700], fontFamily: typography.fontFamilyRegular,
+    },
+    searchEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+    searchEmptyTitle: {
+      fontSize: typography.sizes.lg, fontWeight: '600', color: colors.neutral[700],
+      marginTop: spacing.md, fontFamily: typography.fontFamilyMedium,
+    },
+    searchEmptyDesc: {
+      fontSize: typography.sizes.sm, color: colors.neutral[400], marginTop: spacing.xs,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    searchResultsList: { padding: spacing.md },
+    searchResult: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
+    searchResultIcon: {
+      width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
+    },
+    searchResultText: { flex: 1, marginLeft: spacing.md },
+    searchResultLabel: {
+      fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[700],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    searchResultSubtitle: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    searchResultDivider: { height: 1, backgroundColor: colors.neutral[200], marginHorizontal: spacing.md },
+  });
 
   const fetchData = useCallback(async () => {
     try {
@@ -152,7 +425,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.neutral[100]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.neutral[100]} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary[600]} colors={[colors.primary[600]]} />}
@@ -164,9 +437,9 @@ export default function HomeScreen() {
             <View style={styles.heroLeft}>
               <Text style={styles.locationLabel}>Location</Text>
               <TouchableOpacity style={styles.locationRow} activeOpacity={0.7}>
-                <MapPin size={16} color={colors.neutral[0]} strokeWidth={2.5} />
+                <MapPin size={16} color={colors.neutral[700]} strokeWidth={2.5} />
                 <Text style={styles.locationText}>Thrissur, Kerala</Text>
-                <ChevronRight size={16} color={colors.neutral[0]} strokeWidth={2.5} />
+                <ChevronRight size={16} color={colors.neutral[700]} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
             <View style={styles.heroIcons}>
@@ -174,7 +447,7 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
                 onPress={() => router.push('/(tabs)/bookings')}
               >
-                <Bell size={20} color={colors.neutral[0]} strokeWidth={2.2} />
+                <Bell size={20} color={colors.neutral[700]} strokeWidth={2.2} />
                 <View style={styles.bellDot} />
               </Pressable>
             </View>
@@ -498,6 +771,26 @@ function GroupIcon({ name, color }: { name: string; color: string }) {
 function QuickAction({ icon: Icon, label, desc, onPress }: {
   icon: any; label: string; desc: string; onPress: () => void;
 }) {
+  const { isDark } = useTheme();
+  const styles = StyleSheet.create({
+    quickCard: {
+      flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
+      padding: spacing.sm, marginHorizontal: spacing.xs / 2, alignItems: 'center',
+    },
+    quickCardPressed: { transform: [{ scale: 0.96 }] },
+    quickIcon: {
+      width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
+      marginBottom: spacing.xs, backgroundColor: colors.primary[50],
+    },
+    quickLabel: {
+      fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[700],
+      fontFamily: typography.fontFamilyBold, textAlign: 'center',
+    },
+    quickDesc: {
+      fontSize: 10, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
+      textAlign: 'center', marginTop: 2,
+    },
+  });
   return (
     <Pressable style={({ pressed }) => [styles.quickCard, pressed && styles.quickCardPressed]} onPress={onPress}>
       <View style={styles.quickIcon}>
@@ -512,6 +805,31 @@ function QuickAction({ icon: Icon, label, desc, onPress }: {
 function HowItWorksStep({ num, title, desc, icon: Icon }: {
   num: string; title: string; desc: string; icon: any;
 }) {
+  const { isDark } = useTheme();
+  const styles = StyleSheet.create({
+    howItWorksStep: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.xs },
+    howItWorksIconWrap: {
+      width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary[50],
+      alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
+      borderWidth: 1.5, borderColor: colors.primary[200],
+    },
+    howItWorksNum: {
+      position: 'absolute', top: -4, right: -4, width: 22, height: 22, borderRadius: radius.full,
+      backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: colors.neutral[50],
+    },
+    howItWorksNumText: {
+      fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
+    },
+    howItWorksTitle: {
+      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[700],
+      textAlign: 'center', marginBottom: 4, fontFamily: typography.fontFamilyBold,
+    },
+    howItWorksDesc: {
+      fontSize: 11, color: colors.neutral[500], textAlign: 'center',
+      fontFamily: typography.fontFamilyRegular, lineHeight: 15,
+    },
+  });
   return (
     <View style={styles.howItWorksStep}>
       <View style={styles.howItWorksIconWrap}>
@@ -526,273 +844,5 @@ function HowItWorksStep({ num, title, desc, icon: Icon }: {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.neutral[50] },
-  scroll: { flex: 1 },
-  heroBlock: {
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  heroTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  heroLeft: { flex: 1 },
-  locationLabel: {
-    fontSize: typography.sizes.xs,
-    color: colors.neutral[500],
-    fontFamily: typography.fontFamilyRegular,
-    marginBottom: 2,
-  },
-  locationRow: { flexDirection: 'row', alignItems: 'center' },
-  locationText: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    marginLeft: spacing.xs,
-    marginRight: 2,
-    fontFamily: typography.fontFamilyBold,
-  },
-  heroIcons: { flexDirection: 'row', gap: spacing.sm },
-  iconBtn: {
-    width: 44, height: 44, borderRadius: radius.full,
-    backgroundColor: colors.neutral[200],
-    alignItems: 'center', justifyContent: 'center',
-  },
-  iconBtnPressed: { backgroundColor: colors.neutral[300] },
-  bellDot: {
-    position: 'absolute', top: 10, right: 11, width: 8, height: 8,
-    borderRadius: radius.full, backgroundColor: colors.error[500],
-    borderWidth: 2, borderColor: colors.neutral[100],
-  },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  searchBar: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', height: 52,
-    backgroundColor: colors.neutral[200], borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-  },
-  searchBarPressed: { transform: [{ scale: 0.99 }] },
-  searchPlaceholder: {
-    flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
-    color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
-  },
-  filterBtn: {
-    width: 52, height: 52, borderRadius: radius.full,
-    backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
-  },
-  filterBtnPressed: { backgroundColor: colors.primary[700] },
-  statsRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg,
-  },
-  statItem: { flex: 1, alignItems: 'center' },
-  statValue: {
-    fontSize: typography.sizes.xl, fontWeight: '700', color: colors.primary[600],
-    fontFamily: typography.fontFamilyBold,
-  },
-  statLabel: {
-    fontSize: typography.sizes.xs, color: colors.neutral[500], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular, textAlign: 'center',
-  },
-  statDivider: { width: 1, height: 32, backgroundColor: colors.neutral[200] },
-  section: { marginTop: spacing.lg },
-  sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
-  },
-  groupTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  groupIconWrap: {
-    width: 36, height: 36, borderRadius: radius.md,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  sectionTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold, paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
-  },
-  sectionTitleInline: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold,
-  },
-  viewAllText: {
-    fontSize: typography.sizes.sm, color: colors.primary[600], fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  quickRow: { flexDirection: 'row', paddingHorizontal: spacing.lg },
-  quickCard: {
-    flex: 1, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    padding: spacing.sm, marginHorizontal: spacing.xs / 2, alignItems: 'center',
-  },
-  quickCardPressed: { transform: [{ scale: 0.96 }] },
-  quickIcon: {
-    width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
-    marginBottom: spacing.xs, backgroundColor: colors.primary[50],
-  },
-  quickLabel: {
-    fontSize: typography.sizes.xs, fontWeight: '700', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold, textAlign: 'center',
-  },
-  quickDesc: {
-    fontSize: 10, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular,
-    textAlign: 'center', marginTop: 2,
-  },
-  servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg },
-  serviceItem: { width: CATEGORY_TILE_SIZE, alignItems: 'center', marginBottom: spacing.lg },
-  serviceItemPressed: { transform: [{ scale: 0.95 }] },
-  serviceIcon: {
-    width: 64, height: 64, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  serviceName: {
-    fontSize: typography.sizes.xs, fontWeight: '600', color: colors.neutral[600],
-    textAlign: 'center', fontFamily: typography.fontFamilyMedium, lineHeight: 15,
-  },
-  popularScroll: { paddingHorizontal: spacing.lg },
-  popularCard: {
-    width: 170, backgroundColor: colors.neutral[100], borderRadius: radius.lg,
-    marginRight: spacing.md, overflow: 'hidden',
-  },
-  popularImageWrap: { width: '100%', height: 110, position: 'relative' },
-  popularImage: { width: '100%', height: '100%' },
-  popularRatingBadge: {
-    position: 'absolute', top: spacing.xs, left: spacing.xs, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.neutral[200], borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 3, gap: 3,
-  },
-  popularRatingText: {
-    fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
-  },
-  popularHeartBtn: {
-    position: 'absolute', top: spacing.xs, right: spacing.xs, width: 28, height: 28,
-    borderRadius: radius.full, backgroundColor: colors.neutral[200], alignItems: 'center', justifyContent: 'center',
-  },
-  popularBody: { padding: spacing.sm },
-  popularName: {
-    fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[0],
-    marginBottom: 2, fontFamily: typography.fontFamilyBold,
-  },
-  popularSubtitle: {
-    fontSize: typography.sizes.xs, color: colors.neutral[400],
-    fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm,
-  },
-  popularFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  popularBookBtn: {
-    backgroundColor: colors.primary[600], paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.full, alignSelf: 'flex-start',
-  },
-  popularBookBtnText: {
-    fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
-  },
-  howItWorksRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, alignItems: 'flex-start' },
-  howItWorksStep: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.xs },
-  howItWorksIconWrap: {
-    width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
-    borderWidth: 1.5, borderColor: colors.primary[200],
-  },
-  howItWorksNum: {
-    position: 'absolute', top: -4, right: -4, width: 22, height: 22, borderRadius: radius.full,
-    backgroundColor: colors.primary[600], alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: colors.neutral[50],
-  },
-  howItWorksNumText: {
-    fontSize: 11, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold,
-  },
-  howItWorksTitle: {
-    fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[0],
-    textAlign: 'center', marginBottom: 4, fontFamily: typography.fontFamilyBold,
-  },
-  howItWorksDesc: {
-    fontSize: 11, color: colors.neutral[500], textAlign: 'center',
-    fontFamily: typography.fontFamilyRegular, lineHeight: 15,
-  },
-  howItWorksConnector: { width: 24, height: 2, backgroundColor: colors.neutral[200], marginTop: 28 },
-  trustRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.neutral[100], marginHorizontal: spacing.lg, marginTop: spacing.lg,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg,
-  },
-  trustItem: { flex: 1, alignItems: 'center' },
-  trustText: {
-    fontSize: typography.sizes.xs, color: colors.neutral[600], marginTop: spacing.xs,
-    fontFamily: typography.fontFamilyMedium, textAlign: 'center', lineHeight: 15,
-  },
-  trustDivider: { width: 1, height: 36, backgroundColor: colors.neutral[200] },
-  referCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginHorizontal: spacing.lg, padding: spacing.lg, borderRadius: radius.lg,
-    backgroundColor: colors.primary[600], ...shadows.lg,
-  },
-  referLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  referIconWrap: {
-    width: 48, height: 48, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-  },
-  referTextWrap: { flex: 1 },
-  referTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold,
-  },
-  referDesc: {
-    fontSize: typography.sizes.xs, color: 'rgba(255,255,255,0.85)',
-    fontFamily: typography.fontFamilyRegular, marginTop: 2, lineHeight: 17,
-  },
-  referCta: {
-    flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm,
-    backgroundColor: colors.neutral[0], paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-    borderRadius: radius.full, alignSelf: 'flex-start', gap: spacing.xs,
-  },
-  referCtaText: {
-    fontSize: typography.sizes.xs, fontWeight: '700', color: colors.primary[700],
-    fontFamily: typography.fontFamilyBold,
-  },
-  referRight: { alignItems: 'flex-end' },
-  referAmount: {
-    fontSize: typography.sizes.xxxl, fontWeight: '700', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyBold,
-  },
-  searchModal: { flex: 1, backgroundColor: colors.neutral[50] },
-  searchHeader: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
-  },
-  searchBackBtn: {
-    width: 40, height: 40, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.neutral[200],
-  },
-  searchInputWrap: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: spacing.sm, height: 44,
-    backgroundColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md,
-  },
-  searchInput: {
-    flex: 1, marginLeft: spacing.sm, fontSize: typography.sizes.md,
-    color: colors.neutral[0], fontFamily: typography.fontFamilyRegular,
-  },
-  searchEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  searchEmptyTitle: {
-    fontSize: typography.sizes.lg, fontWeight: '600', color: colors.neutral[0],
-    marginTop: spacing.md, fontFamily: typography.fontFamilyMedium,
-  },
-  searchEmptyDesc: {
-    fontSize: typography.sizes.sm, color: colors.neutral[400], marginTop: spacing.xs,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  searchResultsList: { padding: spacing.md },
-  searchResult: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
-  searchResultIcon: {
-    width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
-  },
-  searchResultText: { flex: 1, marginLeft: spacing.md },
-  searchResultLabel: {
-    fontSize: typography.sizes.md, fontWeight: '600', color: colors.neutral[0],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  searchResultSubtitle: {
-    fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: 2,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  searchResultDivider: { height: 1, backgroundColor: colors.neutral[200], marginHorizontal: spacing.md },
-});
+// Styles are now defined inside their respective components so they rebuild
+// on theme changes (colors is a mutable singleton).

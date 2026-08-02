@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import { LoadingState, ErrorState, EmptyState, Button } from '@/components/ui';
 import type { BookingWithDetails } from '@/lib/types';
 import { Calendar, Clock, IndianRupee, ChevronRight, RotateCw, Download } from 'lucide-react-native';
@@ -16,6 +17,141 @@ export default function BookingsScreen() {
   const { t, lang } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
+  const { isDark } = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.neutral[50],
+    },
+    header: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: {
+      fontSize: typography.sizes.xxxl,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    tabBar: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm,
+    },
+    tab: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      marginRight: spacing.sm,
+      borderRadius: radius.full,
+      backgroundColor: colors.neutral[100],
+    },
+    tabActive: {
+      backgroundColor: colors.primary[600],
+    },
+    tabText: {
+      fontSize: typography.sizes.sm,
+      fontWeight: '600',
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyMedium,
+    },
+    tabTextActive: {
+      color: colors.neutral[0],
+    },
+    bookingCard: {
+      backgroundColor: colors.neutral[0],
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+      ...shadows.sm,
+    },
+    bookingHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    bookingService: {
+      fontSize: typography.sizes.md,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      flex: 1,
+      fontFamily: typography.fontFamilyBold,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.full,
+      backgroundColor: 'rgba(154,154,158,0.18)',
+    },
+    statusBadgeActive: {
+      backgroundColor: colors.primary[600],
+    },
+    statusTextActive: {
+      color: colors.neutral[0],
+    },
+    statusText: {
+      fontSize: typography.sizes.xs,
+      fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    bookingProvider: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[500],
+      marginBottom: spacing.sm,
+      fontFamily: typography.fontFamilyRegular,
+    },
+    bookingMeta: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    metaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    metaText: {
+      fontSize: typography.sizes.xs,
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    metaPrice: {
+      fontSize: typography.sizes.xs,
+      color: colors.primary[700],
+      fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    bookingActions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.neutral[200],
+    },
+    actionChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      backgroundColor: colors.neutral[200],
+      borderRadius: radius.full,
+      gap: 4,
+    },
+    actionChipText: {
+      fontSize: typography.sizes.xs,
+      color: colors.neutral[600],
+      fontWeight: '600',
+      fontFamily: typography.fontFamilyMedium,
+    },
+    chevronRow: {
+      position: 'absolute',
+      right: spacing.md,
+      top: '50%',
+      transform: [{ translateY: -9 }],
+    },
+  });
 
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>('upcoming');
@@ -218,137 +354,3 @@ function getStatusColor(status: string): string {
   };
   return colorMap[status] || colors.neutral[500];
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: typography.sizes.xxxl,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    fontFamily: typography.fontFamilyBold,
-  },
-  tabBar: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  tab: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginRight: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: colors.neutral[100],
-  },
-  tabActive: {
-    backgroundColor: colors.primary[600],
-  },
-  tabText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    fontFamily: typography.fontFamilyMedium,
-  },
-  tabTextActive: {
-    color: colors.neutral[0],
-  },
-  bookingCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-    ...shadows.sm,
-  },
-  bookingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  bookingService: {
-    fontSize: typography.sizes.md,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    flex: 1,
-    fontFamily: typography.fontFamilyBold,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(154,154,158,0.18)',
-  },
-  statusBadgeActive: {
-    backgroundColor: colors.primary[600],
-  },
-  statusTextActive: {
-    color: colors.neutral[0],
-  },
-  statusText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  bookingProvider: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[500],
-    marginBottom: spacing.sm,
-    fontFamily: typography.fontFamilyRegular,
-  },
-  bookingMeta: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: typography.sizes.xs,
-    color: colors.neutral[500],
-    fontFamily: typography.fontFamilyRegular,
-  },
-  metaPrice: {
-    fontSize: typography.sizes.xs,
-    color: colors.primary[700],
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  bookingActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  actionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.neutral[200],
-    borderRadius: radius.full,
-    gap: 4,
-  },
-  actionChipText: {
-    fontSize: typography.sizes.xs,
-    color: colors.neutral[600],
-    fontWeight: '600',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  chevronRow: {
-    position: 'absolute',
-    right: spacing.md,
-    top: '50%',
-    transform: [{ translateY: -9 }],
-  },
-});
