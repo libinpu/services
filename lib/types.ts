@@ -159,6 +159,7 @@ export interface BookingItem {
   description_ml: string | null;
   amount: number;
   is_approved_by_customer: boolean;
+  bill_photo_url: string | null;
   created_at: string;
 }
 

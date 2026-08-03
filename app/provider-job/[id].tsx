@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Pressable, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
@@ -9,7 +9,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { BookingWithDetails } from '@/lib/types';
-import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler } from 'lucide-react-native';
+import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
 import { formatDistance, formatEta } from '@/lib/distance';
 
 export default function ProviderJobDetailScreen() {
@@ -28,6 +28,12 @@ export default function ProviderJobDetailScreen() {
   const [showSelfieModal, setShowSelfieModal] = useState<'start' | 'end' | null>(null);
   const [selfieCaptured, setSelfieCaptured] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showBillModal, setShowBillModal] = useState(false);
+  const [billDescription, setBillDescription] = useState('');
+  const [billAmount, setBillAmount] = useState('');
+  const [billPhoto, setBillPhoto] = useState<string | null>(null);
+  const [submittingBill, setSubmittingBill] = useState(false);
+  const billFileRef = useRef<HTMLInputElement>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -122,6 +128,31 @@ export default function ProviderJobDetailScreen() {
     retakeBtn: { height: 48, borderRadius: radius.full, backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.primary[600], alignItems: 'center', justifyContent: 'center' },
     retakeBtnText: { fontSize: typography.sizes.md, fontWeight: '600', color: colors.primary[600], fontFamily: typography.fontFamilyMedium },
     confirmSelfieBtn: { width: '100%' },
+    materialSection: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
+    materialCard: { backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.neutral[200] },
+    materialCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+    materialCardTitle: { fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900], fontFamily: typography.fontFamilyBold },
+    materialAmountText: { fontSize: typography.sizes.lg, fontWeight: '700', color: colors.primary[700], fontFamily: typography.fontFamilyBold },
+    materialBillImage: { width: '100%', height: 140, borderRadius: radius.md, marginBottom: spacing.sm, backgroundColor: colors.neutral[200] },
+    materialStatusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.full, alignSelf: 'flex-start' },
+    materialStatusPending: { backgroundColor: colors.warning[50] },
+    materialStatusApproved: { backgroundColor: colors.success[50] },
+    materialStatusText: { fontSize: typography.sizes.xs, fontWeight: '700', fontFamily: typography.fontFamilyBold },
+    addBillBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderRadius: radius.full, borderWidth: 2, borderColor: colors.primary[600], backgroundColor: 'transparent', marginTop: spacing.sm },
+    addBillBtnText: { fontSize: typography.sizes.md, fontWeight: '700', color: colors.primary[600], fontFamily: typography.fontFamilyBold },
+    billOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    billCard: { backgroundColor: colors.neutral[100], borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingBottom: spacing.xl, maxHeight: '90%' },
+    billHandle: { width: 40, height: 4, borderRadius: radius.full, backgroundColor: colors.neutral[200], alignSelf: 'center', marginTop: spacing.sm, marginBottom: spacing.sm },
+    billHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+    billTitle: { fontSize: typography.sizes.xxl, fontWeight: '700', color: colors.neutral[900], fontFamily: typography.fontFamilyBold },
+    billCloseBtn: { width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200], alignItems: 'center', justifyContent: 'center' },
+    billBody: { paddingHorizontal: spacing.lg },
+    billDescInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm },
+    billAmountInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm, keyboardType: 'numeric' },
+    billUploadArea: { height: 160, borderWidth: 2, borderColor: colors.neutral[300], borderStyle: 'dashed', borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+    billUploadText: { fontSize: typography.sizes.sm, color: colors.neutral[400], marginTop: spacing.xs, fontFamily: typography.fontFamilyRegular },
+    billPreviewImage: { width: '100%', height: 160, borderRadius: radius.lg, marginBottom: spacing.sm },
+    billSubmitBtn: { width: '100%' },
   });
 
 
@@ -183,6 +214,51 @@ export default function ProviderJobDetailScreen() {
   };
 
   const handleEndJob = () => { setShowSelfieModal('end'); };
+
+  const handleBillFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setBillPhoto(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    if (event.target) event.target.value = '';
+  };
+
+  const triggerBillFilePicker = () => {
+    if (Platform.OS === 'web' && billFileRef.current) {
+      billFileRef.current.click();
+    }
+  };
+
+  const handleSubmitBill = async () => {
+    if (!billDescription.trim() || !billAmount.trim()) return;
+    setSubmittingBill(true);
+    try {
+      await supabase.from('booking_items').insert({
+        booking_id: id,
+        description_en: billDescription.trim(),
+        description_ml: billDescription.trim(),
+        amount: parseFloat(billAmount),
+        bill_photo_url: billPhoto,
+        is_approved_by_customer: false,
+      });
+      setBillDescription('');
+      setBillAmount('');
+      setBillPhoto(null);
+      setShowBillModal(false);
+      fetchBooking();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSubmittingBill(false);
+    }
+  };
+
+  const pendingBills = (booking?.booking_items || []).filter((item) => !item.is_approved_by_customer);
+  const approvedBills = (booking?.booking_items || []).filter((item) => item.is_approved_by_customer);
+  const allBills = [...pendingBills, ...approvedBills];
 
   if (loading) return <LoadingState label={t('loading')} />;
   if (error) return <ErrorState message={error} onRetry={fetchBooking} />;
@@ -331,6 +407,41 @@ export default function ProviderJobDetailScreen() {
                 </View>
               )}
             </View>
+
+            {/* Material Bills Section */}
+            <View style={styles.materialSection}>
+              <Text style={styles.sectionTitle}>{t('materialBills')}</Text>
+              {allBills.length === 0 ? (
+                <Text style={{ fontSize: typography.sizes.sm, color: colors.neutral[400], fontFamily: typography.fontFamilyRegular, textAlign: 'center', paddingVertical: spacing.md }}>{t('noMaterialBills')}</Text>
+              ) : (
+                allBills.map((item) => (
+                  <View key={item.id} style={styles.materialCard}>
+                    <View style={styles.materialCardHeader}>
+                      <Text style={styles.materialCardTitle}>{item.description_en}</Text>
+                      <Text style={styles.materialAmountText}>₹{item.amount}</Text>
+                    </View>
+                    {item.bill_photo_url ? (
+                      <Image source={{ uri: item.bill_photo_url }} style={styles.materialBillImage} resizeMode="cover" />
+                    ) : null}
+                    <View style={[styles.materialStatusBadge, item.is_approved_by_customer ? styles.materialStatusApproved : styles.materialStatusPending]}>
+                      {item.is_approved_by_customer ? (
+                        <CheckCircle size={12} color={colors.success[600]} strokeWidth={2.5} />
+                      ) : (
+                        <Clock size={12} color={colors.warning[600]} strokeWidth={2.5} />
+                      )}
+                      <Text style={[styles.materialStatusText, { color: item.is_approved_by_customer ? colors.success[700] : colors.warning[700] }]}>
+                        {item.is_approved_by_customer ? t('approve') : t('billAdded')}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              )}
+              <TouchableOpacity style={styles.addBillBtn} onPress={() => setShowBillModal(true)} activeOpacity={0.8}>
+                <Plus size={20} color={colors.primary[600]} strokeWidth={2.5} />
+                <Text style={styles.addBillBtnText}>{t('addMaterialBill')}</Text>
+              </TouchableOpacity>
+            </View>
+
             <Button label={t('endJob')} onPress={handleEndJob} variant="danger" style={styles.endJobBtn} />
           </View>
         )}
@@ -408,6 +519,63 @@ export default function ProviderJobDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Add Material Bill Modal */}
+      <Modal visible={showBillModal} animationType="slide" transparent onRequestClose={() => setShowBillModal(false)}>
+        <Pressable style={styles.billOverlay} onPress={() => setShowBillModal(false)}>
+          <Pressable style={styles.billCard} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.billHandle} />
+            <View style={styles.billHeader}>
+              <Text style={styles.billTitle}>{t('addMaterialBill')}</Text>
+              <TouchableOpacity onPress={() => setShowBillModal(false)} style={styles.billCloseBtn}>
+                <X size={20} color={colors.neutral[500]} strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.billBody} showsVerticalScrollIndicator={false}>
+              <TextInput
+                style={styles.billDescInput}
+                value={billDescription}
+                onChangeText={setBillDescription}
+                placeholder={t('materialDescription')}
+                placeholderTextColor={colors.neutral[400]}
+              />
+              <TextInput
+                style={styles.billAmountInput}
+                value={billAmount}
+                onChangeText={setBillAmount}
+                placeholder={t('materialAmount')}
+                placeholderTextColor={colors.neutral[400]}
+                keyboardType="numeric"
+              />
+              {billPhoto ? (
+                <View>
+                  <Image source={{ uri: billPhoto }} style={styles.billPreviewImage} resizeMode="cover" />
+                  <TouchableOpacity onPress={() => setBillPhoto(null)} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: radius.full, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Trash2 size={16} color={colors.neutral[0]} strokeWidth={2} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.billUploadArea} onPress={triggerBillFilePicker} activeOpacity={0.8}>
+                  <ImageIcon size={32} color={colors.neutral[400]} strokeWidth={1.5} />
+                  <Text style={styles.billUploadText}>{t('uploadBillPhoto')}</Text>
+                </TouchableOpacity>
+              )}
+              <Button label={t('addBill')} onPress={handleSubmitBill} loading={submittingBill} style={styles.billSubmitBtn} />
+              <View style={{ height: 20 }} />
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {Platform.OS === 'web' && (
+        <input
+          ref={billFileRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleBillFileSelect}
+        />
+      )}
     </SafeAreaView>
   );
 }

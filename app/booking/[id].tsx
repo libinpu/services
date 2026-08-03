@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, TextInput, Modal, Pressable,
+  Dimensions, TextInput, Modal, Pressable, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,7 +12,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { BookingWithDetails, ChatMessage, ProviderWithProfile } from '@/lib/types';
-import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, Share2, User, Briefcase, Award, Image as ImageIcon } from 'lucide-react-native';
+import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, Share2, User, Briefcase, Award, Image as ImageIcon, Receipt } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -271,6 +271,9 @@ export default function BookingDetailScreen() {
       fontFamily: typography.fontFamilyMedium,
     },
     approveBtn: { paddingHorizontal: spacing.md, height: 40, borderRadius: radius.full },
+    chargeBillImage: { width: '100%', height: 120, borderRadius: radius.md, marginBottom: spacing.sm, backgroundColor: colors.neutral[200] },
+    chargeBillLabel: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+    chargeBillLabelText: { fontSize: typography.sizes.xs, fontWeight: '600', color: colors.neutral[500], fontFamily: typography.fontFamilyMedium },
     completeBtn: { marginTop: spacing.md, borderRadius: radius.full },
 
     // Awaiting confirmation
@@ -799,6 +802,15 @@ export default function BookingDetailScreen() {
                       <Text style={styles.chargeDesc}>
                         {lang === 'ml' ? item.description_ml || item.description_en : item.description_en}
                       </Text>
+                      {item.bill_photo_url && (
+                        <>
+                          <View style={styles.chargeBillLabel}>
+                            <Receipt size={12} color={colors.neutral[500]} strokeWidth={2} />
+                            <Text style={styles.chargeBillLabelText}>Bill Photo</Text>
+                          </View>
+                          <Image source={{ uri: item.bill_photo_url }} style={styles.chargeBillImage} resizeMode="cover" />
+                        </>
+                      )}
                     </View>
                     <Button label={t('approve')} onPress={() => handleApproveCharge(item.id)} style={styles.approveBtn} />
                   </View>
