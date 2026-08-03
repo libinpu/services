@@ -453,7 +453,10 @@ export default function HomeScreen() {
               <Search size={20} color={colors.neutral[500]} strokeWidth={2.2} />
               <Text style={styles.searchPlaceholder}>{t('searchServices')}</Text>
             </Pressable>
-            <Pressable style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}>
+            <Pressable
+              style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}
+              onPress={() => setSearchOpen(true)}
+            >
               <SlidersHorizontal size={20} color={colors.neutral[100]} strokeWidth={2.2} />
             </Pressable>
           </View>
