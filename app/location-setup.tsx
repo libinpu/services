@@ -59,6 +59,7 @@ export default function LocationSetupScreen() {
   const [addressLine, setAddressLine] = useState('');
   const [area, setArea] = useState('');
   const [city, setCity] = useState('');
+  const [districtName, setDistrictName] = useState('');
   const [stateName, setStateName] = useState('');
   const [pincode, setPincode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +122,7 @@ export default function LocationSetupScreen() {
 
   const handleAddNew = () => {
     setCoords(null); setLabel('Home'); setCustomLabel('');
-    setAddressLine(''); setArea(''); setCity('');
+    setAddressLine(''); setArea(''); setCity(''); setDistrictName('');
     setStateName(''); setPincode(''); setError(null); setReverseGeocodeText(null);
     setStep('permission');
   };
@@ -343,13 +344,17 @@ export default function LocationSetupScreen() {
     setReverseGeocodeText(null);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=geocodejson&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`,
-        { headers: { 'Accept-Language': 'en' } }
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`,
+        { 
+          headers: { 
+            'Accept-Language': 'en',
+            'User-Agent': 'SevaApp/1.0 (Contact: admin@sevaapp.com)'
+          } 
+        }
       );
       if (!res.ok) throw new Error('Reverse geocode failed');
       const data = await res.json();
-      const result = data.results?.[0];
-      const addr = result?.components || data.address || {};
+      const addr = data.address || {};
       const houseNo = addr.house_number || '';
       const road = addr.road || addr.pedestrian || addr.footway || '';
       const neighbourhood = addr.neighbourhood || addr.hamlet || '';
@@ -364,10 +369,11 @@ export default function LocationSetupScreen() {
       const line1 = [houseNo, road].filter(Boolean).join(' ');
       const areaName = [neighbourhood, suburb, locality].filter(Boolean).join(', ') || village || town || '';
       const fullLine = [line1, areaName].filter(Boolean).join(', ');
-      const displayName = result?.formatted || data.display_name || `${areaName}, ${city}, ${state}`;
+      const displayName = data.display_name || `${areaName}, ${city}, ${state}`;
       setAddressLine(fullLine || (displayName ? displayName.split(',').slice(0, 2).join(', ') : ''));
       setArea(areaName || city);
       setCity(city);
+      setDistrictName(county);
       setStateName(state);
       setPincode(pin);
       setReverseGeocodeText(displayName);
@@ -401,7 +407,7 @@ export default function LocationSetupScreen() {
         address_line: addressLine || 'Location confirmed on map',
         area: area || 'Thrissur',
         city: city || 'Thrissur',
-        district: 'Thrissur',
+        district: districtName || 'Thrissur',
         state: stateName || 'Kerala',
         pincode: pincode || '680001',
         latitude: coords?.lat || 10.52,
@@ -640,6 +646,8 @@ export default function LocationSetupScreen() {
           )}
           <Input value={addressLine} onChangeText={setAddressLine} placeholder="House/Flat no, Street name" style={styles.input} autoCapitalize="words" />
           <Input value={area} onChangeText={setArea} placeholder="Area / Locality" style={styles.input} autoCapitalize="words" />
+          <Input value={city} onChangeText={setCity} placeholder="City / Town" style={styles.input} autoCapitalize="words" />
+          <Input value={districtName} onChangeText={setDistrictName} placeholder="District" style={styles.input} autoCapitalize="words" />
           <Input value={pincode} onChangeText={setPincode} placeholder="Pincode" keyboardType="numeric" style={styles.input} />
           {error && <Text style={styles.errorText}>{error}</Text>}
           <Button label={t('saveAddress')} onPress={handleSaveAddress} loading={loading} style={styles.actionBtn} />
