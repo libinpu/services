@@ -11,6 +11,8 @@ import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
+import { LiveTrackingMap } from '@/components/LiveTrackingMap';
+import { haversineKm, estimateEtaMins, formatEta } from '@/lib/distance';
 import type { BookingWithDetails, ChatMessage, ProviderWithProfile } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, Share2, User, Briefcase, Award, Image as ImageIcon, Receipt } from 'lucide-react-native';
 
@@ -609,28 +611,24 @@ export default function BookingDetailScreen() {
             {/* Map View */}
             <View style={styles.mapContainer}>
               <View style={styles.mapArea}>
-                {/* Simulated map background */}
-                <View style={styles.mapGrid} />
-                <View style={styles.mapRoads} />
-                {/* Provider marker (top) */}
-                <View style={styles.mapProviderMarker}>
-                  <View style={styles.mapProviderPin}>
-                    <User size={16} color={colors.neutral[0]} strokeWidth={2.5} />
-                  </View>
-                </View>
-                {/* Dashed path */}
-                <View style={styles.mapPath} />
-                {/* User marker (bottom) */}
-                <View style={styles.mapUserMarker}>
-                  <View style={styles.mapUserPin}>
-                    <MapPin size={18} color={colors.primary[700]} fill={colors.primary[700]} strokeWidth={0} />
-                  </View>
-                </View>
-                {/* ETA badge */}
+                <LiveTrackingMap 
+                  userLat={booking?.address?.latitude || 10.8505} 
+                  userLng={booking?.address?.longitude || 76.2711} 
+                  providerLat={providerProfile?.provider_profile?.latitude} 
+                  providerLng={providerProfile?.provider_profile?.longitude} 
+                />
+                
+                {/* ETA badge overlaid on map */}
                 {status === 'on_the_way' && (
                   <View style={styles.mapEtaBadge}>
                     <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
-                    <Text style={styles.mapEtaText}>ETA: 15 mins</Text>
+                    <Text style={styles.mapEtaText}>
+                      ETA: {
+                        booking?.address?.latitude && booking?.address?.longitude && providerProfile?.provider_profile?.latitude && providerProfile?.provider_profile?.longitude 
+                        ? formatEta(estimateEtaMins(haversineKm(booking.address.latitude, booking.address.longitude, providerProfile.provider_profile.latitude, providerProfile.provider_profile.longitude)))
+                        : (booking?.estimated_eta_mins ? formatEta(booking.estimated_eta_mins) : '15 mins')
+                      }
+                    </Text>
                   </View>
                 )}
                 {status === 'accepted' && (

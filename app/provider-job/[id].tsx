@@ -8,9 +8,10 @@ import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
+import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import type { BookingWithDetails } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
-import { formatDistance, formatEta } from '@/lib/distance';
+import { formatDistance, formatEta, haversineKm, estimateEtaMins } from '@/lib/distance';
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,7 +43,7 @@ export default function ProviderJobDetailScreen() {
       setError(null);
       const { data, error: bookingError } = await supabase
         .from('bookings')
-        .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
+        .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*, provider_profile:provider_profiles(*)), booking_items(*), reviews(*)`)
         .eq('id', id)
         .maybeSingle();
       if (bookingError) throw bookingError;
@@ -290,24 +291,34 @@ export default function ProviderJobDetailScreen() {
         {['accepted', 'on_the_way', 'arrived'].includes(status) && (
           <View style={styles.mapContainer}>
             <View style={styles.mapArea}>
-              <View style={styles.mapRoad} />
-              <View style={styles.mapProviderMarker}>
-                <View style={styles.mapProviderPin}><User size={16} color={colors.neutral[0]} strokeWidth={2.5} /></View>
-              </View>
-              <View style={styles.mapPath} />
-              <View style={styles.mapCustomerMarker}>
-                <View style={styles.mapCustomerPin}><MapPin size={18} color={colors.primary[700]} fill={colors.primary[700]} strokeWidth={0} /></View>
-              </View>
+              <LiveTrackingMap 
+                userLat={booking?.address?.latitude || 10.8505} 
+                userLng={booking?.address?.longitude || 76.2711} 
+                providerLat={(booking as any)?.provider?.provider_profile?.latitude} 
+                providerLng={(booking as any)?.provider?.provider_profile?.longitude} 
+              />
               {status === 'on_the_way' && (
                 <View style={styles.mapEtaBadge}>
                   <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
-                  <Text style={styles.mapEtaText}>{booking.estimated_eta_mins ? formatEta(booking.estimated_eta_mins) : 'On the way'}</Text>
+                  <Text style={styles.mapEtaText}>
+                    ETA: {
+                      booking?.address?.latitude && booking?.address?.longitude && (booking as any)?.provider?.provider_profile?.latitude && (booking as any)?.provider?.provider_profile?.longitude
+                      ? formatEta(estimateEtaMins(haversineKm(booking.address.latitude, booking.address.longitude, (booking as any).provider.provider_profile.latitude, (booking as any).provider.provider_profile.longitude)))
+                      : (booking?.estimated_eta_mins ? formatEta(booking.estimated_eta_mins) : 'On the way')
+                    }
+                  </Text>
                 </View>
               )}
               {status === 'accepted' && (
                 <View style={styles.mapEtaBadge}>
                   <Clock size={14} color={colors.neutral[0]} strokeWidth={2.5} />
-                  <Text style={styles.mapEtaText}>{booking.distance_km ? formatDistance(booking.distance_km) : 'Start navigation'}</Text>
+                  <Text style={styles.mapEtaText}>
+                    {
+                      booking?.address?.latitude && booking?.address?.longitude && (booking as any)?.provider?.provider_profile?.latitude && (booking as any)?.provider?.provider_profile?.longitude
+                      ? formatDistance(haversineKm(booking.address.latitude, booking.address.longitude, (booking as any).provider.provider_profile.latitude, (booking as any).provider.provider_profile.longitude))
+                      : (booking?.distance_km ? formatDistance(booking.distance_km) : 'Start navigation')
+                    }
+                  </Text>
                 </View>
               )}
               {status === 'arrived' && (

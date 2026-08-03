@@ -33,6 +33,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Leaflet Map CSS/JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Supabase JS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -159,6 +162,10 @@
                 <span>Service Requests</span>
               </div>
               <span id="active-requests-badge" class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-md border border-blue-500/30 font-mono">0</span>
+            </button>
+            <button onclick="switchTab('map')" id="nav-map" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60">
+              <i data-lucide="map" class="w-4 h-4 text-green-400"></i>
+              <span>Live Tracking Map</span>
             </button>
             <button onclick="switchTab('tables')" id="nav-tables" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60">
               <i data-lucide="database" class="w-4 h-4 text-purple-400"></i>
@@ -368,6 +375,21 @@
         </div>
       </section>
 
+      <!-- TAB MAP: LIVE TRACKING -->
+      <section id="tab-map" class="tab-content hidden space-y-6 h-full flex flex-col">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i data-lucide="map" class="w-6 h-6 text-green-400"></i> Live Provider Tracking
+            </h2>
+            <p class="text-xs text-gray-400">Real-time GPS locations of all online professionals.</p>
+          </div>
+        </div>
+        <div class="glass-card rounded-2xl overflow-hidden border border-gray-800 flex-1 relative min-h-[500px]">
+          <div id="admin-map" class="absolute inset-0 z-10 w-full h-full"></div>
+        </div>
+      </section>
+
       <!-- TAB 4: DATABASE TABLES EXPLORER -->
       <section id="tab-tables" class="tab-content hidden space-y-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -501,6 +523,9 @@
     let supabaseClient = null;
 
     // Database Mock / Cache state
+    let adminMap = null;
+    let markersLayer = null;
+
     let state = {
       profiles: [],
       provider_profiles: [],
@@ -657,8 +682,41 @@
       renderTableTabs();
       renderCurrentTable();
       renderUsersGrid();
+      renderMap();
       renderNotifs();
       lucide.createIcons();
+    }
+
+    function renderMap() {
+      if (!adminMap && document.getElementById('admin-map')) {
+        adminMap = L.map('admin-map').setView([10.8505, 76.2711], 7); // Default Kerala
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(adminMap);
+        markersLayer = L.layerGroup().addTo(adminMap);
+        
+        setTimeout(() => adminMap.invalidateSize(), 500);
+      }
+      
+      if (markersLayer) {
+        markersLayer.clearLayers();
+        const onlineProviders = state.provider_profiles.filter(p => p.latitude && p.longitude);
+        
+        onlineProviders.forEach(p => {
+          const prof = state.profiles.find(prof => prof.id === p.id);
+          const name = prof ? prof.full_name : 'Provider';
+          const popupHtml = `
+            <div class="p-1">
+              <strong style="color: black;">${name}</strong><br/>
+              <span style="color: #666; font-size: 11px;">Status: ${p.background_check_status}</span>
+            </div>
+          `;
+          L.marker([p.latitude, p.longitude])
+            .addTo(markersLayer)
+            .bindPopup(popupHtml);
+        });
+      }
     }
 
     function renderDashboardStats() {
@@ -691,6 +749,9 @@
       if (activeNav) {
         activeNav.classList.add('active', 'bg-brand-600/20', 'border', 'border-brand-500/30', 'text-brand-400');
         activeNav.classList.remove('text-gray-400');
+      }
+      if (tabId === 'map' && adminMap) {
+        setTimeout(() => adminMap.invalidateSize(), 100);
       }
       lucide.createIcons();
     }
