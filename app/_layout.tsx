@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Platform } from 'react-native';
@@ -10,7 +10,7 @@ import {
   NotoSansMalayalam_700Bold,
 } from '@expo-google-fonts/noto-sans-malayalam';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { AuthProvider } from '@/lib/auth-context';
+import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { LanguageProvider } from '@/lib/language-context';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
 
@@ -109,10 +109,40 @@ export default function RootLayout() {
   );
 }
 
+// Watches auth session — redirects to /login on logout, /(tabs) on login
+function AuthGuard() {
+  const { session, loading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const inTabsGroup = segments[0] === '(tabs)';
+    // Public screens: login page, onboarding (index), or root
+    const onPublicScreen =
+      segments[0] === 'login' ||
+      segments[0] === 'index' ||
+      segments[0] === undefined ||
+      segments.length === 0;
+
+    if (!session && inTabsGroup) {
+      // Signed out while inside the app → go to login
+      router.replace('/login');
+    } else if (session && onPublicScreen) {
+      // Signed in but stuck on login/onboarding → go to tabs
+      router.replace('/(tabs)');
+    }
+  }, [session, loading, segments]);
+
+  return null;
+}
+
 function AppShell() {
   const { isDark } = useTheme();
   return (
     <>
+      <AuthGuard />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="+not-found" />
       </Stack>
