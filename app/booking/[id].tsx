@@ -605,6 +605,20 @@ export default function BookingDetailScreen() {
           </View>
         )}
 
+        {/* Failed Auto-Assign / Cancelled */}
+        {status === 'cancelled' && booking.booking_mode === 'auto' && !booking.provider_id && (
+          <View style={styles.waitingCard}>
+            <View style={[styles.waitingIconWrap, { backgroundColor: colors.error[50] }]}>
+              <User size={48} color={colors.error[500]} strokeWidth={1.5} />
+            </View>
+            <Text style={[styles.waitingTitle, { color: colors.error[700] }]}>Professional Not Found</Text>
+            <Text style={styles.waitingDesc}>
+              We couldn't find any professionals within 10 km of your location for this service.
+            </Text>
+            <Button label="Back to Home" onPress={() => router.replace('/(tabs)')} style={[styles.cancelBtn, { marginTop: spacing.lg }]} />
+          </View>
+        )}
+
         {/* Accepted / On the way / Arrived — Zomato/Swiggy style tracking */}
         {['accepted', 'on_the_way', 'arrived'].includes(status) && provider && (
           <>
@@ -848,7 +862,7 @@ export default function BookingDetailScreen() {
         )}
 
         {/* Cancelled */}
-        {status === 'cancelled' && (
+        {status === 'cancelled' && !(booking.booking_mode === 'auto' && !booking.provider_id) && (
           <View style={styles.cancelledCard}>
             <X size={48} color={colors.error[500]} strokeWidth={1.5} />
             <Text style={styles.cancelledTitle}>{t('cancelled')}</Text>

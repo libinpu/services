@@ -263,7 +263,11 @@ export default function CategoryScreen() {
                 <TouchableOpacity
                   style={styles.sheetBookBtn}
                   onPress={() => {
-                    if (selectedSub) router.push(`/providers/${selectedSub.id}`);
+                    if (selectedSub) {
+                      const targetSubId = selectedSub.id;
+                      setSelectedSub(null);
+                      router.push(`/providers/${targetSubId}`);
+                    }
                   }}
                   activeOpacity={0.85}
                 >

@@ -213,31 +213,18 @@ export default function BookingsScreen() {
     if (!session?.user?.id) return;
     try {
       setError(null);
-      const mockBookings = [
-        {
-          id: '1',
-          customer_id: session.user.id,
-          provider_id: 'provider-1',
-          status: 'pending',
-          scheduled_at: new Date(Date.now() + 86400000).toISOString(),
-          final_cost: 500,
-          created_at: new Date().toISOString(),
-          subcategory: { id: 's1', category_id: 'c1', name_en: 'AC Deep Cleaning', name_ml: 'എസി ഡീപ് ക്ലീനിംഗ്' },
-          provider: { id: 'provider-1', full_name: 'John Doe' },
-        },
-        {
-          id: '2',
-          customer_id: session.user.id,
-          provider_id: 'provider-2',
-          status: 'completed',
-          scheduled_at: new Date(Date.now() - 86400000).toISOString(),
-          final_cost: 1500,
-          created_at: new Date(Date.now() - 90000000).toISOString(),
-          subcategory: { id: 's2', category_id: 'c2', name_en: 'Bathroom Cleaning', name_ml: 'ബാത്ത്റൂം ക്ലീനിംഗ്' },
-          provider: { id: 'provider-2', full_name: 'Jane Smith' },
-        }
-      ] as any[];
-      setBookings(mockBookings);
+      const { data, error: fetchErr } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          subcategory:service_subcategories(*),
+          provider:profiles!bookings_provider_id_fkey(*)
+        `)
+        .eq('customer_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (fetchErr) throw fetchErr;
+      setBookings((data || []) as BookingWithDetails[]);
     } catch (e: any) {
       setError(e.message || 'Failed to load bookings');
     } finally {

@@ -177,12 +177,63 @@ export default function BookingConfirmationScreen() {
     fetchData();
   }, [fetchData]);
 
+  function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
   const handleConfirmBooking = async () => {
     if (!session?.user?.id || !subcategory || !selectedAddress) return;
     setSubmitting(true);
     setError(null);
 
     try {
+      let finalProviderId = providerId || null;
+      let finalStatus = 'pending';
+      let bestDistance: number | null = null;
+      let etaMins: number | null = null;
+
+      if (mode === 'auto') {
+        const { data: providers, error: provErr } = await supabase
+          .from('profiles')
+          .select(`id, full_name, provider_profile:provider_profiles(is_online, rating_avg, jobs_completed, latitude, longitude)`)
+          .eq('role', 'provider')
+          .filter('provider_profile.category_ids', 'cs', `{${subcategory.category_id}}`);
+
+        if (provErr) throw provErr;
+
+        if (selectedAddress.latitude && selectedAddress.longitude && providers && providers.length > 0) {
+          const withDistance = providers.map((p: any) => {
+            const pp = p.provider_profile;
+            if (pp?.latitude != null && pp?.longitude != null) {
+              return { ...p, _dist: haversineKm(selectedAddress.latitude!, selectedAddress.longitude!, pp.latitude, pp.longitude) };
+            }
+            return { ...p, _dist: Infinity };
+          });
+          
+          const nearby = withDistance.filter((p: any) => p._dist <= 10);
+          
+          if (nearby.length > 0) {
+            nearby.sort((a: any, b: any) => a._dist - b._dist);
+            finalProviderId = nearby[0].id;
+            bestDistance = nearby[0]._dist;
+            etaMins = Math.max(5, Math.round((bestDistance / 25) * 60));
+            finalStatus = 'accepted'; 
+          } else {
+            finalStatus = 'cancelled';
+          }
+        } else {
+          finalStatus = 'cancelled';
+        }
+      }
+
       const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
       const scheduledAt = scheduleMode === 'now'
@@ -193,14 +244,16 @@ export default function BookingConfirmationScreen() {
         .from('bookings')
         .insert({
           customer_id: session.user.id,
-          provider_id: providerId || null,
+          provider_id: finalProviderId,
           subcategory_id: subcategory.id,
           address_id: selectedAddress.id,
           zone_id: null,
-          status: 'pending',
+          status: finalStatus,
           scheduled_at: scheduledAt,
           booking_mode: mode as 'auto' | 'manual',
           estimated_cost: 0,
+          distance_km: bestDistance,
+          estimated_eta_mins: etaMins,
           payment_method: 'cash',
           payment_status: 'pending',
           otp,
@@ -212,23 +265,6 @@ export default function BookingConfirmationScreen() {
       if (insertError) throw insertError;
 
       if (data) {
-        if (mode === 'auto') {
-          try {
-            const fnRes = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/auto-assign-provider`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-              },
-              body: JSON.stringify({ bookingId: data.id }),
-            });
-            if (!fnRes.ok) {
-              console.warn('Auto-assign function returned non-OK status');
-            }
-          } catch (fnErr) {
-            console.warn('Auto-assign function call failed:', fnErr);
-          }
-        }
         router.replace(`/booking/${data.id}`);
       }
     } catch (e: any) {
