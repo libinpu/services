@@ -49,7 +49,7 @@ function createSupabaseClient(): SupabaseClient {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: Platform.OS === 'web',
       storage: Platform.OS === 'web' ? window.localStorage : ExpoSecureStoreAdapter,
     },
   });

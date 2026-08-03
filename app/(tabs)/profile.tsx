@@ -288,11 +288,21 @@ export default function ProfileScreen() {
     },
   });
 
-  const handleLogout = () => {
-    Alert.alert(t('logout'), 'Are you sure?', [
-      { text: t('cancel'), style: 'cancel' },
-      { text: t('logout'), style: 'destructive', onPress: () => signOut() },
-    ]);
+  const handleLogout = async () => {
+    const confirmed =
+      Platform.OS === 'web'
+        ? window.confirm('Are you sure you want to logout?')
+        : await new Promise<boolean>((resolve) =>
+            Alert.alert(t('logout'), 'Are you sure?', [
+              { text: t('cancel'), style: 'cancel', onPress: () => resolve(false) },
+              { text: t('logout'), style: 'destructive', onPress: () => resolve(true) },
+            ])
+          );
+
+    if (confirmed) {
+      await signOut();
+      router.replace('/login');
+    }
   };
 
   const handleLanguageToggle = (newLang: 'ml' | 'en') => {
