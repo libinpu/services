@@ -407,8 +407,8 @@ export default function HomeScreen() {
 
   const groupThemes: Record<string, { bg: string; fg: string }> = {
     blue: { bg: 'rgba(51, 78, 104, 0.08)', fg: colors.primary[600] },
-    teal: { bg: 'rgba(244, 106, 69, 0.08)', fg: colors.accent[500] },
-    amber: { bg: 'rgba(255, 140, 90, 0.12)', fg: '#FF8C5A' },
+    teal: { bg: 'rgba(51, 78, 104, 0.08)', fg: colors.primary[600] },
+    amber: { bg: 'rgba(51, 78, 104, 0.08)', fg: colors.primary[600] },
   };
   const DEFAULT_THEME = groupThemes.blue;
 
