@@ -88,7 +88,15 @@ export default function HomeScreen() {
       if (groupsRes.error) throw groupsRes.error;
 
       setCategories(catsRes.data || []);
-      setGroups(groupsRes.data || []);
+      const sortedGroups = (groupsRes.data || []).slice().sort((a, b) => {
+        const getPriority = (name: string) => {
+          const n = name.toLowerCase();
+          if (n.includes('home repair') || n.includes('home service')) return 0;
+          return 1;
+        };
+        return getPriority(a.name_en) - getPriority(b.name_en) || a.name_en.localeCompare(b.name_en);
+      });
+      setGroups(sortedGroups);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch dashboard data');
     } finally {
