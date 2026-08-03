@@ -88,7 +88,15 @@ export default function HomeScreen() {
       if (groupsRes.error) throw groupsRes.error;
 
       setCategories(catsRes.data || []);
-      setGroups(groupsRes.data || []);
+      const sortedGroups = (groupsRes.data || []).slice().sort((a, b) => {
+        const getPriority = (name: string) => {
+          const n = name.toLowerCase();
+          if (n.includes('home repair') || n.includes('home service')) return 0;
+          return 1;
+        };
+        return getPriority(a.name_en) - getPriority(b.name_en) || a.name_en.localeCompare(b.name_en);
+      });
+      setGroups(sortedGroups);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch dashboard data');
     } finally {
@@ -407,8 +415,8 @@ export default function HomeScreen() {
 
   const groupThemes: Record<string, { bg: string; fg: string }> = {
     blue: { bg: 'rgba(51, 78, 104, 0.08)', fg: colors.primary[600] },
-    teal: { bg: 'rgba(244, 106, 69, 0.08)', fg: colors.accent[500] },
-    amber: { bg: 'rgba(255, 140, 90, 0.12)', fg: '#FF8C5A' },
+    teal: { bg: 'rgba(51, 78, 104, 0.08)', fg: colors.primary[600] },
+    amber: { bg: 'rgba(51, 78, 104, 0.08)', fg: colors.primary[600] },
   };
   const DEFAULT_THEME = groupThemes.blue;
 
@@ -453,27 +461,12 @@ export default function HomeScreen() {
               <Search size={20} color={colors.neutral[500]} strokeWidth={2.2} />
               <Text style={styles.searchPlaceholder}>{t('searchServices')}</Text>
             </Pressable>
-            <Pressable style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}>
+            <Pressable
+              style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}
+              onPress={() => setSearchOpen(true)}
+            >
               <SlidersHorizontal size={20} color={colors.neutral[100]} strokeWidth={2.2} />
             </Pressable>
-          </View>
-        </View>
-
-        {/* Stats Row Card */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>12K+</Text>
-            <Text style={styles.statLabel}>{t('jobsBooked')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>8K+</Text>
-            <Text style={styles.statLabel}>{t('happyCustomers')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>4.9</Text>
-            <Text style={styles.statLabel}>{t('avgRating')}</Text>
           </View>
         </View>
 
@@ -638,6 +631,24 @@ export default function HomeScreen() {
             <View style={styles.referRight}>
               <Text style={styles.referAmount}>₹100</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Stats Row Card */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>12K+</Text>
+            <Text style={styles.statLabel}>{t('jobsBooked')}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>8K+</Text>
+            <Text style={styles.statLabel}>{t('happyCustomers')}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>4.9</Text>
+            <Text style={styles.statLabel}>{t('avgRating')}</Text>
           </View>
         </View>
 

@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchProfile]);
 
   const signInWithGoogle = useCallback(async () => {
-    return { error: 'Google sign-in is not available in this preview. Please use email and password.' };
+    return googleSignIn();
   }, []);
 
   const signOut = useCallback(async () => {
