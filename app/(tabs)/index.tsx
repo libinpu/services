@@ -459,24 +459,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Stats Row Card */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>12K+</Text>
-            <Text style={styles.statLabel}>{t('jobsBooked')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>8K+</Text>
-            <Text style={styles.statLabel}>{t('happyCustomers')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>4.9</Text>
-            <Text style={styles.statLabel}>{t('avgRating')}</Text>
-          </View>
-        </View>
-
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('quickActions')}</Text>
@@ -638,6 +620,24 @@ export default function HomeScreen() {
             <View style={styles.referRight}>
               <Text style={styles.referAmount}>₹100</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Stats Row Card */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>12K+</Text>
+            <Text style={styles.statLabel}>{t('jobsBooked')}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>8K+</Text>
+            <Text style={styles.statLabel}>{t('happyCustomers')}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>4.9</Text>
+            <Text style={styles.statLabel}>{t('avgRating')}</Text>
           </View>
         </View>
 
