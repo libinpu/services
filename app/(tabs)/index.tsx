@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
@@ -24,6 +25,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { LoadingState, ErrorState } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import type { ServiceCategory, ServiceCategoryGroup } from '@/lib/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Wrench, Zap, Wind, Hammer, Paintbrush, Sparkles, Bug, Refrigerator, Scissors,
   GraduationCap, Car, Bike, Laptop, Leaf,
@@ -64,7 +66,7 @@ type SearchResult = { id: string; label: string; subtitle: string; categoryId: s
 
 export default function HomeScreen() {
   const { t, lang } = useLanguage();
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const router = useRouter();
   const { isDark } = useTheme();
 
@@ -76,6 +78,35 @@ export default function HomeScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [selectedLocationText, setSelectedLocationText] = useState<string>('Set Location');
+
+  // Load the user's selected address and display it in the header
+  const loadSelectedAddress = useCallback(async () => {
+    if (!session?.user?.id) return;
+    try {
+      const selectedId = await AsyncStorage.getItem(`selected_address_${session.user.id}`);
+      if (!selectedId) {
+        setSelectedLocationText('Set Location');
+        return;
+      }
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('area, city, label')
+        .eq('id', selectedId)
+        .single();
+      if (!error && data) {
+        const parts = [data.area, data.city].filter(Boolean);
+        setSelectedLocationText(parts.length > 0 ? parts.join(', ') : data.label || 'My Location');
+      }
+    } catch { /* silent */ }
+  }, [session?.user?.id]);
+
+  // Reload selected address whenever the screen comes into focus (e.g. after location-setup)
+  useFocusEffect(
+    useCallback(() => {
+      loadSelectedAddress();
+    }, [loadSelectedAddress])
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -434,10 +465,14 @@ export default function HomeScreen() {
           <View style={styles.heroCircle2} />
           <View style={styles.heroTop}>
             <View style={styles.heroLeft}>
-              <Text style={styles.locationLabel}>Location</Text>
-              <TouchableOpacity style={styles.locationRow} activeOpacity={0.7}>
+              <Text style={styles.locationLabel}>Your Location</Text>
+              <TouchableOpacity
+                style={styles.locationRow}
+                activeOpacity={0.7}
+                onPress={() => router.push('/location-setup')}
+              >
                 <MapPin size={16} color={colors.neutral[100]} strokeWidth={2.5} />
-                <Text style={styles.locationText}>Thrissur, Kerala</Text>
+                <Text style={styles.locationText} numberOfLines={1}>{selectedLocationText}</Text>
                 <ChevronRight size={16} color={colors.neutral[100]} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
