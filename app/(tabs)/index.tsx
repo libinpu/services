@@ -295,7 +295,7 @@ export default function HomeScreen() {
       borderColor: colors.neutral[200],
       ...shadows.sm,
     },
-    serviceItem: { width: (width - spacing.lg * 4) / 4, alignItems: 'center', marginBottom: spacing.md },
+    serviceItem: { width: '25%', alignItems: 'center', marginBottom: spacing.md },
     serviceItemPressed: { transform: [{ scale: 0.95 }] },
     serviceIcon: {
       width: 58, height: 58, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
