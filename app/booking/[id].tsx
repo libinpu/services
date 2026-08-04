@@ -748,8 +748,8 @@ export default function BookingDetailScreen() {
                 </View>
               </View>
 
-              {/* OTP Display — when provider arrives */}
-              {status === 'arrived' && booking.otp && !booking.otp_verified && (
+              {/* OTP Display — when provider accepts, is on the way, or arrives */}
+              {['accepted', 'on_the_way', 'arrived'].includes(status) && booking.otp && !booking.otp_verified && (
                 <View style={styles.otpSection}>
                   <View style={styles.otpInfoRow}>
                     <ShieldCheck size={20} color={colors.primary[600]} strokeWidth={2} />
