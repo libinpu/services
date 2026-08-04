@@ -309,11 +309,13 @@ export default function LocationSetupScreen() {
     setLoading(true);
     setError(null);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setStep('denied');
-        setLoading(false);
-        return;
+      if (Platform.OS !== 'web') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setStep('denied');
+          setLoading(false);
+          return;
+        }
       }
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Highest,
@@ -323,7 +325,11 @@ export default function LocationSetupScreen() {
       setStep('map');
       reverseGeocode(latitude, longitude);
     } catch (e: any) {
-      setError(e.message || t('locationError'));
+      if (Platform.OS === 'web' && e.message?.toLowerCase().includes('denied')) {
+        setStep('denied');
+      } else {
+        setError(e.message || t('locationError'));
+      }
     } finally {
       setLoading(false);
     }
@@ -568,9 +574,18 @@ export default function LocationSetupScreen() {
               <AlertCircle size={64} color={colors.warning[500]} strokeWidth={1.5} />
             </View>
             <Text style={styles.title}>{t('locationDenied')}</Text>
-            <Text style={styles.desc}>{t('locationDeniedDesc')}</Text>
-            <Button label={t('enableLocation')} onPress={handleOpenSettings} style={styles.actionBtn} />
-            <TouchableOpacity onPress={() => setStep('details')} style={styles.skipBtn}>
+            <Text style={styles.desc}>
+              {Platform.OS === 'web' 
+                ? 'Please enable location access in your browser settings (usually a lock icon in the address bar) and try again.'
+                : 'Please enable location in your device settings. Once enabled, press "Check Again".'}
+            </Text>
+            {Platform.OS !== 'web' && (
+              <>
+                <Button label={t('enableLocation')} onPress={handleOpenSettings} style={[styles.actionBtn, { marginBottom: spacing.md }]} />
+                <Button label="Check Again" onPress={handleAllowLocation} variant="outline" style={styles.actionBtn} loading={loading} />
+              </>
+            )}
+            <TouchableOpacity onPress={() => setStep('details')} style={[styles.skipBtn, Platform.OS === 'web' && { marginTop: spacing.md }]}>
               <Text style={styles.skipText}>{t('enterAddressManually')}</Text>
             </TouchableOpacity>
           </View>
