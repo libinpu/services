@@ -149,7 +149,7 @@ export default function ProviderJobDetailScreen() {
     billCloseBtn: { width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200], alignItems: 'center', justifyContent: 'center' },
     billBody: { paddingHorizontal: spacing.lg },
     billDescInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm },
-    billAmountInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm, keyboardType: 'numeric' },
+    billAmountInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm },
     billUploadArea: { height: 160, borderWidth: 2, borderColor: colors.neutral[300], borderStyle: 'dashed', borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
     billUploadText: { fontSize: typography.sizes.sm, color: colors.neutral[400], marginTop: spacing.xs, fontFamily: typography.fontFamilyRegular },
     billPreviewImage: { width: '100%', height: 160, borderRadius: radius.lg, marginBottom: spacing.sm },

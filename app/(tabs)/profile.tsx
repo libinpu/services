@@ -17,13 +17,14 @@ import {
 
 export default function ProfileScreen() {
   const { t, lang, setLang } = useLanguage();
-  const { session, profile, signOut } = useAuth();
+  const { session, profile, signOut, refreshProfile } = useAuth();
   const router = useRouter();
   const { isDark, toggle, mode } = useTheme();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [switching, setSwitching] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!session?.user?.id) {
@@ -309,12 +310,42 @@ export default function ProfileScreen() {
     setLang(newLang);
   };
 
-  const handleSwitchToProvider = () => {
-    if (profile?.role === 'provider') {
-      router.push('/provider-dashboard');
+  const handleSwitchToProvider = async () => {
+    console.log('[DEBUG] ProfileScreen: Switch to Provider clicked', {
+      userId: session?.user?.id,
+      currentRole: profile?.role,
+    });
+    if (!session?.user?.id) {
+      if (Platform.OS === 'web') {
+        window.alert('Unable to switch. Please sign in again.');
+      } else {
+        Alert.alert('Unable to switch', 'Please sign in again.');
+      }
       return;
     }
-    router.push('/provider-onboarding');
+
+    setSwitching(true);
+    try {
+      console.log('[DEBUG] ProfileScreen: refreshProfile starting');
+      if (refreshProfile) {
+        await refreshProfile();
+      }
+      console.log('[DEBUG] ProfileScreen: refreshProfile complete');
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      console.log('[DEBUG] ProfileScreen: navigating to /provider-dashboard');
+      await router.replace('/provider-dashboard');
+      console.log('[DEBUG] ProfileScreen: navigation to /provider-dashboard finished');
+    } catch (e: any) {
+      const message = e?.message || 'Failed to load provider data. Please try again.';
+      console.warn('[DEBUG] ProfileScreen: switch to provider failed', e);
+      if (Platform.OS === 'web') {
+        window.alert(message);
+      } else {
+        Alert.alert('Unable to switch', message);
+      }
+    } finally {
+      setSwitching(false);
+    }
   };
 
   const handleSwitchToCustomer = () => {
@@ -323,7 +354,8 @@ export default function ProfileScreen() {
 
   const mlStyle = getLangTextStyle(lang);
 
-  if (loading) return <LoadingState label={t('loading')} />;
+  // Removed full-screen loading block: session/profile info is already available
+  // from Context. The only thing fetched here is addresses count.
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
@@ -384,7 +416,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.menuInfo}>
                 <Text style={styles.menuLabel}>{t('manageAddresses')}</Text>
-                <Text style={styles.menuSublabel}>{addresses.length} saved</Text>
+                <Text style={styles.menuSublabel}>{loading ? '...' : addresses.length} saved</Text>
               </View>
               <ChevronRight size={18} color={colors.neutral[500]} strokeWidth={2} />
             </TouchableOpacity>
@@ -475,7 +507,7 @@ export default function ProfileScreen() {
 
         {/* Customer / Professional switch card */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.providerSwitchCard} onPress={handleSwitchToProvider} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.providerSwitchCard} onPress={handleSwitchToProvider} activeOpacity={0.8} disabled={switching}>
             <View style={styles.providerSwitchIcon}>
               <Briefcase size={22} color={colors.neutral[100]} strokeWidth={2} />
             </View>

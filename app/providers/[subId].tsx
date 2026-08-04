@@ -9,6 +9,8 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { ServiceSubcategory, ProviderWithProfile } from '@/lib/types';
 import { Star, ShieldCheck, MapPin, Zap, ChevronRight, User } from 'lucide-react-native';
+import { cache } from '@/lib/cache';
+import { SkeletonList } from '@/components/ui';
 
 export default function ProvidersScreen() {
   const { subId } = useLocalSearchParams<{ subId: string }>();
@@ -117,26 +119,40 @@ export default function ProvidersScreen() {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const subRes = await supabase
-        .from('service_subcategories')
-        .select('*')
-        .eq('id', subId)
-        .maybeSingle();
-      if (subRes.error) throw subRes.error;
-      setSubcategory(subRes.data as ServiceSubcategory);
 
-      const catId = subRes.data?.category_id;
+      // 1. Subcategory: static data — cache for 10 minutes
+      const cacheSubKey = `subcategory_${subId}`;
+      let subData = cache.get<ServiceSubcategory>(cacheSubKey);
+      if (!subData) {
+        const subRes = await supabase
+          .from('service_subcategories')
+          .select('id, category_id, name_en, name_ml, base_price, estimated_time_mins, is_active')
+          .eq('id', subId)
+          .maybeSingle();
+        if (subRes.error) throw subRes.error;
+        subData = subRes.data as ServiceSubcategory;
+        cache.set(cacheSubKey, subData, 10 * 60 * 1000);
+      }
+      setSubcategory(subData);
+
+      // 2. Providers: cache for 2 minutes (is_online changes, but list is stable)
+      const catId = subData?.category_id;
       if (catId) {
-        const provRes = await supabase
-          .from('profiles')
-          .select('*, provider_profile:provider_profiles(*)')
-          .eq('role', 'provider')
-          .filter('provider_profile.category_ids', 'cs', `{${catId}}`)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (provRes.error) throw provRes.error;
-        setProviders((provRes.data || []) as ProviderWithProfile[]);
+        const cacheProvKey = `providers_cat_${catId}`;
+        let provData = cache.get<ProviderWithProfile[]>(cacheProvKey);
+        if (!provData) {
+          const provRes = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url, provider_profile:provider_profiles(rating_avg, jobs_completed, experience_years, is_verified, is_online, latitude, longitude, category_ids)')
+            .eq('role', 'provider')
+            .filter('provider_profile.category_ids', 'cs', `{${catId}}`)
+            .order('created_at', { ascending: false })
+            .limit(10);
+          if (provRes.error) throw provRes.error;
+          provData = (provRes.data || []) as unknown as ProviderWithProfile[];
+          cache.set(cacheProvKey, provData, 2 * 60 * 1000);
+        }
+        setProviders(provData);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
@@ -155,7 +171,14 @@ export default function ProvidersScreen() {
     }
   };
 
-  if (loading) return <LoadingState label={t('loading')} />;
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header title={t('chooseProvider')} onBack={() => router.back()} />
+        <SkeletonList rows={4} />
+      </SafeAreaView>
+    );
+  }
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
 
   return (

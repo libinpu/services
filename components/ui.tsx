@@ -432,6 +432,65 @@ export function LoadingState({ label }: { label?: string }) {
   );
 }
 
+/**
+ * SkeletonBox — animated placeholder rectangle.
+ * Use inside page shells so the layout is visible immediately
+ * while data loads in the background, eliminating full-screen blank states.
+ */
+export function SkeletonBox({
+  width = '100%',
+  height = 16,
+  borderRadius: br = 6,
+  style,
+}: {
+  width?: number | string;
+  height?: number;
+  borderRadius?: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const opacity = React.useRef(new (require('react-native').Animated.Value)(0.4)).current;
+
+  React.useEffect(() => {
+    const { Animated } = require('react-native');
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [opacity]);
+
+  const { Animated } = require('react-native');
+  return (
+    <Animated.View
+      style={[{ width, height, borderRadius: br, backgroundColor: colors.neutral[200], opacity }, style]}
+    />
+  );
+}
+
+/** Renders skeleton card rows \u2014 drop-in for list loading states */
+export function SkeletonList({ rows = 3 }: { rows?: number }) {
+  return (
+    <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.md }}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <View key={i} style={{ backgroundColor: colors.neutral[100], borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+            <SkeletonBox width={44} height={44} borderRadius={radius.md} style={{ marginRight: spacing.md }} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <SkeletonBox width="70%" height={14} />
+              <SkeletonBox width="45%" height={11} />
+            </View>
+          </View>
+          <SkeletonBox width="90%" height={11} style={{ marginBottom: 4 }} />
+          <SkeletonBox width="55%" height={11} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function EmptyState({ title, description }: { title: string; description?: string }) {
   const styles = makeStyles();
   return (

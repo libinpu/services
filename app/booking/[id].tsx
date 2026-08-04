@@ -32,6 +32,7 @@ export default function BookingDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [showTrackingMap, setShowTrackingMap] = useState(true);
   const [extraCharges, setExtraCharges] = useState<any[]>([]);
   const [showSos, setShowSos] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -408,13 +409,16 @@ export default function BookingDetailScreen() {
   const fetchBooking = useCallback(async () => {
     try {
       setError(null);
+
+      // Single query: booking + all relations + provider_profiles nested join
+      // Eliminates the second sequential round-trip for the provider profile
       const { data, error: bookingError } = await supabase
         .from('bookings')
         .select(`
           *,
           subcategory:service_subcategories(*),
           address:addresses(*),
-          provider:profiles!bookings_provider_id_fkey(*),
+          provider:profiles!bookings_provider_id_fkey(*, provider_profile:provider_profiles(*)),
           booking_items(*),
           reviews(*)
         `)
@@ -424,14 +428,9 @@ export default function BookingDetailScreen() {
       if (bookingError) throw bookingError;
       setBooking(data as BookingWithDetails);
 
-      // Fetch provider profile with provider_profile join
-      if (data?.provider_id) {
-        const { data: provData } = await supabase
-          .from('profiles')
-          .select('*, provider_profile:provider_profiles(*)')
-          .eq('id', data.provider_id)
-          .maybeSingle();
-        if (provData) setProviderProfile(provData as ProviderWithProfile);
+      // Provider profile is now embedded in the booking query — no second fetch needed
+      if (data?.provider) {
+        setProviderProfile(data.provider as unknown as ProviderWithProfile);
       }
 
       if (data) {
@@ -457,10 +456,12 @@ export default function BookingDetailScreen() {
   useEffect(() => {
     fetchBooking();
     fetchChat();
+    // Poll every 8 s (was 5 s) — reduces background DB load by 37%
+    // while still keeping the UI responsive to status changes
     pollRef.current = setInterval(() => {
       fetchBooking();
       fetchChat();
-    }, 5000);
+    }, 8000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -625,23 +626,39 @@ export default function BookingDetailScreen() {
             {/* Map View */}
             <View style={styles.mapContainer}>
               <View style={styles.mapArea}>
-                <LiveTrackingMap 
-                  userLat={booking?.address?.latitude || 10.8505} 
-                  userLng={booking?.address?.longitude || 76.2711} 
-                  providerLat={providerProfile?.provider_profile?.latitude} 
-                  providerLng={providerProfile?.provider_profile?.longitude} 
-                />
-                
+                {showTrackingMap ? (
+                  <LiveTrackingMap
+                    userLat={booking?.address?.latitude || 10.8505}
+                    userLng={booking?.address?.longitude || 76.2711}
+                    providerLat={providerProfile?.provider_profile?.latitude ?? undefined}
+                    providerLng={providerProfile?.provider_profile?.longitude ?? undefined}
+                  />
+                ) : (
+                  <View style={[styles.mapArea, { alignItems: 'center', justifyContent: 'center' }]}> 
+                    <Text style={{ color: colors.neutral[500] }}>{t('loadingMap')}</Text>
+                  </View>
+                )}
+
                 {/* ETA badge overlaid on map */}
                 {status === 'on_the_way' && (
                   <View style={styles.mapEtaBadge}>
                     <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                     <Text style={styles.mapEtaText}>
-                      ETA: {
-                        booking?.address?.latitude && booking?.address?.longitude && providerProfile?.provider_profile?.latitude && providerProfile?.provider_profile?.longitude 
-                        ? formatEta(estimateEtaMins(haversineKm(booking.address.latitude, booking.address.longitude, providerProfile.provider_profile.latitude, providerProfile.provider_profile.longitude)))
-                        : (booking?.estimated_eta_mins ? formatEta(booking.estimated_eta_mins) : '15 mins')
-                      }
+                      ETA:{' '}
+                      {booking?.address?.latitude && booking?.address?.longitude && providerProfile?.provider_profile?.latitude && providerProfile?.provider_profile?.longitude
+                        ? formatEta(
+                            estimateEtaMins(
+                              haversineKm(
+                                booking.address.latitude,
+                                booking.address.longitude,
+                                providerProfile.provider_profile.latitude,
+                                providerProfile.provider_profile.longitude,
+                              ),
+                            ),
+                          )
+                        : booking?.estimated_eta_mins
+                        ? formatEta(booking.estimated_eta_mins)
+                        : '15 mins'}
                     </Text>
                   </View>
                 )}
@@ -652,7 +669,7 @@ export default function BookingDetailScreen() {
                   </View>
                 )}
                 {status === 'arrived' && (
-                  <View style={[styles.mapEtaBadge, { backgroundColor: colors.success[600] }]}>
+                  <View style={[styles.mapEtaBadge, { backgroundColor: colors.success[600] }]}> 
                     <CheckCircle size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                     <Text style={styles.mapEtaText}>Provider has arrived</Text>
                   </View>
@@ -680,11 +697,14 @@ export default function BookingDetailScreen() {
                           strokeWidth={2.5}
                         />
                       </View>
-                      <Text style={[
-                        styles.trackingLabel,
-                        isDone && styles.trackingLabelDone,
-                        isCurrent && styles.trackingLabelCurrent,
-                      ]} numberOfLines={1}>
+                      <Text
+                        style={[
+                          styles.trackingLabel,
+                          isDone && styles.trackingLabelDone,
+                          isCurrent && styles.trackingLabelCurrent,
+                        ]}
+                        numberOfLines={1}
+                      >
                         {step.label}
                       </Text>
                     </View>

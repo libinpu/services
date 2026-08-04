@@ -22,10 +22,11 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
-import { LoadingState, ErrorState } from '@/components/ui';
+import { LoadingState, ErrorState, SkeletonList, SkeletonBox } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import type { ServiceCategory, ServiceCategoryGroup } from '@/lib/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cache } from '@/lib/cache';
 import {
   Wrench, Zap, Wind, Hammer, Paintbrush, Sparkles, Bug, Refrigerator, Scissors,
   GraduationCap, Car, Bike, Laptop, Leaf,
@@ -110,6 +111,16 @@ export default function HomeScreen() {
 
   const fetchData = useCallback(async () => {
     try {
+      // Serve from cache instantly — avoids re-fetching on every tab navigation
+      const cachedCats = cache.get<ServiceCategory[]>('service_categories');
+      const cachedGroups = cache.get<ServiceCategoryGroup[]>('service_category_groups');
+      if (cachedCats && cachedGroups) {
+        setCategories(cachedCats);
+        setGroups(cachedGroups);
+        setLoading(false);
+        return;
+      }
+
       const [catsRes, groupsRes] = await Promise.all([
         supabase.from('service_categories').select('*').order('name_en'),
         supabase.from('service_category_groups').select('*').order('name_en'),
@@ -118,7 +129,7 @@ export default function HomeScreen() {
       if (catsRes.error) throw catsRes.error;
       if (groupsRes.error) throw groupsRes.error;
 
-      setCategories(catsRes.data || []);
+      const cats = catsRes.data || [];
       const sortedGroups = (groupsRes.data || []).slice().sort((a, b) => {
         const getPriority = (name: string) => {
           const n = name.toLowerCase();
@@ -127,6 +138,12 @@ export default function HomeScreen() {
         };
         return getPriority(a.name_en) - getPriority(b.name_en) || a.name_en.localeCompare(b.name_en);
       });
+
+      // Cache for 5 minutes — static data rarely changes
+      cache.set('service_categories', cats);
+      cache.set('service_category_groups', sortedGroups);
+
+      setCategories(cats);
       setGroups(sortedGroups);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch dashboard data');
@@ -441,7 +458,35 @@ export default function HomeScreen() {
     searchResultDivider: { height: 1, backgroundColor: colors.neutral[200], marginVertical: spacing.xs },
   });
 
-  if (loading) return <LoadingState label={t('loading')} />;
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary[600]} />
+        <View style={{ backgroundColor: colors.primary[600], padding: spacing.lg, paddingBottom: spacing.xxl, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, position: 'relative', overflow: 'hidden' }}>
+          <View style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255, 255, 255, 0.05)' }} />
+          <View style={{ position: 'absolute', bottom: -40, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255, 255, 255, 0.04)' }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <SkeletonBox width={100} height={14} style={{ marginBottom: 6, opacity: 0.7 }} />
+              <SkeletonBox width={160} height={20} />
+            </View>
+            <View style={{ width: 44, height: 44, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+          </View>
+          <View style={{ marginTop: spacing.xl }}>
+            <SkeletonBox width="100%" height={56} borderRadius={radius.full} />
+          </View>
+        </View>
+        <ScrollView style={{ flex: 1, padding: spacing.lg }}>
+          <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl }}>
+            <SkeletonBox style={{ flex: 1 }} height={120} borderRadius={radius.xl} />
+            <SkeletonBox style={{ flex: 1 }} height={120} borderRadius={radius.xl} />
+          </View>
+          <SkeletonBox width={140} height={20} style={{ marginBottom: spacing.md }} />
+          <SkeletonList rows={2} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
 
   const groupThemes: Record<string, { bg: string; fg: string }> = {

@@ -136,35 +136,42 @@ export default function BookingConfirmationScreen() {
     }
     try {
       setError(null);
-      const subRes = await supabase
-        .from('service_subcategories')
-        .select('*')
-        .eq('id', subId)
-        .maybeSingle();
+
+      // Run all independent fetches in parallel — 3 sequential awaits → 1 round-trip
+      const [subRes, addrRes, provRes] = await Promise.all([
+        supabase
+          .from('service_subcategories')
+          .select('*')
+          .eq('id', subId)
+          .maybeSingle(),
+
+        session?.user?.id
+          ? supabase
+              .from('addresses')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .order('created_at', { ascending: false })
+          : Promise.resolve({ data: null, error: null }),
+
+        providerId
+          ? supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', providerId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
       if (subRes.error) throw subRes.error;
       setSubcategory(subRes.data as ServiceSubcategory);
 
-      if (session?.user?.id) {
-        const addrRes = await supabase
-          .from('addresses')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
-        if (addrRes.data && addrRes.data.length > 0) {
-          setAddresses(addrRes.data as Address[]);
-          setSelectedAddress(addrRes.data[0] as Address);
-        }
+      if (addrRes.data && Array.isArray(addrRes.data) && addrRes.data.length > 0) {
+        setAddresses(addrRes.data as Address[]);
+        setSelectedAddress(addrRes.data[0] as Address);
       }
 
-      if (providerId) {
-        const provRes = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', providerId)
-          .maybeSingle();
-        if (!provRes.error && provRes.data) {
-          setProvider(provRes.data as Profile);
-        }
+      if (!provRes.error && provRes.data && !Array.isArray(provRes.data)) {
+        setProvider(provRes.data as Profile);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
@@ -201,11 +208,14 @@ export default function BookingConfirmationScreen() {
       let etaMins: number | null = null;
 
       if (mode === 'auto') {
+        // Only fetch online providers — limit to 50 to avoid full-table scans
         const { data: providers, error: provErr } = await supabase
           .from('profiles')
-          .select(`id, full_name, provider_profile:provider_profiles(is_online, rating_avg, jobs_completed, latitude, longitude)`)
+          .select(`id, full_name, provider_profile:provider_profiles!inner(is_online, rating_avg, jobs_completed, latitude, longitude)`)
           .eq('role', 'provider')
-          .filter('provider_profile.category_ids', 'cs', `{${subcategory.category_id}}`);
+          .eq('provider_profile.is_online', true)
+          .filter('provider_profile.category_ids', 'cs', `{${subcategory.category_id}}`)
+          .limit(50);
 
         if (provErr) throw provErr;
 
@@ -217,15 +227,15 @@ export default function BookingConfirmationScreen() {
             }
             return { ...p, _dist: Infinity };
           });
-          
+
           const nearby = withDistance.filter((p: any) => p._dist <= 10);
-          
+
           if (nearby.length > 0) {
             nearby.sort((a: any, b: any) => a._dist - b._dist);
             finalProviderId = nearby[0].id;
             bestDistance = nearby[0]._dist;
-            etaMins = Math.max(5, Math.round((bestDistance / 25) * 60));
-            finalStatus = 'accepted'; 
+            etaMins = Math.max(5, Math.round(((bestDistance || 0) / 25) * 60));
+            finalStatus = 'accepted';
           } else {
             finalStatus = 'cancelled';
           }

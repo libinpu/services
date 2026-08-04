@@ -119,12 +119,10 @@ function AuthGuard() {
     if (loading) return;
 
     const inTabsGroup = segments[0] === '(tabs)';
-    // Public screens: login page, onboarding (index), or root
+    // Public screens: login page or root
     const onPublicScreen =
       segments[0] === 'login' ||
-      segments[0] === 'index' ||
-      segments[0] === undefined ||
-      segments.length === 0;
+      segments[0] === undefined;
 
     if (!session && inTabsGroup) {
       // Signed out while inside the app → go to login

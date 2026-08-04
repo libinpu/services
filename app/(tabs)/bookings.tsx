@@ -1,17 +1,25 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui';
+import { LoadingState, ErrorState, EmptyState, SkeletonList } from '@/components/ui';
 import type { BookingWithDetails } from '@/lib/types';
 import { Calendar, Clock, IndianRupee, ChevronRight, RotateCw, Download } from 'lucide-react-native';
 
 type TabKey = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+
+const STATUS_MAP: Record<TabKey, string[]> = {
+  upcoming: ['pending', 'accepted'],
+  ongoing: ['on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'],
+  completed: ['completed'],
+  cancelled: ['cancelled', 'rejected'],
+};
+
 
 export default function BookingsScreen() {
   const { t, lang } = useLanguage();
@@ -209,6 +217,8 @@ export default function BookingsScreen() {
     }
   }, [params.tab]);
 
+  // Fetch only the statuses for the current tab — server-side filter + limit
+  // Re-runs whenever activeTab changes so switching tabs loads the right data
   const fetchBookings = useCallback(async () => {
     if (!session?.user?.id) return;
     try {
@@ -217,11 +227,13 @@ export default function BookingsScreen() {
         .from('bookings')
         .select(`
           *,
-          subcategory:service_subcategories(*),
-          provider:profiles!bookings_provider_id_fkey(*)
+          subcategory:service_subcategories(id, name_en, name_ml, base_price, estimated_time_mins),
+          provider:profiles!bookings_provider_id_fkey(id, full_name, avatar_url)
         `)
         .eq('customer_id', session.user.id)
-        .order('created_at', { ascending: false });
+        .in('status', STATUS_MAP[activeTab])
+        .order('created_at', { ascending: false })
+        .limit(30);
 
       if (fetchErr) throw fetchErr;
       setBookings((data || []) as BookingWithDetails[]);
@@ -231,26 +243,28 @@ export default function BookingsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, activeTab]);
 
+  // Refetch whenever the tab changes
   useEffect(() => {
+    setLoading(true);
     fetchBookings();
   }, [fetchBookings]);
+
+  // Also refresh when user navigates back to this screen
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings();
+    }, [fetchBookings])
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchBookings();
   };
 
-  const filterBookings = (tab: TabKey): BookingWithDetails[] => {
-    const statusMap: Record<TabKey, string[]> = {
-      upcoming: ['pending', 'accepted'],
-      ongoing: ['on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'],
-      completed: ['completed'],
-      cancelled: ['cancelled', 'rejected'],
-    };
-    return bookings.filter((b) => statusMap[tab].includes(b.status));
-  };
+  // No client-side filter needed — data is already filtered by the DB
+  const filteredBookings = bookings;
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'upcoming', label: t('upcoming') },
@@ -259,9 +273,20 @@ export default function BookingsScreen() {
     { key: 'cancelled', label: t('cancelled') },
   ];
 
-  const filteredBookings = filterBookings(activeTab);
 
-  if (loading) return <LoadingState label={t('loading')} />;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+        <View style={styles.header}>
+          <View style={styles.topCircle1} />
+          <View style={styles.topCircle2} />
+          <Text style={styles.headerTitle}>{t('myBookings')}</Text>
+        </View>
+        <SkeletonList rows={4} />
+      </SafeAreaView>
+    );
+  }
   if (error) return <ErrorState message={error} onRetry={fetchBookings} />;
 
   return (
