@@ -193,10 +193,11 @@ export default function ProviderJobDetailScreen() {
     const enteredOtp = otpInput.join('');
     if (enteredOtp === booking.otp) {
       await supabase.from('bookings').update({
-        otp_verified: true, status: 'in_progress', started_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        otp_verified: true, updated_at: new Date().toISOString(),
       }).eq('id', id);
       setShowSelfieModal('start');
       setVerifying(false);
+      fetchBooking();
     } else {
       setOtpError(t('otpIncorrect'));
       setVerifying(false);
@@ -211,7 +212,7 @@ export default function ProviderJobDetailScreen() {
     const selfieUrl = `selfie_${selfieType}_${Date.now()}.jpg`;
     if (selfieType === 'start') {
       await supabase.from('bookings').update({
-        start_selfie_url: selfieUrl, status: 'in_progress', updated_at: new Date().toISOString(),
+        start_selfie_url: selfieUrl, status: 'in_progress', started_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       }).eq('id', id);
     } else if (selfieType === 'end') {
       await supabase.from('bookings').update({
@@ -424,6 +425,12 @@ export default function ProviderJobDetailScreen() {
             </View>
             {otpError && <Text style={styles.otpErrorText}>{otpError}</Text>}
             <Button label={t('verifyAndStart')} onPress={handleVerifyOtp} loading={verifying} style={styles.otpBtn} />
+          </View>
+        )}
+
+        {status === 'arrived' && booking.otp_verified && (
+          <View style={styles.actionSection}>
+            <Button label={t('takeStartSelfie')} onPress={() => setShowSelfieModal('start')} style={styles.actionBtn} />
           </View>
         )}
 
