@@ -12,6 +12,7 @@ import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import type { BookingWithDetails } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
 import { formatDistance, formatEta, haversineKm, estimateEtaMins } from '@/lib/distance';
+import { useProviderLocation, updateProviderLocationInDb } from '@/lib/use-provider-location';
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,8 +38,28 @@ export default function ProviderJobDetailScreen() {
   const billFileRef = useRef<HTMLInputElement>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasLoadedRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const liveLocation = useProviderLocation(['accepted', 'on_the_way', 'arrived'].includes(booking?.status || ''));
+  const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+  const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchBooking = useCallback(async () => {
+  useEffect(() => {
+    liveLocRef.current = { lat: liveLocation.latitude, lng: liveLocation.longitude };
+  }, [liveLocation]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    dbSyncRef.current = setInterval(async () => {
+      const { lat, lng } = liveLocRef.current;
+      if (lat != null && lng != null) {
+        await updateProviderLocationInDb(supabase, session.user.id, lat, lng);
+      }
+    }, 10000);
+    return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
+  }, [session?.user?.id]);
+
+  const fetchBooking = useCallback(async (isInitial = false) => {
     try {
       setError(null);
       const { data, error: bookingError } = await supabase
@@ -47,17 +68,26 @@ export default function ProviderJobDetailScreen() {
         .eq('id', id)
         .maybeSingle();
       if (bookingError) throw bookingError;
-      setBooking(data as BookingWithDetails);
+      if (data) {
+        hasLoadedRef.current = true;
+        setBooking(data as BookingWithDetails);
+      } else if (isInitial && !hasLoadedRef.current) {
+        retryCountRef.current += 1;
+        if (retryCountRef.current < 5) {
+          setTimeout(() => fetchBooking(true), 1500);
+          return;
+        }
+      }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
     } finally {
-      setLoading(false);
+      if (hasLoadedRef.current || retryCountRef.current >= 5) setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    fetchBooking();
-    pollRef.current = setInterval(fetchBooking, 5000);
+    fetchBooking(true);
+    pollRef.current = setInterval(() => fetchBooking(false), 5000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchBooking]);
 
@@ -149,7 +179,7 @@ export default function ProviderJobDetailScreen() {
     billCloseBtn: { width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200], alignItems: 'center', justifyContent: 'center' },
     billBody: { paddingHorizontal: spacing.lg },
     billDescInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm },
-    billAmountInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm },
+    billAmountInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm, keyboardType: 'numeric' },
     billUploadArea: { height: 160, borderWidth: 2, borderColor: colors.neutral[300], borderStyle: 'dashed', borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
     billUploadText: { fontSize: typography.sizes.sm, color: colors.neutral[400], marginTop: spacing.xs, fontFamily: typography.fontFamilyRegular },
     billPreviewImage: { width: '100%', height: 160, borderRadius: radius.lg, marginBottom: spacing.sm },
@@ -294,16 +324,16 @@ export default function ProviderJobDetailScreen() {
               <LiveTrackingMap 
                 userLat={booking?.address?.latitude || 10.8505} 
                 userLng={booking?.address?.longitude || 76.2711} 
-                providerLat={(booking as any)?.provider?.provider_profile?.latitude} 
-                providerLng={(booking as any)?.provider?.provider_profile?.longitude} 
+                providerLat={liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude} 
+                providerLng={liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude} 
               />
               {status === 'on_the_way' && (
                 <View style={styles.mapEtaBadge}>
                   <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                   <Text style={styles.mapEtaText}>
                     ETA: {
-                      booking?.address?.latitude && booking?.address?.longitude && (booking as any)?.provider?.provider_profile?.latitude && (booking as any)?.provider?.provider_profile?.longitude
-                      ? formatEta(estimateEtaMins(haversineKm(booking.address.latitude, booking.address.longitude, (booking as any).provider.provider_profile.latitude, (booking as any).provider.provider_profile.longitude)))
+                      booking?.address?.latitude && booking?.address?.longitude && (liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude) && (liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude)
+                      ? formatEta(estimateEtaMins(haversineKm(booking.address.latitude, booking.address.longitude, liveLocation.latitude ?? (booking as any).provider.provider_profile.latitude, liveLocation.longitude ?? (booking as any).provider.provider_profile.longitude)))
                       : (booking?.estimated_eta_mins ? formatEta(booking.estimated_eta_mins) : 'On the way')
                     }
                   </Text>
@@ -314,8 +344,8 @@ export default function ProviderJobDetailScreen() {
                   <Clock size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                   <Text style={styles.mapEtaText}>
                     {
-                      booking?.address?.latitude && booking?.address?.longitude && (booking as any)?.provider?.provider_profile?.latitude && (booking as any)?.provider?.provider_profile?.longitude
-                      ? formatDistance(haversineKm(booking.address.latitude, booking.address.longitude, (booking as any).provider.provider_profile.latitude, (booking as any).provider.provider_profile.longitude))
+                      booking?.address?.latitude && booking?.address?.longitude && (liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude) && (liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude)
+                      ? formatDistance(haversineKm(booking.address.latitude, booking.address.longitude, liveLocation.latitude ?? (booking as any).provider.provider_profile.latitude, liveLocation.longitude ?? (booking as any).provider.provider_profile.longitude))
                       : (booking?.distance_km ? formatDistance(booking.distance_km) : 'Start navigation')
                     }
                   </Text>

@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
-import { LoadingState, ErrorState, Button, SkeletonList } from '@/components/ui';
+import { LoadingState, ErrorState, Button } from '@/components/ui';
 import type { BookingWithDetails, ProviderApplication, ProviderWithProfile } from '@/lib/types';
 import {
   ZapOff, Clock, MapPin, Star, Check, X, ChevronRight,
@@ -16,7 +16,7 @@ import {
 
 export default function ProviderDashboardScreen() {
   const { t, lang } = useLanguage();
-  const { session, profile, loading: authLoading, refreshProfile } = useAuth();
+  const { session, profile } = useAuth();
   const router = useRouter();
   const { isDark } = useTheme();
 
@@ -33,25 +33,13 @@ export default function ProviderDashboardScreen() {
   const [selectedJob, setSelectedJob] = useState<BookingWithDetails | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
-  const [profileRefreshed, setProfileRefreshed] = useState(false);
-  const [refreshingProfile, setRefreshingProfile] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const hasProviderProfile = !!providerProfile?.provider_profile;
-  const isProviderRole = profile?.role === 'provider';
-  const isProviderUser =
-    isProviderRole ||
-    hasProviderProfile ||
-    application?.status === 'approved';
-  const canAccessProviderDashboard = isProviderUser;
-
-  // Fetch provider profile + application once on mount — these change rarely
-  const fetchProfile = useCallback(async () => {
-    if (!session?.user?.id) return;
-    console.log('[DEBUG] ProviderDashboard: fetchProfile start', { userId: session.user.id, currentRole: profile?.role });
+  const fetchData = useCallback(async () => {
+    if (!session?.user?.id) { setLoading(false); return; }
     try {
       setError(null);
-      const [appRes, provRes] = await Promise.all([
+      const [appRes, provRes, pendingRes, activeRes, pastRes] = await Promise.all([
         supabase
           .from('provider_applications')
           .select('*')
@@ -64,126 +52,48 @@ export default function ProviderDashboardScreen() {
           .select('*, provider_profile:provider_profiles(*)')
           .eq('id', session.user.id)
           .maybeSingle(),
-      ]);
-      setApplication(appRes.data ? (appRes.data as ProviderApplication) : null);
-      if (provRes.data) {
-        setProviderProfile(provRes.data as ProviderWithProfile);
-        const pp = (provRes.data as any).provider_profile;
-        setIsOnline(pp?.is_online ?? false);
-      } else {
-        setProviderProfile(null);
-        setIsOnline(false);
-      }
-      console.log('[DEBUG] ProviderDashboard: fetchProfile success', {
-        applicationStatus: appRes.data?.status,
-        hasProviderProfile: !!provRes.data,
-      });
-    } catch (e: any) {
-      console.warn('[DEBUG] ProviderDashboard: fetchProfile failed', e);
-      setError(e.message || 'Failed to load');
-    }
-  }, [session?.user?.id, profile?.role]);
-
-  // Fetch all 3 booking lists in parallel — called on mount + every poll
-  const fetchJobs = useCallback(async () => {
-    if (!session?.user?.id) return;
-    console.log('[DEBUG] ProviderDashboard: fetchJobs start', { userId: session.user.id });
-    try {
-      const [pendingRes, activeRes, pastRes] = await Promise.all([
         supabase
           .from('bookings')
-          .select('*, subcategory:service_subcategories(id,name_en,name_ml), address:addresses(id,label,address_line,area,district), booking_items(*)')
+          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
           .eq('provider_id', session.user.id)
           .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(20),
+          .order('created_at', { ascending: false }),
         supabase
           .from('bookings')
-          .select('*, subcategory:service_subcategories(id,name_en,name_ml), address:addresses(id,label,address_line,area,district), booking_items(*)')
+          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
           .eq('provider_id', session.user.id)
           .in('status', ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'])
-          .order('created_at', { ascending: false })
-          .limit(10),
+          .order('created_at', { ascending: false }),
         supabase
           .from('bookings')
-          .select('*, subcategory:service_subcategories(id,name_en,name_ml), address:addresses(id,label,address_line,area,district)')
+          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
           .eq('provider_id', session.user.id)
           .in('status', ['completed', 'cancelled', 'rejected'])
           .order('created_at', { ascending: false })
           .limit(20),
       ]);
+
+      if (appRes.data) setApplication(appRes.data as ProviderApplication);
+      if (provRes.data) {
+        setProviderProfile(provRes.data as ProviderWithProfile);
+        const pp = (provRes.data as any).provider_profile;
+        if (pp) setIsOnline(pp.is_online);
+      }
       if (pendingRes.data) setPendingJobs(pendingRes.data as BookingWithDetails[]);
       if (activeRes.data) setActiveJobs(activeRes.data as BookingWithDetails[]);
       if (pastRes.data) setPastJobs(pastRes.data as BookingWithDetails[]);
-      console.log('[DEBUG] ProviderDashboard: fetchJobs success', {
-        pendingCount: pendingRes.data?.length,
-        activeCount: activeRes.data?.length,
-        pastCount: pastRes.data?.length,
-      });
     } catch (e: any) {
-      console.warn('[DEBUG] ProviderDashboard: fetchJobs failed', e);
-      // non-blocking
+      setError(e.message || 'Failed to load');
+    } finally {
+      setLoading(false);
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
-    let active = true;
-
-    const loadProfile = async () => {
-      console.log('[DEBUG] ProviderDashboard: loadProfile effect begin', {
-        profileRole: profile?.role,
-        sessionUser: session?.user?.id,
-      });
-      await fetchProfile();
-      if (active) {
-        setLoading(false);
-      }
-      console.log('[DEBUG] ProviderDashboard: loadProfile effect end', {
-        sessionUser: session?.user?.id,
-        loading: false,
-      });
-    };
-
-    loadProfile();
-
-    return () => {
-      active = false;
-    };
-  }, [fetchProfile, profile?.role]);
-
-  useEffect(() => {
-    if (!session?.user?.id || profileRefreshed || refreshingProfile) return;
-    if (!refreshProfile) return;
-
-    if ((application?.status === 'approved' || hasProviderProfile) && !isProviderRole) {
-      const refresh = async () => {
-        console.log('[DEBUG] ProviderDashboard: refreshing auth profile because provider state found', {
-          applicationStatus: application?.status,
-          hasProviderProfile,
-          profileRole: profile?.role,
-        });
-        setRefreshingProfile(true);
-        try {
-          await refreshProfile();
-          console.log('[DEBUG] ProviderDashboard: refreshProfile complete');
-        } finally {
-          setRefreshingProfile(false);
-          setProfileRefreshed(true);
-        }
-      };
-      refresh();
-    }
-  }, [session?.user?.id, application?.status, hasProviderProfile, isProviderRole, refreshProfile, profileRefreshed, refreshingProfile]);
-
-  const isInitializing = authLoading || loading || refreshingProfile;
-
-  useEffect(() => {
-    if (authLoading || !session?.user?.id || !canAccessProviderDashboard) return;
-
-    fetchJobs();
-    pollRef.current = setInterval(fetchJobs, 10000);
+    fetchData();
+    pollRef.current = setInterval(fetchData, 5000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [authLoading, canAccessProviderDashboard, fetchJobs, session?.user?.id]);
+  }, [fetchData]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -285,23 +195,22 @@ export default function ProviderDashboardScreen() {
     const newOnline = !isOnline;
     setIsOnline(newOnline);
     const updateData: any = { is_online: newOnline, updated_at: new Date().toISOString() };
-    // When going online, try to capture the provider's current location
     if (newOnline) {
       try {
-        const { getCurrentPositionAsync } = await import('expo-location');
-        const { granted } = await (await import('expo-location')).requestForegroundPermissionsAsync();
-        if (granted) {
-          const pos = await getCurrentPositionAsync({ accuracy: 3 });
+        const expoLocation = await import('expo-location');
+        const { status } = await expoLocation.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await expoLocation.getCurrentPositionAsync({ accuracy: 3 });
           updateData.latitude = pos.coords.latitude;
           updateData.longitude = pos.coords.longitude;
           updateData.last_location_at = new Date().toISOString();
         }
-      } catch (e) {
+      } catch {
         // Location permission denied or unavailable — proceed without location
       }
     }
     await supabase.from('provider_profiles').update(updateData).eq('id', session.user.id);
-    fetchJobs();
+    fetchData();
   };
 
   const handleAcceptJob = async (jobId: string) => {
@@ -309,7 +218,7 @@ export default function ProviderDashboardScreen() {
     await supabase.from('bookings').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', jobId);
     setActionLoading(false);
     setShowJobModal(false);
-    fetchJobs();
+    fetchData();
   };
 
   const handleRejectJob = async (jobId: string) => {
@@ -317,34 +226,13 @@ export default function ProviderDashboardScreen() {
     await supabase.from('bookings').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', jobId);
     setActionLoading(false);
     setShowJobModal(false);
-    fetchJobs();
+    fetchData();
   };
 
-  // Don't block on a full-screen spinner — render the shell immediately,
-  // data fills in as it arrives (skeleton effect via conditional rendering below)
-  if (error) return <ErrorState message={error} onRetry={() => { fetchProfile(); fetchJobs(); }} />;
+  if (loading) return <LoadingState label={t('loading')} />;
+  if (error) return <ErrorState message={error} onRetry={fetchData} />;
 
-  // While loading, show the skeleton shell — the header and tabs render immediately
-  // and the job list area shows animated placeholders instead of a blank screen
-  if (isInitializing) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.dashHeader}>
-          <View style={styles.dashHeaderTop}>
-            <View style={styles.dashAvatar}>
-              <User size={24} color="rgba(255,255,255,0.6)" />
-            </View>
-            <View style={{ flex: 1, gap: 8 }}>
-              <SkeletonList rows={0} />
-            </View>
-          </View>
-        </View>
-        <SkeletonList rows={4} />
-      </SafeAreaView>
-    );
-  }
-
-  if (application?.status === 'pending') {
+  if (application?.status === 'pending' && !providerProfile?.provider_profile) {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
@@ -371,9 +259,7 @@ export default function ProviderDashboardScreen() {
     );
   }
 
-  // Guard: if data hasn't loaded yet, don't prematurely show 'Become Provider'
-  // Only show the onboarding prompt for users who are not already a provider.
-  if (!application && !loading && !isProviderUser) {
+  if (!application) {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
