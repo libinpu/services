@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -210,6 +210,7 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const isFirstFocus = useRef(true);
 
   useEffect(() => {
     if (params.tab && ['upcoming', 'ongoing', 'completed', 'cancelled'].includes(params.tab)) {
@@ -251,9 +252,13 @@ export default function BookingsScreen() {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Also refresh when user navigates back to this screen
+  // Refresh when returning to this screen — skip the initial mount (handled by useEffect above)
   useFocusEffect(
     useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
       fetchBookings();
     }, [fetchBookings])
   );

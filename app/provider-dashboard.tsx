@@ -16,7 +16,7 @@ import {
 
 export default function ProviderDashboardScreen() {
   const { t, lang } = useLanguage();
-  const { session, profile } = useAuth();
+  const { session, profile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { isDark } = useTheme();
 
@@ -34,6 +34,15 @@ export default function ProviderDashboardScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const jobsFetchingRef = useRef(false);
+
+  const hasProviderProfile = !!providerProfile?.provider_profile;
+  const isProviderRole = profile?.role === 'provider';
+  const isProviderUser =
+    isProviderRole ||
+    hasProviderProfile ||
+    application?.status === 'approved';
+  const canAccessProviderDashboard = isProviderUser;
 
   const fetchData = useCallback(async () => {
     if (!session?.user?.id) { setLoading(false); return; }
@@ -52,6 +61,30 @@ export default function ProviderDashboardScreen() {
           .select('*, provider_profile:provider_profiles(*)')
           .eq('id', session.user.id)
           .maybeSingle(),
+      ]);
+      setApplication(appRes.data ? (appRes.data as ProviderApplication) : null);
+      if (provRes.data) {
+        setProviderProfile(provRes.data as ProviderWithProfile);
+        const pp = (provRes.data as any).provider_profile;
+        setIsOnline(pp?.is_online ?? false);
+      } else {
+        setProviderProfile(null);
+        setIsOnline(false);
+      }
+    } catch (e: any) {
+      setError(e.message || 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }, [session?.user?.id]);
+
+  // Fetch all 3 booking lists in parallel — called on mount + every poll
+  const fetchJobs = useCallback(async () => {
+    if (!session?.user?.id) return;
+    if (jobsFetchingRef.current) return;
+    jobsFetchingRef.current = true;
+    try {
+      const [pendingRes, activeRes, pastRes] = await Promise.all([
         supabase
           .from('bookings')
           .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
@@ -73,27 +106,23 @@ export default function ProviderDashboardScreen() {
           .limit(20),
       ]);
 
-      if (appRes.data) setApplication(appRes.data as ProviderApplication);
-      if (provRes.data) {
-        setProviderProfile(provRes.data as ProviderWithProfile);
-        const pp = (provRes.data as any).provider_profile;
-        if (pp) setIsOnline(pp.is_online);
-      }
       if (pendingRes.data) setPendingJobs(pendingRes.data as BookingWithDetails[]);
       if (activeRes.data) setActiveJobs(activeRes.data as BookingWithDetails[]);
       if (pastRes.data) setPastJobs(pastRes.data as BookingWithDetails[]);
     } catch (e: any) {
-      setError(e.message || 'Failed to load');
+      // non-blocking
     } finally {
-      setLoading(false);
+      jobsFetchingRef.current = false;
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
+    if (authLoading || !session?.user?.id || !canAccessProviderDashboard) return;
+
     fetchData();
-    pollRef.current = setInterval(fetchData, 8000);
+    pollRef.current = setInterval(fetchData, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [fetchData]);
+  }, [authLoading, canAccessProviderDashboard, fetchData]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },

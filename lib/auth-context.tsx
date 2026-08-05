@@ -23,23 +23,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    console.log('[DEBUG] AuthContext: fetchProfile', { userId });
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .maybeSingle();
     if (error) {
-      console.error('[DEBUG] AuthContext: fetchProfile error', error);
       return;
     }
-    console.log('[DEBUG] AuthContext: fetchProfile success', { profileId: data?.id, role: data?.role });
     setProfile(data as Profile | null);
   }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
-      console.log('[DEBUG] AuthContext: getSession', { session: !!s, userId: s?.user?.id });
       setSession(s as AuthContextValue['session']);
       if (s?.user?.id) {
         fetchProfile(s.user.id).finally(() => setLoading(false));
@@ -52,7 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Keeping session?.user?.id in the dep array would re-register this
     // listener on every login, creating duplicate subscriptions.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
-      console.log('[DEBUG] AuthContext: onAuthStateChange', { event, session: !!s, userId: s?.user?.id });
       setSession(s as AuthContextValue['session']);
       if (s?.user?.id) {
         (async () => {
@@ -101,11 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    console.log('[DEBUG] AuthContext: refreshProfile start', { userId: session?.user?.id });
     if (session?.user?.id) {
       await fetchProfile(session.user.id);
     }
-    console.log('[DEBUG] AuthContext: refreshProfile complete', { userId: session?.user?.id });
   }, [session, fetchProfile]);
 
   const updateLanguage = useCallback(async (lang: Language) => {
