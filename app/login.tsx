@@ -257,24 +257,26 @@ export default function LoginScreen() {
         const { error } = await signIn(email.trim(), password);
         if (error) {
           setError(error);
-        } else {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user?.id) {
-            await handleLocationPermission(session.user.id);
-          }
-          router.replace('/(tabs)');
+          return;
         }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          void handleLocationPermission(session.user.id);
+        }
+        router.replace('/(tabs)');
       } else {
         const { error } = await signUp(email.trim(), password, fullName.trim(), phone.trim());
         if (error) {
           setError(error);
-        } else {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user?.id) {
-            await handleLocationPermission(session.user.id);
-          }
-          router.replace('/(tabs)');
+          return;
         }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          void handleLocationPermission(session.user.id);
+        }
+        router.replace('/(tabs)');
       }
     } finally {
       setLoading(false);
@@ -288,13 +290,14 @@ export default function LoginScreen() {
     setLoading(false);
     if (googleError) {
       setError(googleError);
-    } else {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        await handleLocationPermission(session.user.id);
-      }
-      router.replace('/(tabs)');
+      return;
     }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      void handleLocationPermission(session.user.id);
+    }
+    router.replace('/(tabs)');
   };
 
   return (

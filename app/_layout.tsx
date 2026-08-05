@@ -121,19 +121,25 @@ function AuthGuard() {
     if (loading) return;
 
     const inTabsGroup = segments[0] === '(tabs)';
-    // Public screens: login page or root
-    const onPublicScreen =
-      segments[0] === 'login' ||
-      segments[0] === undefined;
+    const onLoginScreen = segments[0] === 'login';
+    const onRootScreen = segments[0] === undefined;
+    const isPublicScreen = onLoginScreen || onRootScreen;
 
-    if (!session && inTabsGroup) {
-      // Signed out while inside the app → go to login
-      router.replace('/login');
-    } else if (session && onPublicScreen) {
-      // Signed in but stuck on login/onboarding → go to tabs
+    if (!session) {
+      if (!isPublicScreen) {
+        router.replace('/login');
+      }
+      return;
+    }
+
+    if (isPublicScreen) {
       router.replace('/(tabs)');
     }
-  }, [session, loading, segments]);
+
+    if (!session && inTabsGroup) {
+      router.replace('/login');
+    }
+  }, [session, loading, segments, router]);
 
   return null;
 }

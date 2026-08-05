@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows, getLangTextStyle } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, Button, LoadingState, ErrorState } from '@/components/ui';
+import { cache } from '@/lib/cache';
 import type { ServiceCategory, ProviderApplication } from '@/lib/types';
 import {
   Briefcase, Check, X, ShieldCheck, Clock,
@@ -38,32 +39,44 @@ export default function ProviderOnboardingScreen() {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const catRes = await supabase
-        .from('service_categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-      if (catRes.error) throw catRes.error;
-      setCategories((catRes.data || []) as ServiceCategory[]);
 
-      if (session?.user?.id) {
-        const appRes = await supabase
-          .from('provider_applications')
+      const cachedCategories = cache.get<ServiceCategory[]>('service_categories');
+      if (cachedCategories) {
+        setCategories(cachedCategories);
+      }
+
+      const [catRes, appRes] = await Promise.all([
+        supabase
+          .from('service_categories')
           .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (appRes.data) {
-          setExistingApp(appRes.data as ProviderApplication);
-          if (appRes.data.status === 'pending') {
-            setSelectedCategories(appRes.data.category_ids);
-            setExperienceYears(String(appRes.data.experience_years));
-            setBio(lang === 'ml' ? (appRes.data.bio_ml || appRes.data.bio_en || '') : (appRes.data.bio_en || ''));
-            setAadhaarFront(appRes.data.id_proof_url || null);
-            setAadhaarBack(appRes.data.address_proof_url || null);
-            setSelfie(appRes.data.certificate_url || null);
-          }
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+        session?.user?.id
+          ? supabase
+              .from('provider_applications')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (catRes.error) throw catRes.error;
+
+      const fetchedCategories = (catRes.data || []) as ServiceCategory[];
+      setCategories(fetchedCategories);
+      cache.set('service_categories', fetchedCategories);
+
+      if (appRes && appRes.data) {
+        setExistingApp(appRes.data as ProviderApplication);
+        if (appRes.data.status === 'pending') {
+          setSelectedCategories(appRes.data.category_ids);
+          setExperienceYears(String(appRes.data.experience_years));
+          setBio(lang === 'ml' ? (appRes.data.bio_ml || appRes.data.bio_en || '') : (appRes.data.bio_en || ''));
+          setAadhaarFront(appRes.data.id_proof_url || null);
+          setAadhaarBack(appRes.data.address_proof_url || null);
+          setSelfie(appRes.data.certificate_url || null);
         }
       }
     } catch (e: any) {
