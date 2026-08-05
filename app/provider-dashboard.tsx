@@ -73,6 +73,8 @@ export default function ProviderDashboardScreen() {
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
+    } finally {
+      setLoading(false);
     }
   }, [session?.user?.id]);
 
