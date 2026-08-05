@@ -38,8 +38,6 @@ export default function ProviderJobDetailScreen() {
   const billFileRef = useRef<HTMLInputElement>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const hasLoadedRef = useRef(false);
-  const retryCountRef = useRef(0);
   const liveLocation = useProviderLocation(['accepted', 'on_the_way', 'arrived'].includes(booking?.status || ''));
   const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -59,7 +57,7 @@ export default function ProviderJobDetailScreen() {
     return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
   }, [session?.user?.id]);
 
-  const fetchBooking = useCallback(async (isInitial = false) => {
+  const fetchBooking = useCallback(async () => {
     try {
       setError(null);
       const { data, error: bookingError } = await supabase
@@ -69,25 +67,18 @@ export default function ProviderJobDetailScreen() {
         .maybeSingle();
       if (bookingError) throw bookingError;
       if (data) {
-        hasLoadedRef.current = true;
         setBooking(data as BookingWithDetails);
-      } else if (isInitial && !hasLoadedRef.current) {
-        retryCountRef.current += 1;
-        if (retryCountRef.current < 5) {
-          setTimeout(() => fetchBooking(true), 1500);
-          return;
-        }
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
     } finally {
-      if (hasLoadedRef.current || retryCountRef.current >= 5) setLoading(false);
+      setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    fetchBooking(true);
-    pollRef.current = setInterval(() => fetchBooking(false), 5000);
+    fetchBooking();
+    pollRef.current = setInterval(fetchBooking, 8000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchBooking]);
 
@@ -179,7 +170,7 @@ export default function ProviderJobDetailScreen() {
     billCloseBtn: { width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.neutral[200], alignItems: 'center', justifyContent: 'center' },
     billBody: { paddingHorizontal: spacing.lg },
     billDescInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm },
-    billAmountInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm, keyboardType: 'numeric' },
+    billAmountInput: { minHeight: 52, borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: typography.sizes.md, color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyRegular, marginBottom: spacing.sm },
     billUploadArea: { height: 160, borderWidth: 2, borderColor: colors.neutral[300], borderStyle: 'dashed', borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
     billUploadText: { fontSize: typography.sizes.sm, color: colors.neutral[400], marginTop: spacing.xs, fontFamily: typography.fontFamilyRegular },
     billPreviewImage: { width: '100%', height: 160, borderRadius: radius.lg, marginBottom: spacing.sm },

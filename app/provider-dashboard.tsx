@@ -91,7 +91,7 @@ export default function ProviderDashboardScreen() {
 
   useEffect(() => {
     fetchData();
-    pollRef.current = setInterval(fetchData, 5000);
+    pollRef.current = setInterval(fetchData, 8000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchData]);
 
