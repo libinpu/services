@@ -20,7 +20,7 @@ interface NearbyRequest extends BookingWithDetails {
 
 export default function NearbyRequestsScreen() {
   const { t, lang } = useLanguage();
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const router = useRouter();
   const { isDark } = useTheme();
 
@@ -75,7 +75,11 @@ export default function NearbyRequestsScreen() {
         const pp = provRes.data as ProviderWithProfile;
         setProviderProfile(pp);
         const providerProfileData = (provRes.data as any).provider_profile;
-        if (!providerProfileData) { setLoading(false); return; }
+        if (!providerProfileData) {
+          setLoading(false);
+          requestsFetchingRef.current = false;
+          return;
+        }
 
         const categoryIds: string[] = providerProfileData.category_ids || [];
         // Prefer live GPS location; fall back to stored DB location
@@ -134,12 +138,18 @@ export default function NearbyRequestsScreen() {
   }, [session?.user?.id]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!session?.user?.id) {
+      setLoading(false);
+      return;
+    }
+
     fetchRequests();
     pollRef.current = setInterval(() => {
       if (!requestsFetchingRef.current) fetchRequests();
     }, 8000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [fetchRequests]);
+  }, [authLoading, session?.user?.id, fetchRequests]);
 
   const handleRefresh = () => {
     setRefreshing(true);

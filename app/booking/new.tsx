@@ -197,7 +197,11 @@ export default function BookingConfirmationScreen() {
   }
 
   const handleConfirmBooking = async () => {
-    if (!session?.user?.id || !subcategory || !selectedAddress) return;
+    if (!session?.user?.id || !subcategory || !selectedAddress) {
+      setError(t('selectAddressFirst') || 'Please select an address before confirming.');
+      setSubmitting(false);
+      return;
+    }
     setSubmitting(true);
     setError(null);
 

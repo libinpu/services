@@ -117,12 +117,12 @@ export default function ProviderDashboardScreen() {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (authLoading || !session?.user?.id || !canAccessProviderDashboard) return;
+    if (authLoading || !session?.user?.id) return;
 
     fetchData();
     pollRef.current = setInterval(fetchData, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [authLoading, canAccessProviderDashboard, fetchData]);
+  }, [authLoading, session?.user?.id, fetchData]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
