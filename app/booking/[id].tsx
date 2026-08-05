@@ -466,22 +466,8 @@ export default function BookingDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-<<<<<<< HEAD
     void fetchBooking();
     void fetchChat();
-=======
-    fetchBooking();
-    fetchChat();
-    // Poll less frequently to reduce DB load while still keeping status updates usable.
-    // The detail view only needs a refresh when the user is actively viewing it.
-    pollRef.current = setInterval(() => {
-      if (!bookingFetchingRef.current) fetchBooking();
-      if (!chatFetchingRef.current) fetchChat();
-    }, 20000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
->>>>>>> 86299bd280c5154f176e131e653cef39bdc58e2c
   }, [fetchBooking, fetchChat]);
 
   const handleSendMessage = async () => {

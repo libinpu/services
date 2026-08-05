@@ -119,15 +119,8 @@ export default function ProviderDashboardScreen() {
   useEffect(() => {
     if (authLoading || !session?.user?.id) return;
 
-<<<<<<< HEAD
     void Promise.all([fetchData(), fetchJobs()]);
   }, [authLoading, session?.user?.id, fetchData, fetchJobs]);
-=======
-    fetchData();
-    pollRef.current = setInterval(fetchData, 30000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [authLoading, session?.user?.id, fetchData]);
->>>>>>> 86299bd280c5154f176e131e653cef39bdc58e2c
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
