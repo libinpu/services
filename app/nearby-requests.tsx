@@ -9,6 +9,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState } from '@/components/ui';
 import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
+import { useProviderLocation, updateProviderLocationInDb } from '@/lib/use-provider-location';
 import type { BookingWithDetails, ProviderWithProfile } from '@/lib/types';
 import { MapPin, Clock, Navigation, Check, X, Briefcase, Ruler, Star, ArrowLeft, CircleAlert as AlertCircle } from 'lucide-react-native';
 
@@ -32,7 +33,29 @@ export default function NearbyRequestsScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+<<<<<<< HEAD
   const requestsFetchingRef = useRef(false);
+=======
+  const liveLocation = useProviderLocation(true);
+  const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+  const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    liveLocRef.current = { lat: liveLocation.latitude, lng: liveLocation.longitude };
+  }, [liveLocation]);
+
+  // Periodically sync live location to the database so other screens see it too
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    dbSyncRef.current = setInterval(async () => {
+      const { lat, lng } = liveLocRef.current;
+      if (lat != null && lng != null) {
+        await updateProviderLocationInDb(supabase, session.user.id, lat, lng);
+      }
+    }, 10000);
+    return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
+  }, [session?.user?.id]);
+>>>>>>> 8cf69ae05f9875d44796f3ea2d65c6fe9919a3a4
 
   const fetchRequests = useCallback(async () => {
     if (!session?.user?.id) {
@@ -58,8 +81,9 @@ export default function NearbyRequestsScreen() {
         if (!providerProfileData) { setLoading(false); return; }
 
         const categoryIds: string[] = providerProfileData.category_ids || [];
-        const provLat = providerProfileData.latitude;
-        const provLon = providerProfileData.longitude;
+        // Prefer live GPS location; fall back to stored DB location
+        const provLat = liveLocRef.current.lat ?? providerProfileData.latitude;
+        const provLon = liveLocRef.current.lng ?? providerProfileData.longitude;
 
         // Get all pending bookings that either have no provider assigned yet,
         // or are assigned to this provider (so they can accept from here too)
@@ -168,7 +192,7 @@ export default function NearbyRequestsScreen() {
   };
 
   const pp = providerProfile?.provider_profile;
-  const hasLocation = pp?.latitude != null && pp?.longitude != null;
+  const hasLocation = (liveLocation.latitude != null && liveLocation.longitude != null) || (pp?.latitude != null && pp?.longitude != null);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },

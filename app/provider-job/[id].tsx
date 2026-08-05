@@ -12,6 +12,7 @@ import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import type { BookingWithDetails } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
 import { formatDistance, formatEta, haversineKm, estimateEtaMins } from '@/lib/distance';
+import { useProviderLocation, updateProviderLocationInDb } from '@/lib/use-provider-location';
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,7 +38,28 @@ export default function ProviderJobDetailScreen() {
   const billFileRef = useRef<HTMLInputElement>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+<<<<<<< HEAD
   const bookingFetchingRef = useRef(false);
+=======
+  const liveLocation = useProviderLocation(['accepted', 'on_the_way', 'arrived'].includes(booking?.status || ''));
+  const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+  const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    liveLocRef.current = { lat: liveLocation.latitude, lng: liveLocation.longitude };
+  }, [liveLocation]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    dbSyncRef.current = setInterval(async () => {
+      const { lat, lng } = liveLocRef.current;
+      if (lat != null && lng != null) {
+        await updateProviderLocationInDb(supabase, session.user.id, lat, lng);
+      }
+    }, 10000);
+    return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
+  }, [session?.user?.id]);
+>>>>>>> 8cf69ae05f9875d44796f3ea2d65c6fe9919a3a4
 
   const fetchBooking = useCallback(async () => {
     if (!id) return;
@@ -51,7 +73,9 @@ export default function ProviderJobDetailScreen() {
         .eq('id', id)
         .maybeSingle();
       if (bookingError) throw bookingError;
-      setBooking(data as BookingWithDetails);
+      if (data) {
+        setBooking(data as BookingWithDetails);
+      }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
     } finally {
@@ -62,9 +86,13 @@ export default function ProviderJobDetailScreen() {
 
   useEffect(() => {
     fetchBooking();
+<<<<<<< HEAD
     pollRef.current = setInterval(() => {
       if (!bookingFetchingRef.current) fetchBooking();
     }, 8000);
+=======
+    pollRef.current = setInterval(fetchBooking, 8000);
+>>>>>>> 8cf69ae05f9875d44796f3ea2d65c6fe9919a3a4
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchBooking]);
 
@@ -327,16 +355,16 @@ export default function ProviderJobDetailScreen() {
               <LiveTrackingMap 
                 userLat={booking?.address?.latitude || 10.8505} 
                 userLng={booking?.address?.longitude || 76.2711} 
-                providerLat={(booking as any)?.provider?.provider_profile?.latitude} 
-                providerLng={(booking as any)?.provider?.provider_profile?.longitude} 
+                providerLat={liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude} 
+                providerLng={liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude} 
               />
               {status === 'on_the_way' && (
                 <View style={styles.mapEtaBadge}>
                   <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                   <Text style={styles.mapEtaText}>
                     ETA: {
-                      booking?.address?.latitude && booking?.address?.longitude && (booking as any)?.provider?.provider_profile?.latitude && (booking as any)?.provider?.provider_profile?.longitude
-                      ? formatEta(estimateEtaMins(haversineKm(booking.address.latitude, booking.address.longitude, (booking as any).provider.provider_profile.latitude, (booking as any).provider.provider_profile.longitude)))
+                      booking?.address?.latitude && booking?.address?.longitude && (liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude) && (liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude)
+                      ? formatEta(estimateEtaMins(haversineKm(booking.address.latitude, booking.address.longitude, liveLocation.latitude ?? (booking as any).provider.provider_profile.latitude, liveLocation.longitude ?? (booking as any).provider.provider_profile.longitude)))
                       : (booking?.estimated_eta_mins ? formatEta(booking.estimated_eta_mins) : 'On the way')
                     }
                   </Text>
@@ -347,8 +375,8 @@ export default function ProviderJobDetailScreen() {
                   <Clock size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                   <Text style={styles.mapEtaText}>
                     {
-                      booking?.address?.latitude && booking?.address?.longitude && (booking as any)?.provider?.provider_profile?.latitude && (booking as any)?.provider?.provider_profile?.longitude
-                      ? formatDistance(haversineKm(booking.address.latitude, booking.address.longitude, (booking as any).provider.provider_profile.latitude, (booking as any).provider.provider_profile.longitude))
+                      booking?.address?.latitude && booking?.address?.longitude && (liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude) && (liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude)
+                      ? formatDistance(haversineKm(booking.address.latitude, booking.address.longitude, liveLocation.latitude ?? (booking as any).provider.provider_profile.latitude, liveLocation.longitude ?? (booking as any).provider.provider_profile.longitude))
                       : (booking?.distance_km ? formatDistance(booking.distance_km) : 'Start navigation')
                     }
                   </Text>
