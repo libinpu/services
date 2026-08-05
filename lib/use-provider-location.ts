@@ -44,7 +44,9 @@ export function useProviderLocation(enabled: boolean) {
     }
     return () => {
       if (watchRef.current) {
-        watchRef.current.remove?.();
+        try {
+          watchRef.current.remove?.();
+        } catch {}
         watchRef.current = null;
       }
       if (dbUpdateRef.current) {
