@@ -37,8 +37,12 @@ export default function ProviderJobDetailScreen() {
   const billFileRef = useRef<HTMLInputElement>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const bookingFetchingRef = useRef(false);
 
   const fetchBooking = useCallback(async () => {
+    if (!id) return;
+    if (bookingFetchingRef.current) return;
+    bookingFetchingRef.current = true;
     try {
       setError(null);
       const { data, error: bookingError } = await supabase
@@ -51,13 +55,16 @@ export default function ProviderJobDetailScreen() {
     } catch (e: any) {
       setError(e.message || 'Failed to load');
     } finally {
+      bookingFetchingRef.current = false;
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
     fetchBooking();
-    pollRef.current = setInterval(fetchBooking, 5000);
+    pollRef.current = setInterval(() => {
+      if (!bookingFetchingRef.current) fetchBooking();
+    }, 8000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchBooking]);
 
@@ -171,15 +178,30 @@ export default function ProviderJobDetailScreen() {
     setOtpError(null);
     const enteredOtp = otpInput.join('');
     if (enteredOtp === booking.otp) {
-      await supabase.from('bookings').update({
-        otp_verified: true, status: 'in_progress', started_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      const { error } = await supabase.from('bookings').update({
+        otp_verified: true,
+        status: 'in_progress',
+        started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }).eq('id', id);
-      setShowSelfieModal('start');
-      setVerifying(false);
+
+      if (!error) {
+        setBooking((current) => current ? {
+          ...current,
+          otp_verified: true,
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+        } : current);
+        setOtpInput(['', '', '', '']);
+        setShowSelfieModal('start');
+        await fetchBooking();
+      } else {
+        setOtpError(t('otpIncorrect'));
+      }
     } else {
       setOtpError(t('otpIncorrect'));
-      setVerifying(false);
     }
+    setVerifying(false);
   };
 
   const handleSelfieCapture = async () => {
@@ -189,13 +211,24 @@ export default function ProviderJobDetailScreen() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const selfieUrl = `selfie_${selfieType}_${Date.now()}.jpg`;
     if (selfieType === 'start') {
-      await supabase.from('bookings').update({
-        start_selfie_url: selfieUrl, status: 'in_progress', updated_at: new Date().toISOString(),
+      const { error } = await supabase.from('bookings').update({
+        start_selfie_url: selfieUrl,
+        status: 'in_progress',
+        updated_at: new Date().toISOString(),
       }).eq('id', id);
+      if (!error) {
+        setBooking((current) => current ? { ...current, start_selfie_url: selfieUrl, status: 'in_progress' } : current);
+      }
     } else if (selfieType === 'end') {
-      await supabase.from('bookings').update({
-        end_selfie_url: selfieUrl, status: 'awaiting_confirmation', completed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      const { error } = await supabase.from('bookings').update({
+        end_selfie_url: selfieUrl,
+        status: 'awaiting_confirmation',
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }).eq('id', id);
+      if (!error) {
+        setBooking((current) => current ? { ...current, end_selfie_url: selfieUrl, status: 'awaiting_confirmation', completed_at: new Date().toISOString() } : current);
+      }
     }
     setShowSelfieModal(null);
     setSelfieCaptured(false);

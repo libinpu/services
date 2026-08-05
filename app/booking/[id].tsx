@@ -32,6 +32,8 @@ export default function BookingDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const bookingFetchingRef = useRef(false);
+  const chatFetchingRef = useRef(false);
   const [showTrackingMap, setShowTrackingMap] = useState(true);
   const [extraCharges, setExtraCharges] = useState<any[]>([]);
   const [showSos, setShowSos] = useState(false);
@@ -407,6 +409,9 @@ export default function BookingDetailScreen() {
   });
 
   const fetchBooking = useCallback(async () => {
+    if (!id) return;
+    if (bookingFetchingRef.current) return;
+    bookingFetchingRef.current = true;
     try {
       setError(null);
 
@@ -440,17 +445,25 @@ export default function BookingDetailScreen() {
     } catch (e: any) {
       setError(e.message || 'Failed to load booking');
     } finally {
+      bookingFetchingRef.current = false;
       setLoading(false);
     }
   }, [id]);
 
   const fetchChat = useCallback(async () => {
-    const { data } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('booking_id', id)
-      .order('created_at', { ascending: true });
-    if (data) setChatMessages(data as ChatMessage[]);
+    if (!id) return;
+    if (chatFetchingRef.current) return;
+    chatFetchingRef.current = true;
+    try {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('booking_id', id)
+        .order('created_at', { ascending: true });
+      if (data) setChatMessages(data as ChatMessage[]);
+    } finally {
+      chatFetchingRef.current = false;
+    }
   }, [id]);
 
   useEffect(() => {
@@ -459,8 +472,8 @@ export default function BookingDetailScreen() {
     // Poll every 8 s (was 5 s) — reduces background DB load by 37%
     // while still keeping the UI responsive to status changes
     pollRef.current = setInterval(() => {
-      fetchBooking();
-      fetchChat();
+      if (!bookingFetchingRef.current) fetchBooking();
+      if (!chatFetchingRef.current) fetchChat();
     }, 8000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);

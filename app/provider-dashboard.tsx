@@ -36,6 +36,7 @@ export default function ProviderDashboardScreen() {
   const [profileRefreshed, setProfileRefreshed] = useState(false);
   const [refreshingProfile, setRefreshingProfile] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const jobsFetchingRef = useRef(false);
 
   const hasProviderProfile = !!providerProfile?.provider_profile;
   const isProviderRole = profile?.role === 'provider';
@@ -48,7 +49,6 @@ export default function ProviderDashboardScreen() {
   // Fetch provider profile + application once on mount — these change rarely
   const fetchProfile = useCallback(async () => {
     if (!session?.user?.id) return;
-    console.log('[DEBUG] ProviderDashboard: fetchProfile start', { userId: session.user.id, currentRole: profile?.role });
     try {
       setError(null);
       const [appRes, provRes] = await Promise.all([
@@ -74,20 +74,16 @@ export default function ProviderDashboardScreen() {
         setProviderProfile(null);
         setIsOnline(false);
       }
-      console.log('[DEBUG] ProviderDashboard: fetchProfile success', {
-        applicationStatus: appRes.data?.status,
-        hasProviderProfile: !!provRes.data,
-      });
     } catch (e: any) {
-      console.warn('[DEBUG] ProviderDashboard: fetchProfile failed', e);
       setError(e.message || 'Failed to load');
     }
-  }, [session?.user?.id, profile?.role]);
+  }, [session?.user?.id]);
 
   // Fetch all 3 booking lists in parallel — called on mount + every poll
   const fetchJobs = useCallback(async () => {
     if (!session?.user?.id) return;
-    console.log('[DEBUG] ProviderDashboard: fetchJobs start', { userId: session.user.id });
+    if (jobsFetchingRef.current) return;
+    jobsFetchingRef.current = true;
     try {
       const [pendingRes, activeRes, pastRes] = await Promise.all([
         supabase
@@ -115,14 +111,10 @@ export default function ProviderDashboardScreen() {
       if (pendingRes.data) setPendingJobs(pendingRes.data as BookingWithDetails[]);
       if (activeRes.data) setActiveJobs(activeRes.data as BookingWithDetails[]);
       if (pastRes.data) setPastJobs(pastRes.data as BookingWithDetails[]);
-      console.log('[DEBUG] ProviderDashboard: fetchJobs success', {
-        pendingCount: pendingRes.data?.length,
-        activeCount: activeRes.data?.length,
-        pastCount: pastRes.data?.length,
-      });
     } catch (e: any) {
-      console.warn('[DEBUG] ProviderDashboard: fetchJobs failed', e);
       // non-blocking
+    } finally {
+      jobsFetchingRef.current = false;
     }
   }, [session?.user?.id]);
 
@@ -130,18 +122,10 @@ export default function ProviderDashboardScreen() {
     let active = true;
 
     const loadProfile = async () => {
-      console.log('[DEBUG] ProviderDashboard: loadProfile effect begin', {
-        profileRole: profile?.role,
-        sessionUser: session?.user?.id,
-      });
       await fetchProfile();
       if (active) {
         setLoading(false);
       }
-      console.log('[DEBUG] ProviderDashboard: loadProfile effect end', {
-        sessionUser: session?.user?.id,
-        loading: false,
-      });
     };
 
     loadProfile();
@@ -149,7 +133,7 @@ export default function ProviderDashboardScreen() {
     return () => {
       active = false;
     };
-  }, [fetchProfile, profile?.role]);
+  }, [fetchProfile]);
 
   useEffect(() => {
     if (!session?.user?.id || profileRefreshed || refreshingProfile) return;
@@ -157,15 +141,9 @@ export default function ProviderDashboardScreen() {
 
     if ((application?.status === 'approved' || hasProviderProfile) && !isProviderRole) {
       const refresh = async () => {
-        console.log('[DEBUG] ProviderDashboard: refreshing auth profile because provider state found', {
-          applicationStatus: application?.status,
-          hasProviderProfile,
-          profileRole: profile?.role,
-        });
         setRefreshingProfile(true);
         try {
           await refreshProfile();
-          console.log('[DEBUG] ProviderDashboard: refreshProfile complete');
         } finally {
           setRefreshingProfile(false);
           setProfileRefreshed(true);
@@ -181,7 +159,9 @@ export default function ProviderDashboardScreen() {
     if (authLoading || !session?.user?.id || !canAccessProviderDashboard) return;
 
     fetchJobs();
-    pollRef.current = setInterval(fetchJobs, 10000);
+    pollRef.current = setInterval(() => {
+      if (!jobsFetchingRef.current) fetchJobs();
+    }, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [authLoading, canAccessProviderDashboard, fetchJobs, session?.user?.id]);
 

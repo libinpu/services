@@ -32,9 +32,15 @@ export default function NearbyRequestsScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const requestsFetchingRef = useRef(false);
 
   const fetchRequests = useCallback(async () => {
-    if (!session?.user?.id) { setLoading(false); return; }
+    if (!session?.user?.id) {
+      setLoading(false);
+      return;
+    }
+    if (requestsFetchingRef.current) return;
+    requestsFetchingRef.current = true;
     try {
       setError(null);
 
@@ -59,8 +65,9 @@ export default function NearbyRequestsScreen() {
         // or are assigned to this provider (so they can accept from here too)
         const bookingRes = await supabase
           .from('bookings')
-          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
+          .select('*, subcategory:service_subcategories(id, name_en, name_ml, category_id), address:addresses(id, label, address_line, area, district, latitude, longitude)')
           .eq('status', 'pending')
+          .or(`provider_id.is.null,provider_id.eq.${session.user.id}`)
           .order('created_at', { ascending: false })
           .limit(30);
 
@@ -99,6 +106,7 @@ export default function NearbyRequestsScreen() {
     } catch (e: any) {
       setError(e.message || 'Failed to load requests');
     } finally {
+      requestsFetchingRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
@@ -106,7 +114,9 @@ export default function NearbyRequestsScreen() {
 
   useEffect(() => {
     fetchRequests();
-    pollRef.current = setInterval(fetchRequests, 8000);
+    pollRef.current = setInterval(() => {
+      if (!requestsFetchingRef.current) fetchRequests();
+    }, 8000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchRequests]);
 
