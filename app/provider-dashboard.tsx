@@ -120,7 +120,7 @@ export default function ProviderDashboardScreen() {
     if (authLoading || !session?.user?.id) return;
 
     fetchData();
-    pollRef.current = setInterval(fetchData, 10000);
+    pollRef.current = setInterval(fetchData, 30000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [authLoading, session?.user?.id, fetchData]);
 

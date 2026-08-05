@@ -469,12 +469,12 @@ export default function BookingDetailScreen() {
   useEffect(() => {
     fetchBooking();
     fetchChat();
-    // Poll every 8 s (was 5 s) — reduces background DB load by 37%
-    // while still keeping the UI responsive to status changes
+    // Poll less frequently to reduce DB load while still keeping status updates usable.
+    // The detail view only needs a refresh when the user is actively viewing it.
     pollRef.current = setInterval(() => {
       if (!bookingFetchingRef.current) fetchBooking();
       if (!chatFetchingRef.current) fetchChat();
-    }, 8000);
+    }, 20000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
