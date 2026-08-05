@@ -460,6 +460,12 @@ export default function ProviderJobDetailScreen() {
           </View>
         )}
 
+        {status === 'arrived' && booking.otp_verified && (
+          <View style={styles.actionSection}>
+            <Button label={t('takeStartSelfie')} onPress={() => setShowSelfieModal('start')} style={styles.actionBtn} />
+          </View>
+        )}
+
         {status === 'in_progress' && (
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>

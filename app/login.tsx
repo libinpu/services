@@ -7,8 +7,9 @@ import { useAuth } from '@/lib/auth-context';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Button, Input } from '@/components/ui';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Wrench } from 'lucide-react-native';
+import * as Location from 'expo-location';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -207,6 +208,36 @@ export default function LoginScreen() {
     },
   });
 
+  const handleLocationPermission = async (userId: string) => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      // Check if user is a provider
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profile?.role === 'provider') {
+        await supabase
+          .from('provider_profiles')
+          .update({
+            latitude,
+            longitude,
+            last_location_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+      }
+    } catch (err) {
+      console.log('Location permission error on login:', err);
+    }
+  };
+
   const handleSubmit = async () => {
     setError(null);
 
@@ -224,12 +255,26 @@ export default function LoginScreen() {
     try {
       if (mode === 'signin') {
         const { error } = await signIn(email.trim(), password);
-        if (error) setError(error);
-        else router.replace('/(tabs)');
+        if (error) {
+          setError(error);
+        } else {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+            await handleLocationPermission(session.user.id);
+          }
+          router.replace('/(tabs)');
+        }
       } else {
         const { error } = await signUp(email.trim(), password, fullName.trim(), phone.trim());
-        if (error) setError(error);
-        else router.replace('/(tabs)');
+        if (error) {
+          setError(error);
+        } else {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+            await handleLocationPermission(session.user.id);
+          }
+          router.replace('/(tabs)');
+        }
       }
     } finally {
       setLoading(false);
@@ -244,6 +289,10 @@ export default function LoginScreen() {
     if (googleError) {
       setError(googleError);
     } else {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        await handleLocationPermission(session.user.id);
+      }
       router.replace('/(tabs)');
     }
   };

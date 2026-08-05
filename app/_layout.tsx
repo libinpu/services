@@ -94,7 +94,9 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
+  // Do not block the whole app while remote fonts finish loading.
+  // This keeps the first screen responsive and avoids long blank startup periods.
+  if (Platform.OS !== 'web' && !fontsLoaded && !fontError) {
     return null;
   }
 

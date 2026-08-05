@@ -1,0 +1,16 @@
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_SUPABASE_URL
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Web Bundling failed 21507ms node_modules\expo-router\entry.js (2625 modules)
+
+SyntaxError: SyntaxError: C:\Users\libin\Desktop\services\app\provider-job\[id].tsx: Unexpected token (202:1)
+
+[0m [90m 200 |[39m     [36mconst[39m enteredOtp [33m=[39m otpInput[33m.[39mjoin([32m''[39m)[33m;[39m
+ [90m 201 |[39m     [36mif[39m (enteredOtp [33m===[39m booking[33m.[39motp) {
+[31m[1m>[22m[39m[90m 202 |[39m [33m<<[39m[33m<<[39m[33m<<[39m[33m<[39m [33mHEAD[39m
+ [90m     |[39m  [31m[1m^[22m[39m
+ [90m 203 |[39m       [36mawait[39m supabase[33m.[39m[36mfrom[39m([32m'bookings'[39m)[33m.[39mupdate({
+ [90m 204 |[39m         otp_verified[33m:[39m [36mtrue[39m[33m,[39m updated_at[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()[33m,[39m
+ [90m 205 |[39m       })[33m.[39meq([32m'id'[39m[33m,[39m id)[33m;[39m[0m
