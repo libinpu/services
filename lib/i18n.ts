@@ -153,6 +153,7 @@ const translations = {
     card: 'Card',
     wallet: 'Wallet',
     confirmBooking: 'Confirm Booking',
+    selectAddressFirst: 'Please select an address before confirming.',
 
     // Tracking
     providerAccepted: 'Provider Accepted!',
@@ -463,6 +464,7 @@ const translations = {
     card: 'കാർഡ്',
     wallet: 'വാലറ്റ്',
     confirmBooking: 'ബുക്കിംഗ് സ്ഥിരീകരിക്കുക',
+    selectAddressFirst: 'ദയവായി സ്ഥിരീകരിക്കുന്നതിന് മുമ്പ് ഒരു വിലാസം തിരഞ്ഞെടുക്കുക.',
 
     providerAccepted: 'പ്രൊവൈഡർ സ്വീകരിച്ചു!',
     providerOnTheWay: 'നിങ്ങളുടെ പ്രൊവൈഡർ വരുന്നു',
