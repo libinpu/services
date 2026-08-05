@@ -33,7 +33,6 @@ export default function ProviderDashboardScreen() {
   const [selectedJob, setSelectedJob] = useState<BookingWithDetails | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const jobsFetchingRef = useRef(false);
 
   const hasProviderProfile = !!providerProfile?.provider_profile;
@@ -78,7 +77,8 @@ export default function ProviderDashboardScreen() {
     }
   }, [session?.user?.id]);
 
-  // Fetch all 3 booking lists in parallel — called on mount + every poll
+  // Load jobs once when the dashboard opens. Job actions explicitly refresh this
+  // data; background polling of these RLS-protected joins overwhelmed Postgres.
   const fetchJobs = useCallback(async () => {
     if (!session?.user?.id) return;
     if (jobsFetchingRef.current) return;
@@ -119,10 +119,8 @@ export default function ProviderDashboardScreen() {
   useEffect(() => {
     if (authLoading || !session?.user?.id) return;
 
-    fetchData();
-    pollRef.current = setInterval(fetchData, 10000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [authLoading, session?.user?.id, fetchData]);
+    void Promise.all([fetchData(), fetchJobs()]);
+  }, [authLoading, session?.user?.id, fetchData, fetchJobs]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -239,7 +237,7 @@ export default function ProviderDashboardScreen() {
       }
     }
     await supabase.from('provider_profiles').update(updateData).eq('id', session.user.id);
-    fetchData();
+    void fetchData();
   };
 
   const handleAcceptJob = async (jobId: string) => {
@@ -247,7 +245,7 @@ export default function ProviderDashboardScreen() {
     await supabase.from('bookings').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', jobId);
     setActionLoading(false);
     setShowJobModal(false);
-    fetchData();
+    void Promise.all([fetchData(), fetchJobs()]);
   };
 
   const handleRejectJob = async (jobId: string) => {
@@ -255,7 +253,7 @@ export default function ProviderDashboardScreen() {
     await supabase.from('bookings').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', jobId);
     setActionLoading(false);
     setShowJobModal(false);
-    fetchData();
+    void Promise.all([fetchData(), fetchJobs()]);
   };
 
   if (loading) return <LoadingState label={t('loading')} />;

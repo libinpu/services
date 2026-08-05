@@ -37,7 +37,6 @@ export default function ProviderJobDetailScreen() {
   const [submittingBill, setSubmittingBill] = useState(false);
   const billFileRef = useRef<HTMLInputElement>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bookingFetchingRef = useRef(false);
   const liveLocation = useProviderLocation(['accepted', 'on_the_way', 'arrived'].includes(booking?.status || ''));
   const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
@@ -82,11 +81,7 @@ export default function ProviderJobDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-    fetchBooking();
-    pollRef.current = setInterval(() => {
-      if (!bookingFetchingRef.current) fetchBooking();
-    }, 8000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    void fetchBooking();
   }, [fetchBooking]);
 
   const styles = StyleSheet.create({

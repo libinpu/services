@@ -40,6 +40,26 @@ const SCREEN_PADDING = spacing.lg;
 const CARD_GAP = spacing.sm;
 const NUM_COLUMNS = 4;
 const CATEGORY_TILE_SIZE = (width - SCREEN_PADDING * 2 - CARD_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
+const HOME_DATA_TIMEOUT_MS = 12_000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Unable to load services. Check your connection and try again.'));
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timeout);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      }
+    );
+  });
+}
 
 const iconMap: Record<string, any> = {
   Wrench, Zap, Wind, Hammer, Paintbrush, Sparkles, Bug, Refrigerator, Scissors,
@@ -121,10 +141,13 @@ export default function HomeScreen() {
         return;
       }
 
-      const [catsRes, groupsRes] = await Promise.all([
-        supabase.from('service_categories').select('*').order('name_en'),
-        supabase.from('service_category_groups').select('*').order('name_en'),
-      ]);
+      const [catsRes, groupsRes] = await withTimeout(
+        Promise.all([
+          supabase.from('service_categories').select('*').order('name_en'),
+          supabase.from('service_category_groups').select('*').order('name_en'),
+        ]),
+        HOME_DATA_TIMEOUT_MS
+      );
 
       if (catsRes.error) throw catsRes.error;
       if (groupsRes.error) throw groupsRes.error;

@@ -41,7 +41,6 @@ export default function BookingDetailScreen() {
   const [otpInput, setOtpInput] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -467,17 +466,8 @@ export default function BookingDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-    fetchBooking();
-    fetchChat();
-    // Poll every 8 s (was 5 s) — reduces background DB load by 37%
-    // while still keeping the UI responsive to status changes
-    pollRef.current = setInterval(() => {
-      if (!bookingFetchingRef.current) fetchBooking();
-      if (!chatFetchingRef.current) fetchChat();
-    }, 8000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
+    void fetchBooking();
+    void fetchChat();
   }, [fetchBooking, fetchChat]);
 
   const handleSendMessage = async () => {

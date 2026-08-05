@@ -43,10 +43,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 24,
     borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   title: {

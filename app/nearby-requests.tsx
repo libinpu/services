@@ -32,7 +32,6 @@ export default function NearbyRequestsScreen() {
   const [showModal, setShowModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const requestsFetchingRef = useRef(false);
   const liveLocation = useProviderLocation(true);
   const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
@@ -144,11 +143,7 @@ export default function NearbyRequestsScreen() {
       return;
     }
 
-    fetchRequests();
-    pollRef.current = setInterval(() => {
-      if (!requestsFetchingRef.current) fetchRequests();
-    }, 8000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    void fetchRequests();
   }, [authLoading, session?.user?.id, fetchRequests]);
 
   const handleRefresh = () => {
