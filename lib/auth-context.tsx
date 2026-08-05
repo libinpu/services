@@ -35,35 +35,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    let isActive = true;
+
+    const initializeAuth = async () => {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      if (!isActive) return;
+
       setSession(s as AuthContextValue['session']);
+
       if (s?.user?.id) {
-        fetchProfile(s.user.id).finally(() => setLoading(false));
+        void fetchProfile(s.user.id);
       } else {
-        setLoading(false);
+        setProfile(null);
       }
-    });
+
+      setLoading(false);
+    };
+
+    void initializeAuth();
 
     // onAuthStateChange is registered only once on mount.
     // Keeping session?.user?.id in the dep array would re-register this
     // listener on every login, creating duplicate subscriptions.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      if (!isActive) return;
+
       setSession(s as AuthContextValue['session']);
       if (s?.user?.id) {
-        (async () => {
-          await fetchProfile(s.user.id);
-          setLoading(false);
-        })();
+        void fetchProfile(s.user.id);
       } else {
         setProfile(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => {
+      isActive = false;
       subscription.unsubscribe();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchProfile]);
 
   const signIn = useCallback(async (email: string, password: string) => {

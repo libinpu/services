@@ -48,7 +48,7 @@ export default function ProviderDashboardScreen() {
     if (!session?.user?.id) { setLoading(false); return; }
     try {
       setError(null);
-      const [appRes, provRes, pendingRes, activeRes, pastRes] = await Promise.all([
+      const [appRes, provRes] = await Promise.all([
         supabase
           .from('provider_applications')
           .select('*')
