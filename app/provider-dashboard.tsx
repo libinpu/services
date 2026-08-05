@@ -39,49 +39,48 @@ export default function ProviderDashboardScreen() {
     if (!session?.user?.id) { setLoading(false); return; }
     try {
       setError(null);
-      const appRes = await supabase
-        .from('provider_applications')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (appRes.data) setApplication(appRes.data as ProviderApplication);
+      const [appRes, provRes, pendingRes, activeRes, pastRes] = await Promise.all([
+        supabase
+          .from('provider_applications')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('*, provider_profile:provider_profiles(*)')
+          .eq('id', session.user.id)
+          .maybeSingle(),
+        supabase
+          .from('bookings')
+          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
+          .eq('provider_id', session.user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('bookings')
+          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
+          .eq('provider_id', session.user.id)
+          .in('status', ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'])
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('bookings')
+          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
+          .eq('provider_id', session.user.id)
+          .in('status', ['completed', 'cancelled', 'rejected'])
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ]);
 
-      const provRes = await supabase
-        .from('profiles')
-        .select('*, provider_profile:provider_profiles(*)')
-        .eq('id', session.user.id)
-        .maybeSingle();
+      if (appRes.data) setApplication(appRes.data as ProviderApplication);
       if (provRes.data) {
         setProviderProfile(provRes.data as ProviderWithProfile);
         const pp = (provRes.data as any).provider_profile;
         if (pp) setIsOnline(pp.is_online);
       }
-
-      const pendingRes = await supabase
-        .from('bookings')
-        .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
-        .eq('provider_id', session.user.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
       if (pendingRes.data) setPendingJobs(pendingRes.data as BookingWithDetails[]);
-
-      const activeRes = await supabase
-        .from('bookings')
-        .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
-        .eq('provider_id', session.user.id)
-        .in('status', ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'])
-        .order('created_at', { ascending: false });
       if (activeRes.data) setActiveJobs(activeRes.data as BookingWithDetails[]);
-
-      const pastRes = await supabase
-        .from('bookings')
-        .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
-        .eq('provider_id', session.user.id)
-        .in('status', ['completed', 'cancelled', 'rejected'])
-        .order('created_at', { ascending: false })
-        .limit(20);
       if (pastRes.data) setPastJobs(pastRes.data as BookingWithDetails[]);
     } catch (e: any) {
       setError(e.message || 'Failed to load');

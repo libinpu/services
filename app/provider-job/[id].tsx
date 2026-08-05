@@ -38,6 +38,8 @@ export default function ProviderJobDetailScreen() {
   const billFileRef = useRef<HTMLInputElement>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasLoadedRef = useRef(false);
+  const retryCountRef = useRef(0);
   const liveLocation = useProviderLocation(['accepted', 'on_the_way', 'arrived'].includes(booking?.status || ''));
   const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -57,7 +59,7 @@ export default function ProviderJobDetailScreen() {
     return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
   }, [session?.user?.id]);
 
-  const fetchBooking = useCallback(async () => {
+  const fetchBooking = useCallback(async (isInitial = false) => {
     try {
       setError(null);
       const { data, error: bookingError } = await supabase
@@ -66,17 +68,26 @@ export default function ProviderJobDetailScreen() {
         .eq('id', id)
         .maybeSingle();
       if (bookingError) throw bookingError;
-      setBooking(data as BookingWithDetails);
+      if (data) {
+        hasLoadedRef.current = true;
+        setBooking(data as BookingWithDetails);
+      } else if (isInitial && !hasLoadedRef.current) {
+        retryCountRef.current += 1;
+        if (retryCountRef.current < 5) {
+          setTimeout(() => fetchBooking(true), 1500);
+          return;
+        }
+      }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
     } finally {
-      setLoading(false);
+      if (hasLoadedRef.current || retryCountRef.current >= 5) setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    fetchBooking();
-    pollRef.current = setInterval(fetchBooking, 5000);
+    fetchBooking(true);
+    pollRef.current = setInterval(() => fetchBooking(false), 5000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchBooking]);
 
