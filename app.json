@@ -20,8 +20,7 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-splash-screen",
-      "expo-status-bar"
+      "expo-splash-screen"
     ],
     "experiments": {
       "typedRoutes": true

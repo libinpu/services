@@ -33,9 +33,7 @@ export default function NearbyRequestsScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-<<<<<<< HEAD
   const requestsFetchingRef = useRef(false);
-=======
   const liveLocation = useProviderLocation(true);
   const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -55,7 +53,6 @@ export default function NearbyRequestsScreen() {
     }, 10000);
     return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
   }, [session?.user?.id]);
->>>>>>> 8cf69ae05f9875d44796f3ea2d65c6fe9919a3a4
 
   const fetchRequests = useCallback(async () => {
     if (!session?.user?.id) {

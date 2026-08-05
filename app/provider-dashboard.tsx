@@ -36,7 +36,6 @@ export default function ProviderDashboardScreen() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const jobsFetchingRef = useRef(false);
 
-<<<<<<< HEAD
   const hasProviderProfile = !!providerProfile?.provider_profile;
   const isProviderRole = profile?.role === 'provider';
   const isProviderUser =
@@ -45,13 +44,8 @@ export default function ProviderDashboardScreen() {
     application?.status === 'approved';
   const canAccessProviderDashboard = isProviderUser;
 
-  // Fetch provider profile + application once on mount — these change rarely
-  const fetchProfile = useCallback(async () => {
-    if (!session?.user?.id) return;
-=======
   const fetchData = useCallback(async () => {
     if (!session?.user?.id) { setLoading(false); return; }
->>>>>>> 8cf69ae05f9875d44796f3ea2d65c6fe9919a3a4
     try {
       setError(null);
       const [appRes, provRes, pendingRes, activeRes, pastRes] = await Promise.all([
@@ -67,7 +61,6 @@ export default function ProviderDashboardScreen() {
           .select('*, provider_profile:provider_profiles(*)')
           .eq('id', session.user.id)
           .maybeSingle(),
-<<<<<<< HEAD
       ]);
       setApplication(appRes.data ? (appRes.data as ProviderApplication) : null);
       if (provRes.data) {
@@ -90,8 +83,6 @@ export default function ProviderDashboardScreen() {
     jobsFetchingRef.current = true;
     try {
       const [pendingRes, activeRes, pastRes] = await Promise.all([
-=======
->>>>>>> 8cf69ae05f9875d44796f3ea2d65c6fe9919a3a4
         supabase
           .from('bookings')
           .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
@@ -113,79 +104,23 @@ export default function ProviderDashboardScreen() {
           .limit(20),
       ]);
 
-      if (appRes.data) setApplication(appRes.data as ProviderApplication);
-      if (provRes.data) {
-        setProviderProfile(provRes.data as ProviderWithProfile);
-        const pp = (provRes.data as any).provider_profile;
-        if (pp) setIsOnline(pp.is_online);
-      }
       if (pendingRes.data) setPendingJobs(pendingRes.data as BookingWithDetails[]);
       if (activeRes.data) setActiveJobs(activeRes.data as BookingWithDetails[]);
       if (pastRes.data) setPastJobs(pastRes.data as BookingWithDetails[]);
     } catch (e: any) {
-<<<<<<< HEAD
       // non-blocking
     } finally {
       jobsFetchingRef.current = false;
-=======
-      setError(e.message || 'Failed to load');
-    } finally {
-      setLoading(false);
->>>>>>> 8cf69ae05f9875d44796f3ea2d65c6fe9919a3a4
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
-<<<<<<< HEAD
-    let active = true;
-
-    const loadProfile = async () => {
-      await fetchProfile();
-      if (active) {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-
-    return () => {
-      active = false;
-    };
-  }, [fetchProfile]);
-
-  useEffect(() => {
-    if (!session?.user?.id || profileRefreshed || refreshingProfile) return;
-    if (!refreshProfile) return;
-
-    if ((application?.status === 'approved' || hasProviderProfile) && !isProviderRole) {
-      const refresh = async () => {
-        setRefreshingProfile(true);
-        try {
-          await refreshProfile();
-        } finally {
-          setRefreshingProfile(false);
-          setProfileRefreshed(true);
-        }
-      };
-      refresh();
-    }
-  }, [session?.user?.id, application?.status, hasProviderProfile, isProviderRole, refreshProfile, profileRefreshed, refreshingProfile]);
-
-  const isInitializing = authLoading || loading || refreshingProfile;
-
-  useEffect(() => {
     if (authLoading || !session?.user?.id || !canAccessProviderDashboard) return;
 
-    fetchJobs();
-    pollRef.current = setInterval(() => {
-      if (!jobsFetchingRef.current) fetchJobs();
-    }, 10000);
-=======
     fetchData();
-    pollRef.current = setInterval(fetchData, 8000);
->>>>>>> 8cf69ae05f9875d44796f3ea2d65c6fe9919a3a4
+    pollRef.current = setInterval(fetchData, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [fetchData]);
+  }, [authLoading, canAccessProviderDashboard, fetchData]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
