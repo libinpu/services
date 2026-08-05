@@ -16,7 +16,7 @@ import {
 
 export default function ProviderDashboardScreen() {
   const { t, lang } = useLanguage();
-  const { session, profile } = useAuth();
+  const { session, profile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { isDark } = useTheme();
 
