@@ -40,6 +40,7 @@ export default function ProviderJobDetailScreen() {
   const bookingFetchingRef = useRef(false);
   const liveLocation = useProviderLocation(['accepted', 'on_the_way', 'arrived'].includes(booking?.status || ''));
   const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+  const lastSyncedLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -50,10 +51,13 @@ export default function ProviderJobDetailScreen() {
     if (!session?.user?.id) return;
     dbSyncRef.current = setInterval(async () => {
       const { lat, lng } = liveLocRef.current;
-      if (lat != null && lng != null) {
+      const previous = lastSyncedLocationRef.current;
+      const moved = !previous || Math.abs(previous.lat - lat!) > 0.0001 || Math.abs(previous.lng - lng!) > 0.0001;
+      if (lat != null && lng != null && moved) {
         await updateProviderLocationInDb(supabase, session.user.id, lat, lng);
+        lastSyncedLocationRef.current = { lat, lng };
       }
-    }, 10000);
+    }, 20000);
     return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
   }, [session?.user?.id]);
 

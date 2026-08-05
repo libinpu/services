@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
+import { cache } from '@/lib/cache';
+import { dedupeRequest } from '@/lib/query';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { LoadingState, ErrorState, Button } from '@/components/ui';
@@ -47,23 +49,35 @@ export default function ProviderDashboardScreen() {
     if (!session?.user?.id) { setLoading(false); return; }
     try {
       setError(null);
-      const [appRes, provRes] = await Promise.all([
+      const cacheKey = `provider-dashboard:${session.user.id}`;
+      const cached = cache.get<{ application: ProviderApplication | null; profile: ProviderWithProfile | null }>(cacheKey);
+      if (cached) {
+        setApplication(cached.application);
+        setProviderProfile(cached.profile);
+        setIsOnline(cached.profile?.provider_profile?.is_online ?? false);
+        setLoading(false);
+        return;
+      }
+      const [appRes, provRes] = await dedupeRequest(cacheKey, () => Promise.all([
         supabase
           .from('provider_applications')
-          .select('*')
+          .select('id, user_id, category_ids, specializations, experience_years, bio_en, bio_ml, id_proof_url, certificate_url, address_proof_url, status, admin_notes, submitted_at, reviewed_at, created_at, updated_at')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase
           .from('profiles')
-          .select('*, provider_profile:provider_profiles(*)')
+          .select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at, provider_profile:provider_profiles(id, category_ids, specializations, experience_years, is_verified, background_check_status, rating_avg, rating_count, jobs_completed, is_online, price_per_hour, zone_id, bio_en, bio_ml, latitude, longitude, last_location_at, created_at, updated_at)')
           .eq('id', session.user.id)
           .maybeSingle(),
-      ]);
-      setApplication(appRes.data ? (appRes.data as ProviderApplication) : null);
+      ]));
+      const nextApplication = appRes.data ? (appRes.data as ProviderApplication) : null;
+      const nextProfile = provRes.data ? (provRes.data as unknown as ProviderWithProfile) : null;
+      cache.set(cacheKey, { application: nextApplication, profile: nextProfile }, 5 * 60 * 1000);
+      setApplication(nextApplication);
       if (provRes.data) {
-        setProviderProfile(provRes.data as ProviderWithProfile);
+        setProviderProfile(nextProfile);
         const pp = (provRes.data as any).provider_profile;
         setIsOnline(pp?.is_online ?? false);
       } else {
@@ -84,31 +98,17 @@ export default function ProviderDashboardScreen() {
     if (jobsFetchingRef.current) return;
     jobsFetchingRef.current = true;
     try {
-      const [pendingRes, activeRes, pastRes] = await Promise.all([
-        supabase
-          .from('bookings')
-          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
-          .eq('provider_id', session.user.id)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('bookings')
-          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
-          .eq('provider_id', session.user.id)
-          .in('status', ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'])
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('bookings')
-          .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*), booking_items(*), reviews(*)`)
-          .eq('provider_id', session.user.id)
-          .in('status', ['completed', 'cancelled', 'rejected'])
-          .order('created_at', { ascending: false })
-          .limit(20),
-      ]);
-
-      if (pendingRes.data) setPendingJobs(pendingRes.data as BookingWithDetails[]);
-      if (activeRes.data) setActiveJobs(activeRes.data as BookingWithDetails[]);
-      if (pastRes.data) setPastJobs(pastRes.data as BookingWithDetails[]);
+      const { data, error: jobsError } = await supabase
+        .from('bookings')
+        .select('id, customer_id, provider_id, subcategory_id, address_id, status, scheduled_at, booking_mode, estimated_cost, final_cost, payment_method, payment_status, created_at, updated_at, estimated_eta_mins, distance_km, subcategory:service_subcategories(id, name_en, name_ml), address:addresses(id, address_line, area, district)')
+        .eq('provider_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (jobsError) throw jobsError;
+      const jobs = (data || []) as unknown as BookingWithDetails[];
+      setPendingJobs(jobs.filter((job) => job.status === 'pending'));
+      setActiveJobs(jobs.filter((job) => ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(job.status)));
+      setPastJobs(jobs.filter((job) => ['completed', 'cancelled', 'rejected'].includes(job.status)).slice(0, 20));
     } catch (e: any) {
       // non-blocking
     } finally {
@@ -121,6 +121,30 @@ export default function ProviderDashboardScreen() {
 
     void Promise.all([fetchData(), fetchJobs()]);
   }, [authLoading, session?.user?.id, fetchData, fetchJobs]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const channel = supabase
+      .channel(`provider-dashboard-bookings:${session.user.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'bookings', filter: `provider_id=eq.${session.user.id}`,
+      }, ({ new: row }) => {
+        const update = row as Partial<BookingWithDetails>;
+        const isActive = ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(update.status || '');
+        const isHistory = ['completed', 'cancelled', 'rejected'].includes(update.status || '');
+        setPendingJobs((items) => update.status === 'pending'
+          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
+          : items.filter((item) => item.id !== update.id));
+        setActiveJobs((items) => isActive
+          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
+          : items.filter((item) => item.id !== update.id));
+        setPastJobs((items) => isHistory
+          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
+          : items.filter((item) => item.id !== update.id));
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [session?.user?.id]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -237,23 +261,34 @@ export default function ProviderDashboardScreen() {
       }
     }
     await supabase.from('provider_profiles').update(updateData).eq('id', session.user.id);
+    cache.invalidate(`provider-dashboard:${session.user.id}`);
     void fetchData();
   };
 
   const handleAcceptJob = async (jobId: string) => {
     setActionLoading(true);
-    await supabase.from('bookings').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', jobId);
+    const updatedAt = new Date().toISOString();
+    await supabase.from('bookings').update({ status: 'accepted', updated_at: updatedAt }).eq('id', jobId);
+    setPendingJobs((current) => {
+      const job = current.find((entry) => entry.id === jobId);
+      if (job) setActiveJobs((active) => [{ ...job, status: 'accepted' as const, updated_at: updatedAt }, ...active]);
+      return current.filter((entry) => entry.id !== jobId);
+    });
     setActionLoading(false);
     setShowJobModal(false);
-    void Promise.all([fetchData(), fetchJobs()]);
   };
 
   const handleRejectJob = async (jobId: string) => {
     setActionLoading(true);
-    await supabase.from('bookings').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', jobId);
+    const updatedAt = new Date().toISOString();
+    await supabase.from('bookings').update({ status: 'rejected', updated_at: updatedAt }).eq('id', jobId);
+    setPendingJobs((current) => {
+      const job = current.find((entry) => entry.id === jobId);
+      if (job) setPastJobs((past) => [{ ...job, status: 'rejected' as const, updated_at: updatedAt }, ...past].slice(0, 20));
+      return current.filter((entry) => entry.id !== jobId);
+    });
     setActionLoading(false);
     setShowJobModal(false);
-    void Promise.all([fetchData(), fetchJobs()]);
   };
 
   if (loading) return <LoadingState label={t('loading')} />;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -47,10 +47,6 @@ export default function AdminScreen() {
 
   // Modal State
   const [selectedProvider, setSelectedProvider] = useState<ProviderProfile | null>(null);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const styles = StyleSheet.create({
     container: {
@@ -398,19 +394,30 @@ export default function AdminScreen() {
     },
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch Profiles
-      const { data: profData } = await supabase.from('profiles').select('*');
+      // Admin data is bounded and loaded concurrently. Do not use this screen
+      // for unbounded table scans; pagination/server summaries belong in an RPC.
+      const [profilesResult, providersResult, bookingsResult] = await Promise.all([
+        supabase.from('profiles')
+          .select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at')
+          .order('created_at', { ascending: false }).limit(200),
+        supabase.from('provider_profiles')
+          .select('id, category_ids, specializations, experience_years, is_verified, background_check_status, rating_avg, rating_count, jobs_completed, is_online, price_per_hour, zone_id, bio_en, bio_ml, id_proof_url, address_proof_url, police_verification_url, latitude, longitude, last_location_at, created_at, updated_at')
+          .order('created_at', { ascending: false }).limit(200),
+        supabase.from('bookings')
+          .select('id, customer_id, provider_id, subcategory_id, address_id, zone_id, status, scheduled_at, booking_mode, estimated_cost, final_cost, payment_method, payment_status, otp, otp_verified, started_at, completed_at, cancelled_at, cancellation_reason, created_at, updated_at, estimated_eta_mins, distance_km')
+          .order('created_at', { ascending: false }).limit(200),
+      ]);
+      if (profilesResult.error) throw profilesResult.error;
+      if (providersResult.error) throw providersResult.error;
+      if (bookingsResult.error) throw bookingsResult.error;
+      const profData = profilesResult.data;
+      const provData = providersResult.data;
+      const bookData = bookingsResult.data;
       if (profData) setProfiles(profData);
-
-      // Fetch Provider Profiles
-      const { data: provData } = await supabase.from('provider_profiles').select('*');
       if (provData) setProviders(provData);
-
-      // Fetch Bookings
-      const { data: bookData } = await supabase.from('bookings').select('*');
       if (bookData) setBookings(bookData);
     } catch (error) {
       console.warn('Admin fetch error:', error);
@@ -418,7 +425,11 @@ export default function AdminScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const handleUpdateProviderStatus = async (provId: string, isVerified: boolean, status: 'approved' | 'rejected') => {
     try {

@@ -414,23 +414,25 @@ export default function BookingDetailScreen() {
     try {
       setError(null);
 
-      // Single query: booking + all relations + provider_profiles nested join
-      // Eliminates the second sequential round-trip for the provider profile
+      // Detail-only projection: avoid expanding every column on five tables.
       const { data, error: bookingError } = await supabase
         .from('bookings')
         .select(`
-          *,
-          subcategory:service_subcategories(*),
-          address:addresses(*),
-          provider:profiles!bookings_provider_id_fkey(*, provider_profile:provider_profiles(*)),
-          booking_items(*),
-          reviews(*)
+          id, customer_id, provider_id, subcategory_id, address_id, status, scheduled_at,
+          booking_mode, estimated_cost, final_cost, payment_method, payment_status, otp,
+          otp_verified, started_at, completed_at, cancelled_at, cancellation_reason,
+          created_at, updated_at, estimated_eta_mins, distance_km, start_selfie_url, end_selfie_url,
+          subcategory:service_subcategories(id, name_en, name_ml, base_price, estimated_time_mins),
+          address:addresses(id, label, address_line, area, city, district, state, pincode, latitude, longitude),
+          provider:profiles!bookings_provider_id_fkey(id, full_name, avatar_url, provider_profile:provider_profiles(rating_avg, jobs_completed, is_verified, latitude, longitude)),
+          booking_items(id, booking_id, description_en, description_ml, amount, is_approved_by_customer, bill_photo_url, created_at),
+          reviews(id, booking_id, customer_id, provider_id, rating, tags, comment, photo_url, created_at)
         `)
         .eq('id', id)
         .maybeSingle();
 
       if (bookingError) throw bookingError;
-      setBooking(data as BookingWithDetails);
+      setBooking(data as unknown as BookingWithDetails);
 
       // Provider profile is now embedded in the booking query — no second fetch needed
       if (data?.provider) {
@@ -470,14 +472,46 @@ export default function BookingDetailScreen() {
     void fetchChat();
   }, [fetchBooking, fetchChat]);
 
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`booking-detail:${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${id}` }, ({ new: row }) => {
+        setBooking((current) => current ? { ...current, ...(row as Partial<BookingWithDetails>) } : current);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'booking_items', filter: `booking_id=eq.${id}` }, (payload) => {
+        setBooking((current) => {
+          if (!current) return current;
+          const item = payload.new as any;
+          const previous = payload.old as any;
+          const booking_items = payload.eventType === 'DELETE'
+            ? current.booking_items.filter((entry) => entry.id !== previous.id)
+            : [...current.booking_items.filter((entry) => entry.id !== item.id), item];
+          return { ...current, booking_items };
+        });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `booking_id=eq.${id}` }, (payload) => {
+        setChatMessages((current) => {
+          const message = payload.new as ChatMessage;
+          const previous = payload.old as ChatMessage;
+          if (payload.eventType === 'DELETE') return current.filter((entry) => entry.id !== previous.id);
+          return [...current.filter((entry) => entry.id !== message.id), message].sort((a, b) => a.created_at.localeCompare(b.created_at));
+        });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [id]);
+
   const handleSendMessage = async () => {
     if (!chatInput.trim() || !session?.user?.id) return;
-    const { error: msgError } = await supabase
+    const { data: sentMessage, error: msgError } = await supabase
       .from('chat_messages')
-      .insert({ booking_id: id, sender_id: session.user.id, message: chatInput.trim() });
+      .insert({ booking_id: id, sender_id: session.user.id, message: chatInput.trim() })
+      .select('id, booking_id, sender_id, message, created_at')
+      .single();
     if (!msgError) {
       setChatInput('');
-      fetchChat();
+      if (sentMessage) setChatMessages((current) => [...current.filter((entry) => entry.id !== sentMessage.id), sentMessage as ChatMessage]);
     }
   };
 

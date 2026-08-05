@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from './supabase';
+import { cache } from './cache';
+import { dedupeRequest } from './query';
 import { signInWithGoogle as googleSignIn } from './google-auth';
 import type { Profile, Language } from './types';
 
@@ -23,14 +25,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
+    const cacheKey = `profile:${userId}`;
+    const cached = cache.get<Profile>(cacheKey);
+    if (cached) {
+      setProfile(cached);
+      return;
+    }
+    const { data, error } = await dedupeRequest(cacheKey, () => supabase
       .from('profiles')
-      .select('*')
+      .select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at')
       .eq('id', userId)
-      .maybeSingle();
+      .maybeSingle());
     if (error) {
       return;
     }
+    if (data) cache.set(cacheKey, data as Profile, 5 * 60 * 1000);
     setProfile(data as Profile | null);
   }, []);
 
@@ -61,9 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isActive) return;
 
       setSession(s as AuthContextValue['session']);
-      if (s?.user?.id) {
+      // TOKEN_REFRESHED is frequent and does not change the profile. Fetching it
+      // here created an otherwise invisible steady stream of profile queries.
+      if (s?.user?.id && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+        cache.invalidate(`profile:${s.user.id}`);
         void fetchProfile(s.user.id);
-      } else {
+      } else if (!s?.user?.id) {
         setProfile(null);
       }
       setLoading(false);
@@ -118,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('id', session.user.id);
     if (!error && profile) {
       setProfile({ ...profile, preferred_language: lang });
+      cache.set(`profile:${session.user.id}`, { ...profile, preferred_language: lang });
     }
   }, [session, profile]);
 

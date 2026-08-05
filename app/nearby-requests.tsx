@@ -35,6 +35,7 @@ export default function NearbyRequestsScreen() {
   const requestsFetchingRef = useRef(false);
   const liveLocation = useProviderLocation(true);
   const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+  const lastSyncedLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -46,10 +47,13 @@ export default function NearbyRequestsScreen() {
     if (!session?.user?.id) return;
     dbSyncRef.current = setInterval(async () => {
       const { lat, lng } = liveLocRef.current;
-      if (lat != null && lng != null) {
+      const previous = lastSyncedLocationRef.current;
+      const moved = !previous || Math.abs(previous.lat - lat!) > 0.0001 || Math.abs(previous.lng - lng!) > 0.0001;
+      if (lat != null && lng != null && moved) {
         await updateProviderLocationInDb(supabase, session.user.id, lat, lng);
+        lastSyncedLocationRef.current = { lat, lng };
       }
-    }, 10000);
+    }, 20000);
     return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
   }, [session?.user?.id]);
 
@@ -145,6 +149,19 @@ export default function NearbyRequestsScreen() {
 
     void fetchRequests();
   }, [authLoading, session?.user?.id, fetchRequests]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    // One scoped channel replaces the old 8-second list poll. The in-flight
+    // guard in fetchRequests coalesces bursts of booking events.
+    const channel = supabase
+      .channel(`nearby-pending-bookings:${session.user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: 'status=eq.pending' }, () => {
+        void fetchRequests();
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [session?.user?.id, fetchRequests]);
 
   const handleRefresh = () => {
     setRefreshing(true);
