@@ -7,12 +7,11 @@ import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { createRealtimeChannel } from '@/lib/realtime';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
-import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState } from '@/components/ui';
 import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
 import { useProviderLocation, updateProviderLocationInDb } from '@/lib/use-provider-location';
 import type { BookingWithDetails, ProviderWithProfile } from '@/lib/types';
-import { MapPin, Clock, Navigation, Check, X, Briefcase, Ruler, Star, ArrowLeft, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { MapPin, Clock, Navigation, Check, X, Briefcase, Ruler, CircleAlert as AlertCircle } from 'lucide-react-native';
 
 interface NearbyRequest extends BookingWithDetails {
   _distanceKm: number | null;
@@ -23,7 +22,7 @@ export default function NearbyRequestsScreen() {
   const { t, lang } = useLanguage();
   const { session, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { isDark } = useTheme();
+  const userId = session?.user?.id;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +64,12 @@ export default function NearbyRequestsScreen() {
         await updateProviderLocationInDb(supabase, session.user.id, lat, lng);
         lastSyncedLocationRef.current = { lat, lng };
       }
-    }, 20000);
+    }, 60000);
     return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
   }, [session?.user?.id]);
 
   const fetchRequests = useCallback(async () => {
-    if (!session?.user?.id) {
+    if (!userId || !providerProfile?.provider_profile) {
       setLoading(false);
       return;
     }
@@ -78,71 +77,54 @@ export default function NearbyRequestsScreen() {
     requestsFetchingRef.current = true;
     try {
       setError(null);
-
-      // Get provider profile with location + category_ids
-      const provRes = await supabase
-        .from('profiles')
-        .select('*, provider_profile:provider_profiles(*)')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (provRes.data) {
-        const pp = provRes.data as ProviderWithProfile;
-        setProviderProfile(pp);
-        const providerProfileData = (provRes.data as any).provider_profile;
-        if (!providerProfileData) {
-          setLoading(false);
-          requestsFetchingRef.current = false;
-          return;
-        }
-
-        const categoryIds: string[] = providerProfileData.category_ids || [];
-        // Prefer live GPS location; fall back to stored DB location
-        const provLat = liveLocRef.current.lat ?? providerProfileData.latitude;
-        const provLon = liveLocRef.current.lng ?? providerProfileData.longitude;
-
-        // Get all pending bookings that either have no provider assigned yet,
-        // or are assigned to this provider (so they can accept from here too)
-        const bookingRes = await supabase
-          .from('bookings')
-          .select('*, subcategory:service_subcategories(id, name_en, name_ml, category_id), address:addresses(id, label, address_line, area, district, latitude, longitude)')
-          .eq('status', 'pending')
-          .or(`provider_id.is.null,provider_id.eq.${session.user.id}`)
-          .order('created_at', { ascending: false })
-          .limit(30);
-
-        if (bookingRes.data) {
-          // Filter to bookings whose subcategory's category_id matches one of the provider's categories
-          const matched = (bookingRes.data as BookingWithDetails[]).filter((b) => {
-            const catId = b.subcategory?.category_id;
-            if (!catId) return false;
-            return categoryIds.includes(catId);
-          });
-
-          // Compute distance + ETA for each
-          const withDistance: NearbyRequest[] = matched.map((b) => {
-            const custLat = b.address?.latitude;
-            const custLon = b.address?.longitude;
-            let dist: number | null = null;
-            let eta: number | null = null;
-            if (provLat != null && provLon != null && custLat != null && custLon != null) {
-              dist = haversineKm(provLat, provLon, custLat, custLon);
-              eta = estimateEtaMins(dist);
-            }
-            return { ...b, _distanceKm: dist, _etaMins: eta };
-          });
-
-          // Sort by distance (closest first); nulls go last
-          withDistance.sort((a, b) => {
-            if (a._distanceKm == null && b._distanceKm == null) return 0;
-            if (a._distanceKm == null) return 1;
-            if (b._distanceKm == null) return -1;
-            return a._distanceKm - b._distanceKm;
-          });
-
-          setRequests(withDistance);
-        }
+      const providerProfileData = providerProfile.provider_profile;
+      if (!providerProfileData) {
+        setLoading(false);
+        requestsFetchingRef.current = false;
+        return;
       }
+
+      const categoryIds: string[] = providerProfileData.category_ids || [];
+      // Prefer live GPS location; fall back to stored DB location
+      const provLat = liveLocRef.current.lat ?? providerProfileData.latitude;
+      const provLon = liveLocRef.current.lng ?? providerProfileData.longitude;
+
+      // Get all pending bookings that either have no provider assigned yet,
+      // or are assigned to this provider (so they can accept from here too)
+      const bookingRes = await supabase
+        .from('bookings')
+        .select('*, subcategory:service_subcategories(id, name_en, name_ml, category_id), address:addresses(id, label, address_line, area, district, latitude, longitude)')
+        .eq('status', 'pending')
+        .or(`provider_id.is.null,provider_id.eq.${userId}`);
+
+      const matched = ((bookingRes.data as BookingWithDetails[]) || []).filter((b) => {
+        const catId = b.subcategory?.category_id;
+        if (!catId) return false;
+        return categoryIds.includes(catId);
+      });
+
+      // Compute distance + ETA for each
+      const withDistance: NearbyRequest[] = matched.map((b) => {
+        const custLat = b.address?.latitude;
+        const custLon = b.address?.longitude;
+        let dist: number | null = null;
+        let eta: number | null = null;
+        if (provLat != null && provLon != null && custLat != null && custLon != null) {
+          dist = haversineKm(provLat, provLon, custLat, custLon);
+          eta = estimateEtaMins(dist);
+        }
+        return { ...b, _distanceKm: dist, _etaMins: eta };
+      });
+
+      // Sort by distance (closest first); nulls go last
+      withDistance.sort((a, b) => {
+        if (a._distanceKm == null && b._distanceKm == null) return 0;
+        if (a._distanceKm == null) return 1;
+        if (b._distanceKm == null) return -1;
+        return a._distanceKm - b._distanceKm;
+      });
+
+      setRequests(withDistance);
     } catch (e: any) {
       setError(e.message || 'Failed to load requests');
     } finally {
@@ -150,17 +132,50 @@ export default function NearbyRequestsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [session?.user?.id]);
+  }, [userId, providerProfile]);
+
+  const fetchProviderProfile = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const provRes = await supabase
+        .from('profiles')
+        .select('*, provider_profile:provider_profiles(*)')
+        .eq('id', userId)
+        .maybeSingle();
+      if (provRes.data) {
+        setProviderProfile(provRes.data as ProviderWithProfile);
+      }
+    } catch (e: any) {
+      console.warn('Provider profile load failed', e.message || e);
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!session?.user?.id) {
-      setLoading(false);
-      return;
+    if (!userId) {
+      const timer = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(timer);
     }
 
-    void fetchRequests();
-  }, [authLoading, session?.user?.id, fetchRequests]);
+    const timer = setTimeout(() => {
+      void fetchProviderProfile();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [authLoading, userId, fetchProviderProfile]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!userId) {
+      const timer = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(timer);
+    }
+    if (!providerProfile) return;
+
+    const timer = setTimeout(() => {
+      void fetchRequests();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [authLoading, userId, providerProfile, fetchRequests]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
