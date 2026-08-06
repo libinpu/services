@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, TextInput, Modal, Pressable, Image,
+  TextInput, Modal, Pressable, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,21 +10,17 @@ import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { createRealtimeChannel } from '@/lib/realtime';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
-import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import { haversineKm, estimateEtaMins, formatEta } from '@/lib/distance';
 import type { BookingWithDetails, ChatMessage, ProviderWithProfile } from '@/lib/types';
-import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, Share2, User, Briefcase, Award, Image as ImageIcon, Receipt } from 'lucide-react-native';
-
-const { width, height } = Dimensions.get('window');
+import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, User, Receipt } from 'lucide-react-native';
 
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, lang } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
-  const { isDark } = useTheme();
 
   const [booking, setBooking] = useState<BookingWithDetails | null>(null);
   const [providerProfile, setProviderProfile] = useState<ProviderWithProfile | null>(null);
@@ -35,13 +31,10 @@ export default function BookingDetailScreen() {
   const [showChat, setShowChat] = useState(false);
   const bookingFetchingRef = useRef(false);
   const chatFetchingRef = useRef(false);
-  const [showTrackingMap, setShowTrackingMap] = useState(true);
+  const showTrackingMap = true;
   const [extraCharges, setExtraCharges] = useState<any[]>([]);
   const [showSos, setShowSos] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [otpInput, setOtpInput] = useState('');
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [verifying, setVerifying] = useState(false);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -469,8 +462,11 @@ export default function BookingDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-    void fetchBooking();
-    void fetchChat();
+    const loadData = async () => {
+      await fetchBooking();
+      await fetchChat();
+    };
+    void loadData();
   }, [fetchBooking, fetchChat]);
 
   useEffect(() => {
@@ -521,30 +517,6 @@ export default function BookingDetailScreen() {
       .update({ is_approved_by_customer: true })
       .eq('id', itemId);
     if (!error) fetchBooking();
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!booking?.otp) return;
-    setVerifying(true);
-    setOtpError(null);
-    if (otpInput.trim() === booking.otp) {
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          otp_verified: true,
-          status: 'in_progress',
-          started_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-      if (!error) {
-        setOtpInput('');
-        fetchBooking();
-      }
-    } else {
-      setOtpError('Incorrect OTP. Please check and try again.');
-    }
-    setVerifying(false);
   };
 
   const handleMarkComplete = async () => {
@@ -660,7 +632,7 @@ export default function BookingDetailScreen() {
             </View>
             <Text style={[styles.waitingTitle, { color: colors.error[700] }]}>Professional Not Found</Text>
             <Text style={styles.waitingDesc}>
-              We couldn't find any professionals within 10 km of your location for this service.
+              We couldn&apos;t find any professionals within 10 km of your location for this service.
             </Text>
             <Button label="Back to Home" onPress={() => router.replace('/(tabs)')} style={[styles.cancelBtn, { marginTop: spacing.lg }]} />
           </View>
@@ -802,15 +774,18 @@ export default function BookingDetailScreen() {
                       {providerProfile?.provider_profile?.experience_years || 0} yrs exp
                     </Text>
                   </View>
-                  {providerProfile?.provider_profile?.specializations?.length > 0 && (
-                    <View style={styles.providerSkillsRow}>
-                      {providerProfile.provider_profile.specializations.slice(0, 3).map((skill, idx) => (
-                        <View key={idx} style={styles.providerSkillTag}>
-                          <Text style={styles.providerSkillText}>{skill}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
+                  {(() => {
+                    const specializations = providerProfile?.provider_profile?.specializations ?? [];
+                    return specializations.length > 0 ? (
+                      <View style={styles.providerSkillsRow}>
+                        {specializations.slice(0, 3).map((skill, idx) => (
+                          <View key={idx} style={styles.providerSkillTag}>
+                            <Text style={styles.providerSkillText}>{skill}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null;
+                  })()}
                 </View>
               </View>
 

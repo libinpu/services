@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { createRealtimeChannel } from '@/lib/realtime';
 import { ShieldCheck, LayoutDashboard, FileCheck, CalendarClock, Database, Users, Search, CircleCheck as CheckCircle2, Circle as XCircle, RefreshCw, Award, Bell, ArrowLeft, ChevronRight, Eye, IndianRupee, ExternalLink, Trash2 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
@@ -47,6 +48,7 @@ export default function AdminScreen() {
 
   // Modal State
   const [selectedProvider, setSelectedProvider] = useState<ProviderProfile | null>(null);
+  const realtimeChannelRef = useRef<any | null>(null);
 
   const styles = StyleSheet.create({
     container: {
@@ -428,7 +430,77 @@ export default function AdminScreen() {
   }, []);
 
   useEffect(() => {
-    void fetchData();
+    const timer = setTimeout(() => {
+      void fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchData]);
+
+  useEffect(() => {
+    // Subscribe to per-table changes and apply delta updates locally
+    // to avoid re-fetching full tables on every event (reduces egress).
+    const channel = createRealtimeChannel('admin-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload: any) => {
+        try {
+          const rec = payload.new ?? payload.old;
+          if (!rec) return;
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            setProfiles((prev) => {
+              const exists = prev.find((p) => p.id === rec.id);
+              if (exists) return prev.map((p) => (p.id === rec.id ? { ...p, ...rec } : p));
+              return [rec, ...prev].slice(0, 200);
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setProfiles((prev) => prev.filter((p) => p.id !== rec.id));
+          }
+        } catch (e) {
+          console.warn('Realtime profiles handler error', e);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'provider_profiles' }, (payload: any) => {
+        try {
+          const rec = payload.new ?? payload.old;
+          if (!rec) return;
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            setProviders((prev) => {
+              const exists = prev.find((p) => p.id === rec.id);
+              if (exists) return prev.map((p) => (p.id === rec.id ? { ...p, ...rec } : p));
+              return [rec, ...prev].slice(0, 200);
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setProviders((prev) => prev.filter((p) => p.id !== rec.id));
+          }
+        } catch (e) {
+          console.warn('Realtime provider_profiles handler error', e);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload: any) => {
+        try {
+          const rec = payload.new ?? payload.old;
+          if (!rec) return;
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            setBookings((prev) => {
+              const exists = prev.find((b) => b.id === rec.id);
+              if (exists) return prev.map((b) => (b.id === rec.id ? { ...b, ...rec } : b));
+              return [rec, ...prev].slice(0, 200);
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setBookings((prev) => prev.filter((b) => b.id !== rec.id));
+          }
+        } catch (e) {
+          console.warn('Realtime bookings handler error', e);
+        }
+      })
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+
+    return () => {
+      if (realtimeChannelRef.current) {
+        void supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
+      }
+    };
   }, [fetchData]);
 
   const handleUpdateProviderStatus = async (provId: string, isVerified: boolean, status: 'approved' | 'rejected') => {

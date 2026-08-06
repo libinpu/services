@@ -372,6 +372,7 @@
               </tbody>
             </table>
           </div>
+          <div id="db-table-load-more"></div>
         </div>
       </section>
 
@@ -440,15 +441,47 @@
 
       <!-- TAB 5: USERS & PROFILES -->
       <section id="tab-users" class="tab-content hidden space-y-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
           <div>
-            <h2 class="text-xl font-bold text-white">Users & Member Profiles</h2>
-            <p class="text-xs text-gray-400">View customer, provider, and administrator user accounts registered in Seva database.</p>
+            <h2 class="text-xl font-bold text-white">Users & Professionals</h2>
+            <p class="text-xs text-gray-400">Browse all customer and provider accounts with search, role filters, and paged loading.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="setUsersView('all')" id="user-view-all" class="user-view-btn text-xs px-3 py-2 rounded-xl bg-brand-600 text-white font-semibold">All Users</button>
+            <button onclick="setUsersView('provider')" id="user-view-provider" class="user-view-btn text-xs px-3 py-2 rounded-xl bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800">Providers</button>
+            <button onclick="setUsersView('customer')" id="user-view-customer" class="user-view-btn text-xs px-3 py-2 rounded-xl bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800">Customers</button>
           </div>
         </div>
 
-        <div id="users-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Loaded dynamically -->
+        <div class="glass-card rounded-2xl border border-gray-800 overflow-hidden">
+          <div class="p-4 border-b border-gray-800 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div class="flex flex-col gap-2">
+              <p class="text-xs text-gray-400">Showing records from Profiles and Professional listings.</p>
+              <span class="text-sm font-semibold text-white" id="users-table-summary">0 records loaded</span>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <input type="text" id="users-search" oninput="renderUsersTable()" placeholder="Search name, email, or role..." class="bg-gray-900 border border-gray-700 text-xs rounded-xl px-3 py-2 text-white w-full sm:w-72 focus:outline-none focus:border-brand-500">
+              <button onclick="loadMoreUsers()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-4 py-2 rounded-xl font-semibold">Load more</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-gray-300">
+              <thead class="bg-gray-900/90 uppercase font-semibold text-[10px] text-gray-400 border-b border-gray-800">
+                <tr>
+                  <th class="p-3.5">Name</th>
+                  <th class="p-3.5">Email</th>
+                  <th class="p-3.5">Role</th>
+                  <th class="p-3.5">Verified</th>
+                  <th class="p-3.5">Phone</th>
+                  <th class="p-3.5">Joined</th>
+                  <th class="p-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body" class="divide-y divide-gray-800/60">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -539,6 +572,14 @@
       notifications: [],
       currentTable: 'profiles'
     };
+    // Per-table paged cache to avoid loading entire tables into memory
+    state.tablePages = {};
+    // Max rows to eagerly load on initial sync per table to limit egress
+    const MAX_INITIAL_LOAD = 200;
+
+    // Detect whether the provided key is a service-role key or a publishable key.
+    // If it's publishable we must not attempt privileged server-side RPCs.
+    const IS_SERVICE_ROLE_KEY = !(String(SUPABASE_KEY || '').toLowerCase().includes('publishable'));
 
     // Initialize Supabase & App
     window.addEventListener('DOMContentLoaded', async () => {
@@ -564,7 +605,12 @@
               }
             }
           });
-          console.log("✅ Supabase admin client initialized with service_role key");
+          console.log("✅ Supabase admin client initialized");
+          const statusEl = document.getElementById('db-status-text');
+          if (statusEl) {
+            statusEl.innerText = IS_SERVICE_ROLE_KEY ? 'Supabase Connected (admin)' : 'Supabase Connected (limited key)';
+            if (!IS_SERVICE_ROLE_KEY) statusEl.style.color = '#f59e0b';
+          }
         }
       } catch (err) {
         console.error("Supabase init error:", err);
@@ -574,46 +620,104 @@
 
 
     async function loadDashboardData() {
+      // Try to load aggregated dashboard data via the admin RPC first.
+      // If that fails (bad key, network, or function missing), fall back to
+      // a client-side limited select for the most important tables to
+      // keep the UI working while reducing egress (limit results).
       try {
-        const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/admin-dashboard-data`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-          },
-        });
+        if (IS_SERVICE_ROLE_KEY) {
+          const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/admin-dashboard-data`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+            },
+          });
 
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to load admin data');
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || 'Failed to load admin data');
+
+          const data = result.data || {};
+          // Cap initial loads to avoid huge transfers; remaining rows are fetched via pagination on demand
+          state.profiles = (data.profiles || []).slice(0, MAX_INITIAL_LOAD);
+          state.tablePages.profiles = { rows: state.profiles.slice(), page: 0, pageSize: MAX_INITIAL_LOAD, hasMore: (data.profiles && data.profiles.length > state.profiles.length) };
+
+          const provs = (data.provider_profiles || []);
+          const provSlice = provs.slice(0, MAX_INITIAL_LOAD);
+          // Attach profile objects when embedded by the RPC
+          const profileMapRpc = new Map((state.profiles || []).map(p => [p.id, p]));
+          state.provider_profiles = provSlice.map(pp => ({ ...pp, profiles: profileMapRpc.get(pp.id) || profileMapRpc.get(pp.user_id) || null }));
+          state.tablePages.provider_profiles = { rows: state.provider_profiles.slice(), page: 0, pageSize: MAX_INITIAL_LOAD, hasMore: (provs && provs.length > state.provider_profiles.length) };
+
+          const books = (data.bookings || []).slice(0, MAX_INITIAL_LOAD);
+          state.bookings = books;
+          state.tablePages.bookings = { rows: books.slice(), page: 0, pageSize: MAX_INITIAL_LOAD, hasMore: (data.bookings && data.bookings.length > books.length) };
+
+          state.service_zones = (data.service_zones || []).slice(0, MAX_INITIAL_LOAD);
+          state.service_categories = (data.service_categories || []).slice(0, MAX_INITIAL_LOAD);
+          state.service_subcategories = (data.service_subcategories || []).slice(0, MAX_INITIAL_LOAD);
+          state.reviews = (data.reviews || []).slice(0, MAX_INITIAL_LOAD);
+          state.wallets = (data.wallets || []).slice(0, MAX_INITIAL_LOAD);
+          state.offers = (data.offers || []).slice(0, MAX_INITIAL_LOAD);
+          state.addresses = (data.addresses || []).slice(0, MAX_INITIAL_LOAD);
+
+          // provider_applications often contain documents; cap and allow per-record realtime fetches
+          state.provider_applications = (data.provider_applications || []).slice(0, MAX_INITIAL_LOAD);
+          state.tablePages.provider_applications = { rows: state.provider_applications.slice(), page: 0, pageSize: MAX_INITIAL_LOAD, hasMore: (data.provider_applications && data.provider_applications.length > state.provider_applications.length) };
+
+          document.getElementById('db-status-text').innerText = 'Live Database Synced (capped)';
+          return;
+        } else {
+          console.warn('SUPABASE_KEY looks like a publishable key; skipping privileged RPC and using client fallback.');
         }
-
-        const data = result.data || {};
-        state.profiles = data.profiles || [];
-        state.provider_profiles = data.provider_profiles || [];
-        state.bookings = data.bookings || [];
-        state.service_zones = data.service_zones || [];
-        state.service_categories = data.service_categories || [];
-        state.service_subcategories = data.service_subcategories || [];
-        state.reviews = data.reviews || [];
-        state.wallets = data.wallets || [];
-        state.offers = data.offers || [];
-        state.addresses = data.addresses || [];
-        state.provider_applications = data.provider_applications || [];
-        document.getElementById('db-status-text').innerText = 'Live Database Synced';
       } catch (err) {
-        console.warn('Admin dashboard data load error:', err);
-        document.getElementById('db-status-text').innerText = 'Live sync failed';
+        console.warn('Admin dashboard RPC failed, falling back to limited client queries:', err);
       }
+
+      // Fallback: if supabaseClient is available, fetch key tables with limits
+      if (supabaseClient) {
+        try {
+          const [{ data: profs }, { data: provs }, { data: books }] = await Promise.all([
+            supabaseClient.from('profiles').select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at').order('created_at', { ascending: false }).limit(100),
+            supabaseClient.from('provider_profiles').select('id, category_ids, specializations, experience_years, is_verified, background_check_status, rating_avg, rating_count, jobs_completed, is_online, price_per_hour, zone_id, latitude, longitude, last_location_at, created_at, updated_at').order('created_at', { ascending: false }).limit(100),
+            supabaseClient.from('bookings').select('id, customer_id, provider_id, subcategory_id, address_id, zone_id, status, scheduled_at, booking_mode, estimated_cost, final_cost, payment_method, payment_status, otp, otp_verified, started_at, completed_at, cancelled_at, cancellation_reason, created_at, updated_at, estimated_eta_mins, distance_km').order('created_at', { ascending: false }).limit(100),
+          ]);
+
+          state.profiles = profs || [];
+          // Attach profile objects to provider_profiles entries when possible
+          const profileMap = new Map((state.profiles || []).map(p => [p.id, p]));
+          state.provider_profiles = (provs || []).map(pp => ({
+            ...pp,
+            profiles: profileMap.get(pp.id) || profileMap.get(pp.user_id) || null
+          }));
+          state.bookings = books || [];
+          // Populate paged caches to make table rendering consistent and paginated
+          state.tablePages.profiles = { rows: state.profiles.slice(), page: 0, pageSize: 100, hasMore: false };
+          state.tablePages.provider_profiles = { rows: state.provider_profiles.slice(), page: 0, pageSize: 100, hasMore: false };
+          state.tablePages.bookings = { rows: state.bookings.slice(), page: 0, pageSize: 100, hasMore: false };
+          document.getElementById('db-status-text').innerText = 'Live Database Synced (limited)';
+          return;
+        } catch (e) {
+          console.warn('Fallback client queries failed:', e);
+          document.getElementById('db-status-text').innerText = 'Live sync failed';
+          return;
+        }
+      }
+
+      // If we reach here, both RPC and client fallback failed.
+      document.getElementById('db-status-text').innerText = 'Live sync failed';
     }
 
     // Realtime Supabase Listeners
     function setupRealtimeSubscriptions() {
       if (!supabaseClient) return;
       try {
-        // Bookings realtime listener
-        supabaseClient.channel('admin-bookings-channel')
+        // Single channel with multiple handlers reduces connection overhead
+        // and lets us apply delta updates without full table refetches.
+        const adminChannel = supabaseClient.channel('admin-live-sync');
+
+        adminChannel
           .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, payload => {
             if (payload.eventType === 'INSERT') {
               const newBooking = payload.new;
@@ -624,32 +728,75 @@
               const idx = state.bookings.findIndex(b => b.id === updated.id);
               if (idx !== -1) state.bookings[idx] = updated;
               else state.bookings.unshift(updated);
+            } else if (payload.eventType === 'DELETE') {
+              const oldRec = payload.old;
+              state.bookings = state.bookings.filter(b => b.id !== oldRec.id);
             }
             renderAllViews();
           })
-          .subscribe();
-
-        // Provider Applications realtime listener (Auto Sync user switch to professional)
-        supabaseClient.channel('admin-provider-apps-channel')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'provider_applications' }, payload => {
-            const appData = payload.new;
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              loadDashboardData().then(() => {
-                pushNotification(`User Switched to Professional!`, `New verified data application received for review.`);
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'provider_applications' }, async payload => {
+            // For provider applications, fetch only the changed record and
+            // merge it into the local list. Avoid full-table refetch.
+            try {
+              const appUserId = payload.new?.user_id ?? payload.old?.user_id;
+              if (!appUserId) return;
+              if (!supabaseClient) return;
+              const { data: appData, error } = await supabaseClient
+                .from('provider_applications')
+                .select('*')
+                .eq('user_id', appUserId)
+                .maybeSingle();
+              if (error) {
+                console.warn('Failed to load provider_application', error);
+                return;
+              }
+              if (appData) {
+                const idx = state.provider_applications.findIndex(a => a.user_id === appData.user_id);
+                if (idx !== -1) state.provider_applications[idx] = { ...state.provider_applications[idx], ...appData };
+                else state.provider_applications.unshift(appData);
+                pushNotification(`User Application Received`, `Application for ${appData.user_id} updated.`);
                 renderAllViews();
-              });
+              }
+            } catch (e) {
+              console.warn('provider_applications handler error', e);
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'provider_profiles' }, payload => {
+            try {
+              const rec = payload.new ?? payload.old;
+              if (!rec) return;
+              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                const idx = state.provider_profiles.findIndex(p => p.id === rec.id);
+                if (idx !== -1) state.provider_profiles[idx] = { ...state.provider_profiles[idx], ...rec };
+                else state.provider_profiles.unshift(rec);
+                // If we don't have profile details attached, try a small fetch for that user to get avatar/name
+                const updatedIdx = state.provider_profiles.findIndex(p => p.id === rec.id);
+                if (updatedIdx !== -1 && !state.provider_profiles[updatedIdx].profiles && supabaseClient) {
+                  (async () => {
+                    try {
+                      const profileId = rec.id || rec.user_id || null;
+                      const prof = await ensureProfile(profileId);
+                      if (prof) {
+                        state.provider_profiles[updatedIdx].profiles = prof;
+                        renderAllViews();
+                      }
+                    } catch (e) { /* ignore */ }
+                  })();
+                }
+              } else if (payload.eventType === 'DELETE') {
+                state.provider_profiles = state.provider_profiles.filter(p => p.id !== rec.id);
+              }
+              renderAllViews();
+            } catch (e) {
+              console.warn('provider_profiles realtime handler error', e);
             }
           })
           .subscribe();
 
-        // Provider Profiles & Profiles realtime listener
-        supabaseClient.channel('admin-provider-profiles-channel')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'provider_profiles' }, payload => {
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              loadDashboardData().then(() => renderAllViews());
-            }
-          })
-          .subscribe();
+        // Cleanup on window unload to avoid dangling channels
+        window.addEventListener('beforeunload', () => {
+          try { supabaseClient.removeChannel(adminChannel); } catch (e) { /* ignore */ }
+        });
       } catch (e) {
         console.log("Realtime subscription notice:", e);
       }
@@ -684,17 +831,77 @@
       } catch(e){}
     }
 
-    // Render All Dashboard Components
+    // Debounced render: coalesce multiple realtime updates into one UI refresh
+    let __renderTimer = null;
     function renderAllViews() {
-      renderDashboardStats();
-      renderPendingApprovals();
-      renderServiceRequests();
-      renderTableTabs();
-      renderCurrentTable();
-      renderUsersGrid();
-      renderMap();
-      renderNotifs();
-      lucide.createIcons();
+      if (__renderTimer) return;
+      __renderTimer = setTimeout(() => {
+        __renderTimer = null;
+        try {
+          renderDashboardStats();
+          renderPendingApprovals();
+          renderServiceRequests();
+          renderTableTabs();
+          renderCurrentTable();
+          renderUsersTable();
+          renderMap();
+          renderNotifs();
+          lucide.createIcons();
+        } catch (err) {
+          console.warn('renderAllViews error', err);
+        }
+      }, 120);
+    }
+
+    // --- Pagination helpers to avoid loading entire tables ---
+    async function fetchTablePage(tbl, page = 0, pageSize = 100) {
+      if (!supabaseClient) return;
+      try {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        const q = supabaseClient.from(tbl).select('*').order('created_at', { ascending: false }).range(from, to);
+        const { data, error } = await q;
+        if (error) {
+          console.warn('fetchTablePage error', tbl, error);
+          return;
+        }
+        state.tablePages[tbl] = state.tablePages[tbl] || { rows: [], page: -1, pageSize, hasMore: true };
+        state.tablePages[tbl].rows = (state.tablePages[tbl].rows || []).concat(data || []);
+        state.tablePages[tbl].page = page;
+        state.tablePages[tbl].hasMore = (data && data.length === pageSize);
+        renderCurrentTable();
+      } catch (e) {
+        console.warn('fetchTablePage exception', e);
+      }
+    }
+
+    function getTableRows(tbl) {
+      if (state.tablePages && state.tablePages[tbl] && state.tablePages[tbl].rows && state.tablePages[tbl].rows.length) {
+        return state.tablePages[tbl].rows;
+      }
+      // default: show a limited slice from the in-memory cache (already limited by load)
+      return (state[tbl] || []).slice(0, 200);
+    }
+
+    // Ensure a profile record exists in state.profiles; try a small fetch if missing.
+    async function ensureProfile(profileId) {
+      if (!profileId) return null;
+      const existing = state.profiles.find(p => p.id === profileId);
+      if (existing) return existing;
+      if (!supabaseClient) return null;
+      try {
+        const { data, error } = await supabaseClient.from('profiles').select('id, full_name, avatar_url, email, phone').eq('id', profileId).maybeSingle();
+        if (!error && data) {
+          state.profiles.unshift(data);
+          state.tablePages.profiles = state.tablePages.profiles || { rows: [], page: 0, pageSize: 100, hasMore: false };
+          state.tablePages.profiles.rows.unshift(data);
+          renderAllViews();
+          return data;
+        }
+      } catch (e) {
+        console.warn('ensureProfile fetch failed', e);
+      }
+      return null;
     }
 
     function renderMap() {
@@ -710,10 +917,11 @@
       }
       
       if (markersLayer) {
-        markersLayer.clearLayers();
-        const onlineProviders = state.provider_profiles.filter(p => p.latitude && p.longitude);
-        
-        onlineProviders.forEach(p => {
+      markersLayer.clearLayers();
+      // Limit markers to first 200 providers to reduce tile and marker churn
+      const onlineProviders = state.provider_profiles.filter(p => p.latitude && p.longitude).slice(0, 200);
+
+      onlineProviders.forEach(p => {
           const prof = state.profiles.find(prof => prof.id === p.id);
           const name = prof ? prof.full_name : 'Provider';
           const popupHtml = `
@@ -763,7 +971,105 @@
       if (tabId === 'map' && adminMap) {
         setTimeout(() => adminMap.invalidateSize(), 100);
       }
+
+      // Lazy-load profiles if user opens the Users tab and we have no cached profiles
+      if (tabId === 'users') {
+        if (!state.userView) state.userView = 'all';
+        if ((!state.profiles || state.profiles.length === 0) && supabaseClient) {
+          fetchUsersPage(0, 100).then(() => renderUsersTable()).catch(() => renderUsersTable());
+        } else {
+          renderUsersTable();
+        }
+      }
+
+      if (tabId === 'tables') {
+        renderCurrentTable();
+      }
       lucide.createIcons();
+    }
+
+    function setUsersView(view) {
+      state.userView = view;
+      document.querySelectorAll('.user-view-btn').forEach(btn => btn.classList.remove('bg-brand-600', 'text-white'));
+      const activeButton = document.getElementById(`user-view-${view}`);
+      if (activeButton) activeButton.classList.add('bg-brand-600', 'text-white');
+      renderUsersTable();
+    }
+
+    async function fetchUsersPage(page = 0, pageSize = 100) {
+      if (!supabaseClient) return;
+      try {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        const { data, error } = await supabaseClient.from('profiles')
+          .select('id, full_name, email, phone, role, avatar_url, created_at')
+          .order('created_at', { ascending: false })
+          .range(from, to);
+        if (error) {
+          console.warn('fetchUsersPage error', error);
+          return;
+        }
+        state.tablePages.profiles = state.tablePages.profiles || { rows: [], page: -1, pageSize, hasMore: true };
+        state.tablePages.profiles.rows = (state.tablePages.profiles.rows || []).concat(data || []);
+        state.tablePages.profiles.page = page;
+        state.tablePages.profiles.hasMore = (data && data.length === pageSize);
+        state.profiles = state.tablePages.profiles.rows.slice();
+        renderUsersTable();
+      } catch (e) {
+        console.warn('fetchUsersPage exception', e);
+      }
+    }
+
+    function loadMoreUsers() {
+      const pageState = state.tablePages.profiles || { page: -1, pageSize: 100, hasMore: true };
+      if (!pageState.hasMore) return;
+      fetchUsersPage(pageState.page + 1, pageState.pageSize);
+    }
+
+    function renderUsersTable() {
+      const body = document.getElementById('users-table-body');
+      const summary = document.getElementById('users-table-summary');
+      const search = document.getElementById('users-search').value.toLowerCase();
+      const view = state.userView || 'all';
+      const rows = getTableRows('profiles');
+      if (!body || !summary) return;
+
+      const filtered = rows.filter(user => {
+        const role = String(user.role || 'customer').toLowerCase();
+        const matchesView = view === 'all' || role === view;
+        const matchesSearch = [user.full_name, user.email, user.role].some(val => String(val || '').toLowerCase().includes(search));
+        return matchesView && matchesSearch;
+      });
+
+      summary.innerText = `${filtered.length} record${filtered.length === 1 ? '' : 's'} loaded`;
+      body.innerHTML = '';
+      filtered.forEach(user => {
+        const role = String(user.role || 'customer').toLowerCase();
+        const verified = role === 'provider' ? 'Yes' : 'N/A';
+        body.innerHTML += `
+          <tr class="hover:bg-gray-800/40 transition">
+            <td class="p-3.5 font-mono">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 overflow-hidden">
+                  <img src="${user.avatar_url || ''}" alt="avatar" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Ccircle cx=%2224%22 cy=%2218%22 r=%228%22/%3E%3Cellipse cx=%2224%22 cy=%2236%22 rx=%2214%22 ry=%228%22/%3E%3C/svg%3E'">
+                </div>
+                <div>
+                  <div class="text-white font-semibold text-sm">${user.full_name || 'No Name'}</div>
+                  <div class="text-[11px] text-gray-400">${user.id}</div>
+                </div>
+              </div>
+            </td>
+            <td class="p-3.5 text-gray-300">${user.email || '—'}</td>
+            <td class="p-3.5 text-gray-300 uppercase">${role}</td>
+            <td class="p-3.5 text-gray-300">${verified}</td>
+            <td class="p-3.5 text-gray-300">${user.phone || '—'}</td>
+            <td class="p-3.5 text-gray-300">${user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td>
+            <td class="p-3.5 text-right">
+              <button onclick="deleteUser('${user.id}')" class="text-red-400 hover:text-red-300 text-xs px-3 py-1 rounded-lg border border-red-500/20">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
     }
 
     // PROVIDER APPROVALS RENDER
@@ -774,7 +1080,7 @@
       dashList.innerHTML = '';
 
       state.provider_profiles.forEach(prov => {
-        const prof = state.profiles.find(p => p.id === prov.id);
+        const prof = prov.profiles || state.profiles.find(p => p.id === prov.id || p.id === prov.user_id || p.user_id === prov.id);
         const fullName = prof?.full_name || prov.business_name || 'Provider Profile';
         const status = String(prov.background_check_status || '').toLowerCase();
         const isPending = status === 'pending';
@@ -783,7 +1089,7 @@
           <div class="glass-card rounded-2xl p-5 border border-gray-800 space-y-4 hover:border-brand-500/50 transition">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-3">
-                <img src="${prov.id_proof_url || ''}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Ccircle cx=%2224%22 cy=%2218%22 r=%228%22/%3E%3Cellipse cx=%2224%22 cy=%2236%22 rx=%2214%22 ry=%228%22/%3E%3C/svg%3E'" class="w-12 h-12 rounded-xl object-cover border border-gray-700 bg-gray-800">
+                <img src="${(prof && prof.avatar_url) || prov.id_proof_url || ''}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Ccircle cx=%2224%22 cy=%2218%22 r=%228%22/%3E%3Cellipse cx=%2224%22 cy=%2236%22 rx=%2214%22 ry=%228%22/%3E%3C/svg%3E'" class="w-12 h-12 rounded-xl object-cover border border-gray-700 bg-gray-800">
                 <div>
                   <h4 class="font-bold text-white text-sm">${fullName}</h4>
                   <p class="text-xs text-gray-400">${prov.experience_years} Years Exp • ₹${prov.price_per_hour}/hr</p>
@@ -798,9 +1104,9 @@
             <div class="bg-gray-900/60 p-3 rounded-xl border border-gray-800/80 space-y-2">
               <p class="text-[11px] text-gray-400 font-medium">Uploaded Document Proofs:</p>
               <div class="flex items-center space-x-2">
-                <span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700">ID Proof</span>
-                <span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700">Address Proof</span>
-                <span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700">Police Cert.</span>
+                <img src="${prov.id_proof_thumbnail || prov.id_proof_url || ''}" class="w-12 h-8 object-cover rounded-md border border-gray-700" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Crect x=%224%22 y=%226%22 width=%2240%22 height=%2236%22 rx=%224%22/%3E%3C/svg%3E'">
+                <img src="${prov.address_proof_thumbnail || prov.address_proof_url || ''}" class="w-12 h-8 object-cover rounded-md border border-gray-700" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Crect x=%224%22 y=%226%22 width=%2240%22 height=%2236%22 rx=%224%22/%3E%3C/svg%3E'">
+                <img src="${prov.police_verification_thumbnail || prov.police_verification_url || ''}" class="w-12 h-8 object-cover rounded-md border border-gray-700" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Crect x=%224%22 y=%226%22 width=%2240%22 height=%2236%22 rx=%224%22/%3E%3C/svg%3E'">
               </div>
             </div>
 
@@ -832,39 +1138,61 @@
     }
 
     function inspectCertificates(provId) {
-      const prov = state.provider_profiles.find(p => p.id === provId);
-      if (!prov) return;
+        // Fetch latest provider record to ensure document URLs are current and unique
+        (async () => {
+          try {
+            let record = state.provider_profiles.find(p => p.id === provId);
+            // Prefer fresh fetch when supabase client is available
+            if (supabaseClient) {
+              const { data, error } = await supabaseClient
+                .from('provider_profiles')
+                .select('*, profiles(*)')
+                .eq('id', provId)
+                .maybeSingle();
+              if (!error && data) record = data;
+            }
 
-      const prof = state.profiles.find(p => p.id === provId);
-      const fullName = prof?.full_name || 'Provider Documents';
+            if (!record) return alert('Provider record not found');
 
-      document.getElementById('modal-name').innerText = fullName;
-      document.getElementById('modal-exp').innerText = `${prov.experience_years} Years`;
-      document.getElementById('modal-rate').innerText = `₹${prov.price_per_hour}/hr`;
-      document.getElementById('modal-status').innerText = prov.background_check_status.toUpperCase();
+            const profile = record.profiles || state.profiles.find(p => p.id === provId) || {};
+            const fullName = profile.full_name || record.business_name || 'Provider Documents';
 
-      const certsContainer = document.getElementById('modal-certs-container');
-      certsContainer.innerHTML = `
-        <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
-          <p class="text-xs font-semibold text-gray-300">Government ID Proof</p>
-          <img src="${prov.id_proof_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700">
-        </div>
-        <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
-          <p class="text-xs font-semibold text-gray-300">Address Proof Document</p>
-          <img src="${prov.address_proof_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700">
-        </div>
-        <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
-          <p class="text-xs font-semibold text-gray-300">Police Verification Clearance</p>
-          <img src="${prov.police_verification_url || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700">
-        </div>
-      `;
+            document.getElementById('modal-name').innerText = fullName;
+            document.getElementById('modal-exp').innerText = `${record.experience_years || '—'} Years`;
+            document.getElementById('modal-rate').innerText = `₹${record.price_per_hour || '—'}/hr`;
+            document.getElementById('modal-status').innerText = String(record.background_check_status || 'unknown').toUpperCase();
 
-      const actions = document.getElementById('modal-actions-container');
-      actions.innerHTML = `
-        <button onclick="updateProviderStatus('${prov.id}', true, 'approved');" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-5 py-2 rounded-xl font-bold">Approve Provider</button>
-      `;
+            const certsContainer = document.getElementById('modal-certs-container');
+            const idUrl = record.id_proof_url || record.id_proof || '';
+            const addrUrl = record.address_proof_url || record.address_proof || '';
+            const policeUrl = record.police_verification_url || record.police_verification || '';
 
-      document.getElementById('cert-modal').classList.remove('hidden');
+            certsContainer.innerHTML = `
+              <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
+                <p class="text-xs font-semibold text-gray-300">Government ID Proof</p>
+                <img src="${idUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Ccircle cx=%2224%22 cy=%2218%22 r=%228%22/%3E%3Cellipse cx=%2224%22 cy=%2236%22 rx=%2214%22 ry=%228%22/%3E%3C/svg%3E'">
+              </div>
+              <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
+                <p class="text-xs font-semibold text-gray-300">Address Proof Document</p>
+                <img src="${addrUrl || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Ccircle cx=%2224%22 cy=%2218%22 r=%228%22/%3E%3Cellipse cx=%2224%22 cy=%2236%22 rx=%2214%22 ry=%228%22/%3E%3C/svg%3E'">
+              </div>
+              <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl space-y-2">
+                <p class="text-xs font-semibold text-gray-300">Police Verification Clearance</p>
+                <img src="${policeUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600'}" class="w-full h-40 object-cover rounded-xl border border-gray-700" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Ccircle cx=%2224%22 cy=%2218%22 r=%228%22/%3E%3Cellipse cx=%2224%22 cy=%2236%22 rx=%2214%22 ry=%228%22/%3E%3C/svg%3E'">
+              </div>
+            `;
+
+            const actions = document.getElementById('modal-actions-container');
+            actions.innerHTML = `
+              <button onclick="updateProviderStatus('${provId}', true, 'approved');" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-5 py-2 rounded-xl font-bold">Approve Provider</button>
+            `;
+
+            document.getElementById('cert-modal').classList.remove('hidden');
+          } catch (err) {
+            console.error('Failed to load provider documents', err);
+            alert('Failed to load provider documents');
+          }
+        })();
     }
 
     function closeCertModal() {
@@ -887,22 +1215,29 @@
       }
 
       try {
-        const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/admin-provider-status`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-          },
-          body: JSON.stringify({ userId: provId, isVerified, status }),
-        });
+          if (!IS_SERVICE_ROLE_KEY) {
+            // Avoid attempting privileged RPC if we only have a publishable key.
+            alert('Admin update requires a Supabase service-role key. Server-side RPC skipped.');
+            document.getElementById('db-status-text').innerText = 'No admin key — changes local only';
+            return;
+          }
 
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(result.error || 'Provider status update failed');
-        }
+          const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/admin-provider-status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+            },
+            body: JSON.stringify({ userId: provId, isVerified, status }),
+          });
 
-        console.log(`✅ Server-side update succeeded. User ${provId} → role: ${targetRole}`);
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(result.error || 'Provider status update failed');
+          }
+
+          console.log(`✅ Server-side update succeeded. User ${provId} → role: ${targetRole}`);
       } catch (e) {
         console.error('Supabase update exception:', e);
         alert('Provider update failed. Check the edge function logs and Supabase policies.');
@@ -1026,20 +1361,20 @@
       const tblName = state.currentTable;
       titleEl.innerText = tblName;
 
-      const records = state[tblName] || [];
-      countEl.innerText = `${records.length} Rows`;
+      const rows = getTableRows(tblName) || [];
+      const totalCount = (state[tblName] || []).length || rows.length;
+      countEl.innerText = `${totalCount} Rows`;
 
-      if (records.length === 0) {
+      if (rows.length === 0) {
         headEl.innerHTML = `<tr><th class="p-3">Data</th></tr>`;
         bodyEl.innerHTML = `<tr><td class="p-4 text-center text-gray-400">No records found in table '${tblName}'</td></tr>`;
         return;
       }
-
-      const keys = Object.keys(records[0]);
+      const keys = Object.keys(rows[0]);
       headEl.innerHTML = `<tr>${keys.map(k => `<th class="p-3">${k}</th>`).join('')}</tr>`;
 
       bodyEl.innerHTML = '';
-      records.forEach(row => {
+      rows.forEach(row => {
         const tds = keys.map(k => {
           let val = row[k];
           if (typeof val === 'object') val = JSON.stringify(val);
@@ -1047,50 +1382,79 @@
         }).join('');
         bodyEl.innerHTML += `<tr class="hover:bg-gray-800/40 border-b border-gray-800/60">${tds}</tr>`;
       });
+
+      // Load more control
+      const pageState = state.tablePages && state.tablePages[tblName];
+      const loadMoreContainer = document.getElementById('db-table-load-more');
+      if (loadMoreContainer) {
+        loadMoreContainer.innerHTML = '';
+        const hasMore = (pageState && pageState.hasMore) || ((state[tblName] || []).length > rows.length);
+        if (hasMore && supabaseClient) {
+          const nextPage = pageState ? pageState.page + 1 : Math.floor(rows.length / 200);
+          loadMoreContainer.innerHTML = `<div class="p-3 text-center"><button onclick="fetchTablePage('${tblName}', ${nextPage})" class="px-4 py-2 rounded-xl bg-brand-600 text-white">Load more</button></div>`;
+        }
+      }
     }
 
-    // USERS GRID RENDER
-    function renderUsersGrid() {
-      const container = document.getElementById('users-grid');
-      container.innerHTML = '';
-      state.profiles.forEach(user => {
+    // USERS TABLE RENDER
+    function renderUsersTable() {
+      const body = document.getElementById('users-table-body');
+      const summary = document.getElementById('users-table-summary');
+      const search = document.getElementById('users-search').value.toLowerCase();
+      const view = state.userView || 'all';
+      const rows = getTableRows('profiles');
+      if (!body || !summary) return;
+
+      const filtered = rows.filter(user => {
         const role = String(user.role || 'customer').toLowerCase();
-        container.innerHTML += `
-          <div class="glass-card rounded-2xl p-5 border border-gray-800 space-y-3">
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-full bg-brand-600/20 text-brand-400 font-bold flex items-center justify-center border border-brand-500/30">
-                ${user.full_name ? user.full_name[0] : 'U'}
+        const matchesView = view === 'all' || role === view;
+        const matchesSearch = [user.full_name, user.email, user.role].some(val => String(val || '').toLowerCase().includes(search));
+        return matchesView && matchesSearch;
+      });
+
+      summary.innerText = `${filtered.length} record${filtered.length === 1 ? '' : 's'} loaded`;
+      body.innerHTML = '';
+      filtered.forEach(user => {
+        const role = String(user.role || 'customer').toLowerCase();
+        const verified = role === 'provider' ? 'Yes' : 'N/A';
+        body.innerHTML += `
+          <tr class="hover:bg-gray-800/40 transition">
+            <td class="p-3.5 font-mono">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 overflow-hidden">
+                  <img src="${user.avatar_url || ''}" alt="avatar" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22 fill=%22%236b7280%22%3E%3Ccircle cx=%2224%22 cy=%2218%22 r=%228%22/%3E%3Cellipse cx=%2224%22 cy=%2236%22 rx=%2214%22 ry=%228%22/%3E%3C/svg%3E'">
+                </div>
+                <div>
+                  <div class="text-white font-semibold text-sm">${user.full_name || 'No Name'}</div>
+                  <div class="text-[11px] text-gray-400">${user.id}</div>
+                </div>
               </div>
-              <div>
-                <h4 class="font-bold text-white text-sm">${user.full_name || 'User Account'}</h4>
-                <p class="text-xs text-gray-400">${user.email || 'No email registered'}</p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-gray-800/80 text-xs">
-              <span class="text-gray-400 font-mono">Role: <strong class="text-white uppercase">${role}</strong></span>
-              <button onclick="deleteUser('${user.id}')" class="text-red-400 hover:text-red-300 font-semibold flex items-center space-x-1 px-2 py-1 bg-red-500/10 hover:bg-red-500/20 rounded-md transition border border-red-500/20">
-                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                <span>Delete</span>
-              </button>
-            </div>
-          </div>
+            </td>
+            <td class="p-3.5 text-gray-300">${user.email || '—'}</td>
+            <td class="p-3.5 text-gray-300 uppercase">${role}</td>
+            <td class="p-3.5 text-gray-300">${verified}</td>
+            <td class="p-3.5 text-gray-300">${user.phone || '—'}</td>
+            <td class="p-3.5 text-gray-300">${user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td>
+            <td class="p-3.5 text-right">
+              <button onclick="deleteUser('${user.id}')" class="text-red-400 hover:text-red-300 text-xs px-3 py-1 rounded-lg border border-red-500/20">Delete</button>
+            </td>
+          </tr>
         `;
       });
-      lucide.createIcons();
     }
 
     async function deleteUser(userId) {
       if (!confirm('Are you sure you want to permanently delete this user?')) return;
-      
       try {
         if (supabaseClient) {
           await supabaseClient.from('provider_profiles').delete().eq('id', userId);
           await supabaseClient.from('profiles').delete().eq('id', userId);
         }
-        
         state.profiles = state.profiles.filter(p => p.id !== userId);
         state.provider_profiles = state.provider_profiles.filter(p => p.id !== userId);
-        
+        if (state.tablePages.profiles) {
+          state.tablePages.profiles.rows = state.tablePages.profiles.rows.filter(p => p.id !== userId);
+        }
         pushNotification('User Deleted', 'User account successfully removed.');
         renderAllViews();
       } catch (e) {
