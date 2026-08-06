@@ -293,7 +293,16 @@ export default function BookingConfirmationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={t('bookingConfirmation')} onBack={() => router.back()} />
+      <Header
+        title={t('bookingConfirmation')}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
+        }}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Service Summary */}
         <View style={styles.section}>

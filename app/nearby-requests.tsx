@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Pressable, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Pressable, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
+import { createRealtimeChannel } from '@/lib/realtime';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState } from '@/components/ui';
@@ -34,6 +35,17 @@ export default function NearbyRequestsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const requestsFetchingRef = useRef(false);
   const liveLocation = useProviderLocation(true);
+  const modalOverlayRef = useRef<any>(null);
+
+  const closeModal = useCallback(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (activeElement && modalOverlayRef.current?.contains?.(activeElement)) {
+        activeElement.blur();
+      }
+    }
+    setShowModal(false);
+  }, []);
   const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const lastSyncedLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -154,8 +166,7 @@ export default function NearbyRequestsScreen() {
     if (!session?.user?.id) return;
     // One scoped channel replaces the old 8-second list poll. The in-flight
     // guard in fetchRequests coalesces bursts of booking events.
-    const channel = supabase
-      .channel(`nearby-pending-bookings:${session.user.id}`)
+    const channel = createRealtimeChannel(`nearby-pending-bookings:${session.user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: 'status=eq.pending' }, () => {
         void fetchRequests();
       })
@@ -178,7 +189,7 @@ export default function NearbyRequestsScreen() {
         estimated_eta_mins: etaMins,
         updated_at: new Date().toISOString(),
       }).eq('id', jobId);
-      setShowModal(false);
+      closeModal();
       router.push(`/provider-job/${jobId}`);
     } catch (e: any) {
       setError(e.message);
@@ -196,7 +207,7 @@ export default function NearbyRequestsScreen() {
         status: 'rejected',
         updated_at: new Date().toISOString(),
       }).eq('id', jobId).eq('provider_id', session?.user?.id);
-      setShowModal(false);
+      closeModal();
       fetchRequests();
     } catch (e: any) {
       setError(e.message);
@@ -285,7 +296,16 @@ export default function NearbyRequestsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <Header title={lang === 'ml' ? 'അടുത്തുള്ള അഭ്യർത്ഥനകൾ' : 'Nearby Requests'} onBack={() => router.back()} />
+      <Header
+        title={lang === 'ml' ? 'അടുത്തുള്ള അഭ്യർത്ഥനകൾ' : 'Nearby Requests'}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
+        }}
+      />
       <View style={styles.headerBanner}>
         <Text style={styles.headerBannerTitle}>{lang === 'ml' ? 'നിങ്ങളുടെ സേവന മേഖലയിലെ അഭ്യർത്ഥനകൾ' : 'Requests in your service area'}</Text>
         <Text style={styles.headerBannerSub}>{requests.length} {lang === 'ml' ? 'തുറന്ന അഭ്യർത്ഥനകൾ' : 'open requests'}{hasLocation ? '' : ' — ' + (lang === 'ml' ? 'ദൂരം കാണിക്കാൻ ലൊക്കേഷൻ ഓൺ ചെയ്യൂ' : 'Turn on location to see distance')}</Text>
@@ -363,8 +383,8 @@ export default function NearbyRequestsScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={showModal} animationType="slide" transparent onRequestClose={() => setShowModal(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
+      <Modal visible={showModal} animationType="slide" transparent onRequestClose={closeModal}>
+        <Pressable ref={modalOverlayRef} style={styles.modalOverlay} onPress={closeModal}>
           <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
             {selectedRequest && (
               <>

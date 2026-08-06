@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
+import { createRealtimeChannel } from '@/lib/realtime';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
@@ -421,7 +422,7 @@ export default function BookingDetailScreen() {
           id, customer_id, provider_id, subcategory_id, address_id, status, scheduled_at,
           booking_mode, estimated_cost, final_cost, payment_method, payment_status, otp,
           otp_verified, started_at, completed_at, cancelled_at, cancellation_reason,
-          created_at, updated_at, estimated_eta_mins, distance_km, start_selfie_url, end_selfie_url,
+          created_at, updated_at, estimated_eta_mins, distance_km,
           subcategory:service_subcategories(id, name_en, name_ml, base_price, estimated_time_mins),
           address:addresses(id, label, address_line, area, city, district, state, pincode, latitude, longitude),
           provider:profiles!bookings_provider_id_fkey(id, full_name, avatar_url, provider_profile:provider_profiles(rating_avg, jobs_completed, is_verified, latitude, longitude)),
@@ -474,8 +475,7 @@ export default function BookingDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    const channel = supabase
-      .channel(`booking-detail:${id}`)
+    const channel = createRealtimeChannel(`booking-detail:${id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${id}` }, ({ new: row }) => {
         setBooking((current) => current ? { ...current, ...(row as Partial<BookingWithDetails>) } : current);
       })
@@ -618,7 +618,16 @@ export default function BookingDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={`${t('bookingId')}: ${booking.id.slice(0, 8).toUpperCase()}`} onBack={() => router.back()} />
+      <Header
+        title={`${t('bookingId')}: ${booking.id.slice(0, 8).toUpperCase()}`}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
+        }}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Status Banner */}
         <View style={[styles.statusBanner, { backgroundColor: statusInfo.color + '15' }]}>
@@ -793,7 +802,7 @@ export default function BookingDetailScreen() {
                       {providerProfile?.provider_profile?.experience_years || 0} yrs exp
                     </Text>
                   </View>
-                  {providerProfile?.provider_profile && providerProfile.provider_profile.specializations.length > 0 && (
+                  {providerProfile?.provider_profile?.specializations?.length > 0 && (
                     <View style={styles.providerSkillsRow}>
                       {providerProfile.provider_profile.specializations.slice(0, 3).map((skill, idx) => (
                         <View key={idx} style={styles.providerSkillTag}>

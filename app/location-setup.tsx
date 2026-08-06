@@ -442,7 +442,17 @@ export default function LocationSetupScreen() {
       {step === 'list' && (
         <View style={styles.flex1}>
           <View style={styles.listHeader}>
-            <TouchableOpacity style={styles.listBackBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.listBackBtn}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(tabs)');
+                }
+              }}
+              activeOpacity={0.7}
+            >
               <ArrowLeft size={18} color={colors.neutral[700]} strokeWidth={2} />
             </TouchableOpacity>
             <Text style={styles.listTitle}>{t('manageAddresses')}</Text>

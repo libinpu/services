@@ -137,7 +137,16 @@ export default function CategoryGroupScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={title} onBack={() => router.back()} />
+      <Header
+        title={title}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
+        }}
+      />
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}

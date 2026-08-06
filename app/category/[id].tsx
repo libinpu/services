@@ -166,7 +166,16 @@ export default function CategoryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={categoryName} onBack={() => router.back()} />
+      <Header
+        title={categoryName}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
+        }}
+      />
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
         <Text style={styles.introText}>{t('chooseServiceDesc')}</Text>
         {subcategories.length === 0 ? (

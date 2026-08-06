@@ -7,6 +7,8 @@ import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { cache } from '@/lib/cache';
 import { dedupeRequest } from '@/lib/query';
+import { withRequestTimeout } from '@/lib/query';
+import { createRealtimeChannel } from '@/lib/realtime';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { LoadingState, ErrorState, Button } from '@/components/ui';
@@ -58,7 +60,7 @@ export default function ProviderDashboardScreen() {
         setLoading(false);
         return;
       }
-      const [appRes, provRes] = await dedupeRequest(cacheKey, () => Promise.all([
+      const [appRes, provRes] = await withRequestTimeout(dedupeRequest(cacheKey, () => Promise.all([
         supabase
           .from('provider_applications')
           .select('id, user_id, category_ids, specializations, experience_years, bio_en, bio_ml, id_proof_url, certificate_url, address_proof_url, status, admin_notes, submitted_at, reviewed_at, created_at, updated_at')
@@ -71,7 +73,7 @@ export default function ProviderDashboardScreen() {
           .select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at, provider_profile:provider_profiles(id, category_ids, specializations, experience_years, is_verified, background_check_status, rating_avg, rating_count, jobs_completed, is_online, price_per_hour, zone_id, bio_en, bio_ml, latitude, longitude, last_location_at, created_at, updated_at)')
           .eq('id', session.user.id)
           .maybeSingle(),
-      ]));
+      ])));
       const nextApplication = appRes.data ? (appRes.data as ProviderApplication) : null;
       const nextProfile = provRes.data ? (provRes.data as unknown as ProviderWithProfile) : null;
       cache.set(cacheKey, { application: nextApplication, profile: nextProfile }, 5 * 60 * 1000);
@@ -117,15 +119,19 @@ export default function ProviderDashboardScreen() {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (authLoading || !session?.user?.id) return;
+    if (authLoading) return;
+    if (!session?.user?.id) {
+      setLoading(false);
+      setError('Your session expired. Please sign in again.');
+      return;
+    }
 
     void Promise.all([fetchData(), fetchJobs()]);
   }, [authLoading, session?.user?.id, fetchData, fetchJobs]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    const channel = supabase
-      .channel(`provider-dashboard-bookings:${session.user.id}`)
+    const channel = createRealtimeChannel(`provider-dashboard-bookings:${session.user.id}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'bookings', filter: `provider_id=eq.${session.user.id}`,
       }, ({ new: row }) => {
@@ -294,7 +300,7 @@ export default function ProviderDashboardScreen() {
   if (loading) return <LoadingState label={t('loading')} />;
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
 
-  if (application?.status === 'pending' && !providerProfile?.provider_profile) {
+  if (application?.status === 'pending') {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { createRealtimeChannel } from '../lib/realtime';
 
 export interface TrackingLocation {
   latitude: number;
@@ -37,8 +38,7 @@ export function useCustomerTracking(deliveryId: string) {
     fetchInitialLocation();
 
     // Subscribe to realtime updates
-    const channel = supabase
-      .channel(`delivery_tracking:${deliveryId}`)
+    const channel = createRealtimeChannel(`delivery_tracking:${deliveryId}`)
       .on(
         'postgres_changes',
         {

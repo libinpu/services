@@ -9,6 +9,7 @@ import { colors, spacing, radius, typography, shadows, getLangTextStyle } from '
 import { useTheme } from '@/lib/theme-context';
 import { Header, Button, LoadingState, ErrorState } from '@/components/ui';
 import { cache } from '@/lib/cache';
+import { withRequestTimeout } from '@/lib/query';
 import type { ServiceCategory, ProviderApplication } from '@/lib/types';
 import {
   Briefcase, Check, X, ShieldCheck, Clock,
@@ -43,42 +44,46 @@ export default function ProviderOnboardingScreen() {
       const cachedCategories = cache.get<ServiceCategory[]>('service_categories');
       if (cachedCategories) {
         setCategories(cachedCategories);
+        setLoading(false);
       }
 
-      const [catRes, appRes] = await Promise.all([
-        supabase
-          .from('service_categories')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true }),
-        session?.user?.id
-          ? supabase
-              .from('provider_applications')
-              .select('*')
-              .eq('user_id', session.user.id)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-      ]);
+      const catRes = await withRequestTimeout(supabase
+        .from('service_categories')
+        .select('id, name_en, name_ml, icon_name, sort_order, is_active, group_id, created_at')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true }));
 
       if (catRes.error) throw catRes.error;
 
       const fetchedCategories = (catRes.data || []) as ServiceCategory[];
       setCategories(fetchedCategories);
       cache.set('service_categories', fetchedCategories);
+      // Categories are sufficient to render the onboarding form. Never block
+      // the screen on the optional, RLS-protected application lookup.
+      setLoading(false);
 
-      if (appRes && appRes.data) {
-        setExistingApp(appRes.data as ProviderApplication);
-        if (appRes.data.status === 'pending') {
-          setSelectedCategories(appRes.data.category_ids);
-          setExperienceYears(String(appRes.data.experience_years));
-          setBio(lang === 'ml' ? (appRes.data.bio_ml || appRes.data.bio_en || '') : (appRes.data.bio_en || ''));
-          setAadhaarFront(appRes.data.id_proof_url || null);
-          setAadhaarBack(appRes.data.address_proof_url || null);
-          setSelfie(appRes.data.certificate_url || null);
+      if (session?.user?.id) {
+        void supabase
+          .from('provider_applications')
+          .select('id, user_id, category_ids, specializations, experience_years, bio_en, bio_ml, id_proof_url, certificate_url, address_proof_url, status, admin_notes, submitted_at, reviewed_at, created_at, updated_at')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (!data) return;
+            const application = data as ProviderApplication;
+            setExistingApp(application);
+            if (application.status === 'pending') {
+              setSelectedCategories(application.category_ids);
+              setExperienceYears(String(application.experience_years));
+              setBio(lang === 'ml' ? (application.bio_ml || application.bio_en || '') : (application.bio_en || ''));
+              setAadhaarFront(application.id_proof_url || null);
+              setAadhaarBack(application.address_proof_url || null);
+              setSelfie(application.certificate_url || null);
+            }
+          });
         }
-      }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
     } finally {
@@ -326,7 +331,22 @@ export default function ProviderOnboardingScreen() {
         await refreshProfile();
       }
 
-      router.replace('/provider-dashboard');
+      setExistingApp((prev) => ({
+        ...(prev || {}),
+        user_id: session.user.id,
+        category_ids: selectedCategories,
+        experience_years: parseInt(experienceYears, 10) || 0,
+        bio_en: bio,
+        bio_ml: bio,
+        id_proof_url: aadhaarFront,
+        address_proof_url: aadhaarBack,
+        certificate_url: selfie,
+        status: 'pending',
+        submitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any));
+
+      return;
     } catch (e: any) {
       setError(e.message || 'Failed to submit');
     } finally {
@@ -337,12 +357,45 @@ export default function ProviderOnboardingScreen() {
   if (loading) return <LoadingState label={t('loading')} />;
   if (error && !categories.length) return <ErrorState message={error} onRetry={fetchData} />;
 
+  if (existingApp?.status === 'pending') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header
+          title={t('providerOnboarding')}
+          onBack={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)');
+            }
+          }}
+        />
+        <View style={styles.warningCard}>
+          <View style={styles.approvedIcon}>
+            <Clock size={48} color={colors.warning[600]} strokeWidth={1.5} />
+          </View>
+          <Text style={[styles.approvedTitle, mlStyle]}>{t('pendingApproval')}</Text>
+          <Text style={[styles.approvedDesc, mlStyle]}>{t('pendingApprovalDesc')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const isApprovedProfessional = profile?.role === 'provider' || existingApp?.status === 'approved';
 
   if (isApprovedProfessional) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header title={t('providerOnboarding')} onBack={() => router.back()} />
+        <Header
+          title={t('providerOnboarding')}
+          onBack={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/provider-dashboard');
+            }
+          }}
+        />
         <View style={styles.approvedCard}>
           <View style={styles.approvedIcon}>
             <ShieldCheck size={48} color={colors.success[600]} strokeWidth={1.5} />
@@ -397,7 +450,16 @@ export default function ProviderOnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={t('providerOnboarding')} onBack={() => router.back()} />
+      <Header
+        title={t('providerOnboarding')}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/provider-dashboard');
+          }
+        }}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.introCard}>
           <Briefcase size={32} color={colors.primary[600]} strokeWidth={1.5} />

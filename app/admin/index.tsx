@@ -559,7 +559,16 @@ export default function AdminScreen() {
       {/* Header Bar */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)');
+              }
+            }}
+            style={styles.backBtn}
+          >
             <ArrowLeft color={colors.neutral[700]} size={20} />
           </TouchableOpacity>
           <View style={styles.logoBadge}>

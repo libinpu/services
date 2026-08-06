@@ -31,6 +31,28 @@ export default function ProviderJobDetailScreen() {
   const [selfieCaptured, setSelfieCaptured] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
+  const selfieModalOverlayRef = useRef<any>(null);
+  const billModalOverlayRef = useRef<any>(null);
+
+  const closeSelfieModal = useCallback(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (activeElement && selfieModalOverlayRef.current?.contains?.(activeElement)) {
+        activeElement.blur();
+      }
+    }
+    setShowSelfieModal(null);
+  }, []);
+
+  const closeBillModal = useCallback(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (activeElement && billModalOverlayRef.current?.contains?.(activeElement)) {
+        activeElement.blur();
+      }
+    }
+    setShowBillModal(false);
+  }, []);
   const [billDescription, setBillDescription] = useState('');
   const [billAmount, setBillAmount] = useState('');
   const [billPhoto, setBillPhoto] = useState<string | null>(null);
@@ -232,7 +254,6 @@ export default function ProviderJobDetailScreen() {
     const selfieUrl = `selfie_${selfieType}_${Date.now()}.jpg`;
     if (selfieType === 'start') {
       const { error } = await supabase.from('bookings').update({
-        start_selfie_url: selfieUrl,
         status: 'in_progress',
         updated_at: new Date().toISOString(),
       }).eq('id', id);
@@ -241,7 +262,6 @@ export default function ProviderJobDetailScreen() {
       }
     } else if (selfieType === 'end') {
       const { error } = await supabase.from('bookings').update({
-        end_selfie_url: selfieUrl,
         status: 'awaiting_confirmation',
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -334,7 +354,16 @@ export default function ProviderJobDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={`${t('jobRequest')} #${booking.id.slice(0, 6).toUpperCase()}`} onBack={() => router.back()} />
+      <Header
+        title={`${t('jobRequest')} #${booking.id.slice(0, 6).toUpperCase()}`}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/provider-dashboard');
+          }
+        }}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={[styles.statusBanner, { backgroundColor: statusInfo.color + '15' }]}>
           <View style={[styles.statusDot, { backgroundColor: statusInfo.color }]} />
@@ -551,12 +580,12 @@ export default function ProviderJobDetailScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={showSelfieModal !== null} animationType="slide" transparent onRequestClose={() => setShowSelfieModal(null)}>
-        <View style={styles.selfieOverlay}>
-          <View style={styles.selfieCard}>
+      <Modal visible={showSelfieModal !== null} animationType="slide" transparent accessibilityViewIsModal onRequestClose={closeSelfieModal}>
+        <Pressable ref={selfieModalOverlayRef} style={styles.selfieOverlay} onPress={closeSelfieModal}>
+          <Pressable style={styles.selfieCard} onPress={(e) => e.stopPropagation()}>
             <View style={styles.selfieHeader}>
               <Text style={styles.selfieTitle}>{showSelfieModal === 'start' ? t('takeStartSelfie') : t('takeEndSelfie')}</Text>
-              <TouchableOpacity onPress={() => setShowSelfieModal(null)} style={styles.selfieCloseBtn}>
+              <TouchableOpacity onPress={closeSelfieModal} style={styles.selfieCloseBtn}>
                 <X size={22} color={colors.neutral[700]} strokeWidth={2} />
               </TouchableOpacity>
             </View>
@@ -586,18 +615,18 @@ export default function ProviderJobDetailScreen() {
                 <Button label={t('confirmPhoto')} onPress={handleSelfieCapture} loading={actionLoading} style={styles.confirmSelfieBtn} />
               </View>
             )}
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Add Material Bill Modal */}
-      <Modal visible={showBillModal} animationType="slide" transparent onRequestClose={() => setShowBillModal(false)}>
-        <Pressable style={styles.billOverlay} onPress={() => setShowBillModal(false)}>
+      <Modal visible={showBillModal} animationType="slide" transparent accessibilityViewIsModal onRequestClose={closeBillModal}>
+        <Pressable ref={billModalOverlayRef} style={styles.billOverlay} onPress={closeBillModal}>
           <Pressable style={styles.billCard} onPress={(e) => e.stopPropagation()}>
             <View style={styles.billHandle} />
             <View style={styles.billHeader}>
               <Text style={styles.billTitle}>{t('addMaterialBill')}</Text>
-              <TouchableOpacity onPress={() => setShowBillModal(false)} style={styles.billCloseBtn}>
+              <TouchableOpacity onPress={closeBillModal} style={styles.billCloseBtn}>
                 <X size={20} color={colors.neutral[500]} strokeWidth={2} />
               </TouchableOpacity>
             </View>

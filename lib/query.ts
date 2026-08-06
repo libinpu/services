@@ -22,3 +22,13 @@ export async function retryRequest<T>(request: () => Promise<T>, attempts = 2): 
   }
   throw lastError;
 }
+
+export function withRequestTimeout<T>(request: PromiseLike<T>, timeoutMs = 12_000): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => reject(new Error('Request timed out. Please try again.')), timeoutMs);
+  });
+  return Promise.race([Promise.resolve(request), timeoutPromise]).finally(() => {
+    if (timeout) clearTimeout(timeout);
+  });
+}

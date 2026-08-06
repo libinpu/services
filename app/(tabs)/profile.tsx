@@ -17,7 +17,7 @@ import {
 
 export default function ProfileScreen() {
   const { t, lang, setLang } = useLanguage();
-  const { session, profile, signOut, refreshProfile } = useAuth();
+  const { session, profile, signOut } = useAuth();
   const router = useRouter();
   const { isDark, toggle, mode } = useTheme();
 
@@ -326,15 +326,12 @@ export default function ProfileScreen() {
 
     setSwitching(true);
     try {
-      console.log('[DEBUG] ProfileScreen: refreshProfile starting');
-      if (refreshProfile) {
-        await refreshProfile();
-      }
-      console.log('[DEBUG] ProfileScreen: refreshProfile complete');
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      console.log('[DEBUG] ProfileScreen: navigating to /provider-dashboard');
-      await router.replace('/provider-dashboard');
-      console.log('[DEBUG] ProfileScreen: navigation to /provider-dashboard finished');
+      // Customers must complete provider onboarding first. Sending everyone to
+      // the dashboard made a normal customer wait on provider-only queries.
+      const destination = profile?.role === 'provider'
+        ? '/provider-dashboard'
+        : '/provider-onboarding';
+      await router.replace(destination as any);
     } catch (e: any) {
       const message = e?.message || 'Failed to load provider data. Please try again.';
       console.warn('[DEBUG] ProfileScreen: switch to provider failed', e);

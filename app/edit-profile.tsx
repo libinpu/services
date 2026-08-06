@@ -148,7 +148,11 @@ export default function EditProfileScreen() {
       await refreshProfile();
       setSuccess(true);
       setTimeout(() => {
-        router.back();
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)');
+        }
       }, 800);
     } catch (e: any) {
       setError(e.message || 'Failed to save profile. Please try again.');
@@ -159,7 +163,16 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={t('editProfile')} onBack={() => router.back()} />
+      <Header
+        title={t('editProfile')}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
+        }}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex1}

@@ -174,7 +174,16 @@ export default function ProvidersScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header title={t('chooseProvider')} onBack={() => router.back()} />
+        <Header
+          title={t('chooseProvider')}
+          onBack={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)');
+            }
+          }}
+        />
         <SkeletonList rows={4} />
       </SafeAreaView>
     );
@@ -183,7 +192,16 @@ export default function ProvidersScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={t('chooseProvider')} onBack={() => router.back()} />
+      <Header
+        title={t('chooseProvider')}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
+        }}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
         {/* Mode toggle */}
         <View style={styles.modeContainer}>

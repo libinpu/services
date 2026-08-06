@@ -231,7 +231,16 @@ export default function FeedbackScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={t('rateYourExperience')} onBack={() => router.back()} />
+      <Header
+        title={t('rateYourExperience')}
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)/bookings');
+          }
+        }}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Provider info */}
         {booking?.provider && (
