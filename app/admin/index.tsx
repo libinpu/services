@@ -784,7 +784,7 @@ export default function AdminScreen() {
                     <View style={styles.cardHeader}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.cardTitle}>Booking #{b.id.substring(0, 8)}</Text>
-                        <Text style={styles.cardSub}>Status: {b.status.toUpperCase()} • OTP: {b.otp || 'N/A'}</Text>
+                        <Text style={styles.cardSub}>Status: {b.status.toUpperCase()} • OTP: {b.otp && b.otp.length > 4 ? '[Secured]' : (b.otp || 'N/A')}</Text>
                       </View>
                       <Text style={styles.costText}>₹{b.estimated_cost}</Text>
                     </View>

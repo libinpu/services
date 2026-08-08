@@ -10,6 +10,7 @@ import {
   TextStyle,
   StyleProp,
   Platform,
+  Animated,
 } from 'react-native';
 import { ArrowRight, ChevronLeft } from 'lucide-react-native';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
@@ -448,10 +449,9 @@ export function SkeletonBox({
   borderRadius?: number;
   style?: StyleProp<ViewStyle>;
 }) {
-  const opacity = React.useRef(new (require('react-native').Animated.Value)(0.4)).current;
+  const [opacity] = React.useState(() => new Animated.Value(0.4));
 
   React.useEffect(() => {
-    const { Animated } = require('react-native');
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
@@ -462,7 +462,6 @@ export function SkeletonBox({
     return () => anim.stop();
   }, [opacity]);
 
-  const { Animated } = require('react-native');
   return (
     <Animated.View
       style={[{ width, height, borderRadius: br, backgroundColor: colors.neutral[200], opacity }, style]}

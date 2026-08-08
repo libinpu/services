@@ -20,7 +20,7 @@ import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, Cir
 const { width, height } = Dimensions.get('window');
 
 export default function BookingDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, plainOtp } = useLocalSearchParams<{ id: string; plainOtp?: string }>();
   const { t, lang } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
@@ -476,19 +476,11 @@ export default function BookingDetailScreen() {
   useEffect(() => {
     if (!id) return;
     const channel = createRealtimeChannel(`booking-detail:${id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${id}` }, ({ new: row }) => {
-        setBooking((current) => current ? { ...current, ...(row as Partial<BookingWithDetails>) } : current);
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${id}` }, () => {
+        void fetchBooking();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'booking_items', filter: `booking_id=eq.${id}` }, (payload) => {
-        setBooking((current) => {
-          if (!current) return current;
-          const item = payload.new as any;
-          const previous = payload.old as any;
-          const booking_items = payload.eventType === 'DELETE'
-            ? current.booking_items.filter((entry) => entry.id !== previous.id)
-            : [...current.booking_items.filter((entry) => entry.id !== item.id), item];
-          return { ...current, booking_items };
-        });
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'booking_items', filter: `booking_id=eq.${id}` }, () => {
+        void fetchBooking();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `booking_id=eq.${id}` }, (payload) => {
         setChatMessages((current) => {
@@ -501,6 +493,28 @@ export default function BookingDetailScreen() {
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [id]);
+
+  // Listen for provider location updates
+  useEffect(() => {
+    if (!booking?.provider_id) return;
+    const providerId = booking.provider_id;
+    const channel = createRealtimeChannel(`provider-location:${providerId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'provider_profiles', filter: `id=eq.${providerId}` }, (payload) => {
+        setProviderProfile((current: any) => {
+          if (!current) return current;
+          return {
+            ...current,
+            provider_profile: {
+              ...current.provider_profile,
+              latitude: payload.new.latitude,
+              longitude: payload.new.longitude,
+            }
+          };
+        });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [booking?.provider_id]);
 
   const handleSendMessage = async () => {
     if (!chatInput.trim() || !session?.user?.id) return;
@@ -793,16 +807,16 @@ export default function BookingDetailScreen() {
                         {providerProfile?.provider_profile?.rating_avg?.toFixed(1) || '4.8'}
                       </Text>
                     </View>
-                    <Text style={styles.providerDot}>·</Text>
+                    <Text style={styles.providerDot}>•</Text>
                     <Text style={styles.providerJobs}>
                       {providerProfile?.provider_profile?.jobs_completed || 0} jobs
                     </Text>
-                    <Text style={styles.providerDot}>·</Text>
+                    <Text style={styles.providerDot}>•</Text>
                     <Text style={styles.providerJobs}>
                       {providerProfile?.provider_profile?.experience_years || 0} yrs exp
                     </Text>
                   </View>
-                  {providerProfile?.provider_profile?.specializations?.length > 0 && (
+                  {providerProfile?.provider_profile?.specializations && providerProfile.provider_profile.specializations.length > 0 && (
                     <View style={styles.providerSkillsRow}>
                       {providerProfile.provider_profile.specializations.slice(0, 3).map((skill, idx) => (
                         <View key={idx} style={styles.providerSkillTag}>
@@ -825,7 +839,7 @@ export default function BookingDetailScreen() {
                     </View>
                   </View>
                   <View style={styles.otpDigitsDisplay}>
-                    {booking.otp.split('').map((digit, idx) => (
+                    {(plainOtp || (booking.otp.length === 4 ? booking.otp : '****')).split('').map((digit, idx) => (
                       <View key={idx} style={styles.otpDigitBox}>
                         <Text style={styles.otpDigitText}>{digit}</Text>
                       </View>

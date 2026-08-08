@@ -1,8 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { Platform } from 'react-native';
+import { Platform, LogBox } from 'react-native';
+import { registerForPushNotificationsAsync, setForegroundNotificationHandler } from '@/lib/notifications';
+
+if (Platform.OS === 'web') {
+  LogBox.ignoreLogs([
+    'Animated: `useNativeDriver` is not supported because the native animated module is missing.',
+  ]);
+}
 import {
   NotoSansMalayalam_400Regular,
   NotoSansMalayalam_500Medium,
@@ -146,6 +153,46 @@ function AuthGuard() {
 
 function AppShell() {
   const { isDark } = useTheme();
+  const { session, profile } = useAuth();
+  const router = useRouter();
+  const notifListenerRef = useRef<any>(null);
+
+  // Register for push notifications when a provider logs in
+  useEffect(() => {
+    if (!session?.user?.id || profile?.role !== 'provider') return;
+    if (Platform.OS === 'web') return;
+
+    // Set foreground notification behaviour
+    setForegroundNotificationHandler();
+
+    // Register device and save token
+    void registerForPushNotificationsAsync(session.user.id);
+
+    // Listen for notification taps (when user taps a push notification)
+    let Notifications: any = null;
+    try {
+      Notifications = require('expo-notifications');
+    } catch (_) {}
+
+    if (Notifications) {
+      notifListenerRef.current = Notifications.addNotificationResponseReceivedListener(
+        (response: any) => {
+          const data = response.notification.request.content.data;
+          if (data?.bookingId) {
+            // Navigate provider to the job detail screen
+            router.push(`/provider-job/${data.bookingId}`);
+          }
+        }
+      );
+    }
+
+    return () => {
+      if (notifListenerRef.current && Notifications) {
+        Notifications.removeNotificationSubscription(notifListenerRef.current);
+      }
+    };
+  }, [session?.user?.id, profile?.role]);
+
   return (
     <>
       <AuthGuard />

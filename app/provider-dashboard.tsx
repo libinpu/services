@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Pressable, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Pressable, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
@@ -29,6 +29,8 @@ export default function ProviderDashboardScreen() {
   const [application, setApplication] = useState<ProviderApplication | null>(null);
   const [providerProfile, setProviderProfile] = useState<ProviderWithProfile | null>(null);
   const [isOnline, setIsOnline] = useState(false);
+  const [shiftStartedAt, setShiftStartedAt] = useState<string | null>(null);
+  const [shiftDuration, setShiftDuration] = useState('00:00');
   const [pendingJobs, setPendingJobs] = useState<BookingWithDetails[]>([]);
   const [activeJobs, setActiveJobs] = useState<BookingWithDetails[]>([]);
   const [pastJobs, setPastJobs] = useState<BookingWithDetails[]>([]);
@@ -38,6 +40,16 @@ export default function ProviderDashboardScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const jobsFetchingRef = useRef(false);
+  const shiftTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Update shift duration string every minute
+  const updateShiftDuration = useCallback((startedAt: string | null) => {
+    if (!startedAt) { setShiftDuration('00:00'); return; }
+    const diff = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+    const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+    const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+    setShiftDuration(`${h}:${m}`);
+  }, []);
 
   const hasProviderProfile = !!providerProfile?.provider_profile;
   const isProviderRole = profile?.role === 'provider';
@@ -56,7 +68,11 @@ export default function ProviderDashboardScreen() {
       if (cached) {
         setApplication(cached.application);
         setProviderProfile(cached.profile);
-        setIsOnline(cached.profile?.provider_profile?.is_online ?? false);
+        const pp = cached.profile?.provider_profile as any;
+        setIsOnline(pp?.is_online ?? false);
+        const sat = pp?.shift_started_at ?? null;
+        setShiftStartedAt(sat);
+        updateShiftDuration(sat);
         setLoading(false);
         return;
       }
@@ -70,7 +86,7 @@ export default function ProviderDashboardScreen() {
           .maybeSingle(),
         supabase
           .from('profiles')
-          .select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at, provider_profile:provider_profiles(id, category_ids, specializations, experience_years, is_verified, background_check_status, rating_avg, rating_count, jobs_completed, is_online, price_per_hour, zone_id, bio_en, bio_ml, latitude, longitude, last_location_at, created_at, updated_at)')
+          .select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at, provider_profile:provider_profiles(id, category_ids, specializations, experience_years, is_verified, background_check_status, rating_avg, rating_count, jobs_completed, is_online, price_per_hour, zone_id, bio_en, bio_ml, latitude, longitude, last_location_at, shift_started_at, push_token, created_at, updated_at)')
           .eq('id', session.user.id)
           .maybeSingle(),
       ])));
@@ -82,9 +98,13 @@ export default function ProviderDashboardScreen() {
         setProviderProfile(nextProfile);
         const pp = (provRes.data as any).provider_profile;
         setIsOnline(pp?.is_online ?? false);
+        const sat = pp?.shift_started_at ?? null;
+        setShiftStartedAt(sat);
+        updateShiftDuration(sat);
       } else {
         setProviderProfile(null);
         setIsOnline(false);
+        setShiftStartedAt(null);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
@@ -152,6 +172,18 @@ export default function ProviderDashboardScreen() {
     return () => { void supabase.removeChannel(channel); };
   }, [session?.user?.id]);
 
+  // Shift timer — tick every 30 seconds while on shift
+  useEffect(() => {
+    if (shiftTimerRef.current) clearInterval(shiftTimerRef.current);
+    if (isOnline && shiftStartedAt) {
+      updateShiftDuration(shiftStartedAt);
+      shiftTimerRef.current = setInterval(() => updateShiftDuration(shiftStartedAt), 30000);
+    } else {
+      setShiftDuration('00:00');
+    }
+    return () => { if (shiftTimerRef.current) clearInterval(shiftTimerRef.current); };
+  }, [isOnline, shiftStartedAt, updateShiftDuration]);
+
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
     dashHeader: { backgroundColor: colors.primary[700], paddingHorizontal: spacing.lg, paddingVertical: spacing.lg },
@@ -164,6 +196,23 @@ export default function ProviderDashboardScreen() {
     dashVerifiedText: { fontSize: typography.sizes.xs, color: 'rgba(255,255,255,0.8)', fontWeight: '600', fontFamily: typography.fontFamilyMedium },
     onlineToggleWrap: { alignItems: 'center' },
     onlineToggleLabel: { fontSize: typography.sizes.xs, fontWeight: '600', marginTop: 4, fontFamily: typography.fontFamilyMedium },
+    shiftBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+      borderRadius: radius.full, gap: 6,
+    },
+    shiftBtnStart: { backgroundColor: colors.success[500] },
+    shiftBtnEnd: { backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)' },
+    shiftBtnText: { fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[0], fontFamily: typography.fontFamilyBold },
+    shiftTimer: { fontSize: typography.sizes.xs, color: 'rgba(255,255,255,0.7)', marginTop: 3, fontFamily: typography.fontFamilyRegular, textAlign: 'center' },
+    activeLockBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: colors.warning[50], borderRadius: radius.md,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+      marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.warning[200],
+    },
+    activeLockTitle: { fontSize: typography.sizes.sm, fontWeight: '700', color: colors.warning[800], fontFamily: typography.fontFamilyBold },
+    activeLockDesc: { fontSize: typography.sizes.xs, color: colors.warning[700], marginTop: 2, fontFamily: typography.fontFamilyRegular },
     modeRow: { marginTop: spacing.md },
     modeButton: {
       backgroundColor: 'rgba(255,255,255,0.12)',
@@ -247,12 +296,16 @@ export default function ProviderDashboardScreen() {
   });
 
 
-  const toggleOnline = async () => {
+  const startShift = async () => {
     if (!session?.user?.id) return;
-    const newOnline = !isOnline;
-    setIsOnline(newOnline);
-    const updateData: any = { is_online: newOnline, updated_at: new Date().toISOString() };
-    if (newOnline) {
+    const now = new Date().toISOString();
+    const updateData: any = {
+      is_online: true,
+      shift_started_at: now,
+      updated_at: now,
+    };
+    // Try to grab location
+    if (Platform.OS !== 'web') {
       try {
         const expoLocation = await import('expo-location');
         const { status } = await expoLocation.requestForegroundPermissionsAsync();
@@ -260,16 +313,31 @@ export default function ProviderDashboardScreen() {
           const pos = await expoLocation.getCurrentPositionAsync({ accuracy: 3 });
           updateData.latitude = pos.coords.latitude;
           updateData.longitude = pos.coords.longitude;
-          updateData.last_location_at = new Date().toISOString();
+          updateData.last_location_at = now;
         }
       } catch {
-        // Location permission denied or unavailable — proceed without location
+        // Location unavailable — proceed anyway
       }
     }
+    setIsOnline(true);
+    setShiftStartedAt(now);
+    updateShiftDuration(now);
     await supabase.from('provider_profiles').update(updateData).eq('id', session.user.id);
     cache.invalidate(`provider-dashboard:${session.user.id}`);
-    void fetchData();
   };
+
+  const endShift = async () => {
+    if (!session?.user?.id) return;
+    setIsOnline(false);
+    setShiftStartedAt(null);
+    setShiftDuration('00:00');
+    await supabase
+      .from('provider_profiles')
+      .update({ is_online: false, shift_started_at: null, updated_at: new Date().toISOString() })
+      .eq('id', session.user.id);
+    cache.invalidate(`provider-dashboard:${session.user.id}`);
+  };
+
 
   const handleAcceptJob = async (jobId: string) => {
     setActionLoading(true);
@@ -383,10 +451,20 @@ export default function ProviderDashboardScreen() {
               )}
             </View>
             <View style={styles.onlineToggleWrap}>
-              <Switch value={isOnline} onValueChange={toggleOnline} trackColor={{ false: colors.neutral[300], true: colors.primary[600] }} thumbColor={isOnline ? colors.neutral[0] : colors.neutral[0]} />
-              <Text style={[styles.onlineToggleLabel, { color: isOnline ? colors.success[600] : colors.neutral[400] }]}>
-                {isOnline ? t('providerOnline') : t('providerOffline')}
-              </Text>
+              {isOnline ? (
+                <TouchableOpacity style={[styles.shiftBtn, styles.shiftBtnEnd]} onPress={endShift}>
+                  <ZapOff size={14} color={colors.neutral[0]} strokeWidth={2.5} />
+                  <Text style={styles.shiftBtnText}>{lang === 'ml' ? 'ഷിഫ്റ്റ് അവസാനിപ്പിക്കുക' : 'End Shift'}</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[styles.shiftBtn, styles.shiftBtnStart]} onPress={startShift}>
+                  <Check size={14} color={colors.neutral[0]} strokeWidth={3} />
+                  <Text style={styles.shiftBtnText}>{lang === 'ml' ? 'ഷിഫ്റ്റ് ആരംഭിക്കുക' : 'Start Shift'}</Text>
+                </TouchableOpacity>
+              )}
+              {isOnline && shiftStartedAt ? (
+                <Text style={styles.shiftTimer}>{'⏱ '}{shiftDuration}</Text>
+              ) : null}
             </View>
           </View>
 
@@ -447,7 +525,16 @@ export default function ProviderDashboardScreen() {
             {!isOnline && (
               <View style={styles.offlineBanner}>
                 <ZapOff size={16} color={colors.warning[600]} strokeWidth={2} />
-                <Text style={styles.offlineBannerText}>{lang === 'ml' ? 'ജോലികൾ സ്വീകരിക്കാൻ ഓൺലൈൻ ആകുക' : 'Go online to receive job requests'}</Text>
+                <Text style={styles.offlineBannerText}>{lang === 'ml' ? 'ജോലികൾ സ്വീകരിക്കാൻ ഷിഫ്റ്റ് ആരംഭിക്കുക' : 'Start your shift to receive job requests'}</Text>
+              </View>
+            )}
+            {isOnline && activeJobs.length > 0 && (
+              <View style={styles.activeLockBanner}>
+                <Briefcase size={18} color={colors.warning[700]} strokeWidth={2} />
+                <View>
+                  <Text style={styles.activeLockTitle}>{lang === 'ml' ? 'ഒരു ജോലി സജീവമാണ്' : 'You have an active job'}</Text>
+                  <Text style={styles.activeLockDesc}>{lang === 'ml' ? 'നിലവിലെ ജോലി പൂർത്തിയാക്കിയ ശേഷം പുതിയ ജോലികൾ ലഭിക്കും' : 'Complete your current job to receive new requests'}</Text>
+                </View>
               </View>
             )}
             {pendingJobs.length === 0 ? (

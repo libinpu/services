@@ -938,14 +938,19 @@
 
       filtered.forEach(b => {
         const status = String(b.status || 'pending').toLowerCase();
+        const customerName = b.customer_name || 'Customer';
+        const providerName = b.provider_name || 'Unassigned';
+        const serviceName = b.service_name || 'General Service';
+        const isHashed = b.otp && b.otp.length > 4;
+        const displayOtp = isHashed ? '<span class="text-xs text-gray-500 font-mono italic">[Secured]</span>' : (b.otp || '---');
         const row = `
           <tr class="hover:bg-gray-800/40 transition">
             <td class="p-3.5 font-mono text-brand-400 font-bold">#${String(b.id || '').substring(0,8)}</td>
-            <td class="p-3.5 font-semibold text-white">${b.customer_name || b.customer_id || 'Customer'}</td>
-            <td class="p-3.5 text-gray-300">${b.service_name || 'General Service'}</td>
-            <td class="p-3.5 text-gray-300">${b.provider_name || 'Unassigned'}</td>
+            <td class="p-3.5 font-semibold text-white">${customerName}</td>
+            <td class="p-3.5 text-gray-300">${serviceName}</td>
+            <td class="p-3.5 text-gray-300">${providerName}</td>
             <td class="p-3.5 font-bold text-emerald-400">₹${Number(b.estimated_cost || b.final_cost || 0)}</td>
-            <td class="p-3.5"><span class="bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700 font-mono text-[11px]">${b.otp || '---'}</span></td>
+            <td class="p-3.5"><span class="bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700 font-mono text-[11px]">${displayOtp}</span></td>
             <td class="p-3.5">
               <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : status === 'accepted' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'}">
                 ${status}

@@ -176,15 +176,15 @@ export default function ProviderProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header 
-        title={t('provider')} 
+      <Header
+        title={t('provider')}
         onBack={() => {
           if (router.canGoBack()) {
             router.back();
           } else {
             router.replace('/(tabs)');
           }
-        }} 
+        }}
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Profile Header */}
