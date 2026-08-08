@@ -141,13 +141,8 @@ export default function ProviderJobDetailScreen() {
     otpHeader: { alignItems: 'center', marginBottom: spacing.md },
     otpTitle: { fontSize: typography.sizes.lg, fontWeight: '700', color: colors.neutral[900], marginTop: spacing.sm, fontFamily: typography.fontFamilyBold },
     otpDesc: { fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center', marginTop: spacing.xs, fontFamily: typography.fontFamilyRegular },
-<<<<<<< HEAD
-    otpInputRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-    otpInput: { width: 52, height: 60, borderRadius: radius.md, borderWidth: 2, borderColor: colors.neutral[200], fontSize: typography.sizes.xxl, fontWeight: '700', color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyBold, marginHorizontal: 6, textAlign: 'center', textAlignVertical: 'center', padding: 0 },
-=======
     otpInputRow: { flexDirection: 'row', justifyContent: 'center' },
     otpInput: { width: 56, height: 64, borderRadius: radius.md, borderWidth: 2, borderColor: colors.neutral[200], fontSize: typography.sizes.xxxl, fontWeight: '700', color: colors.neutral[900], backgroundColor: colors.neutral[100], fontFamily: typography.fontFamilyBold, textAlign: 'center', textAlignVertical: 'center', paddingVertical: 0, marginHorizontal: spacing.xs },
->>>>>>> 28172365e1488eca0c8d61abaf8591ba4e58e9ab
     otpInputFilled: { borderColor: colors.primary[600], backgroundColor: colors.primary[50] },
     otpErrorText: { fontSize: typography.sizes.sm, color: colors.error[600], textAlign: 'center', marginTop: spacing.sm, fontFamily: typography.fontFamilyRegular },
     otpBtn: { width: '100%', marginTop: spacing.md },
