@@ -14,7 +14,7 @@ import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import { isValidOtp } from '@/lib/otp';
-import { haversineKm, estimateEtaMins, formatEta } from '@/lib/distance';
+import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
 import type { BookingWithDetails, ProviderWithProfile } from '@/lib/types';
 import { Phone, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, X, Briefcase, Receipt, User } from 'lucide-react-native';
 
@@ -574,6 +574,16 @@ export default function BookingDetailScreen() {
     rejected: { label: t('rejected'), color: colors.error[500] },
   };
   const statusInfo = statusFlow[status] || statusFlow.pending;
+  const customerLatitude = booking.address?.latitude ?? null;
+  const customerLongitude = booking.address?.longitude ?? null;
+  const providerLatitude = providerProfile?.provider_profile?.latitude ?? null;
+  const providerLongitude = providerProfile?.provider_profile?.longitude ?? null;
+  const hasCustomerLocation = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
+  const hasLiveRoute = hasCustomerLocation && Number.isFinite(providerLatitude) && Number.isFinite(providerLongitude);
+  const liveDistanceKm = hasLiveRoute
+    ? haversineKm(customerLatitude as number, customerLongitude as number, providerLatitude as number, providerLongitude as number)
+    : null;
+  const liveEtaMins = liveDistanceKm == null ? null : estimateEtaMins(liveDistanceKm);
 
   // Progress steps for the tracking bar
   const trackingSteps = [
@@ -642,16 +652,16 @@ export default function BookingDetailScreen() {
             {/* Map View */}
             <View style={styles.mapContainer}>
               <View style={styles.mapArea}>
-                {showTrackingMap ? (
+                {showTrackingMap && hasCustomerLocation ? (
                   <LiveTrackingMap
-                    userLat={booking?.address?.latitude || 10.8505}
-                    userLng={booking?.address?.longitude || 76.2711}
-                    providerLat={providerProfile?.provider_profile?.latitude ?? undefined}
-                    providerLng={providerProfile?.provider_profile?.longitude ?? undefined}
+                    userLat={customerLatitude as number}
+                    userLng={customerLongitude as number}
+                    providerLat={hasLiveRoute ? providerLatitude as number : undefined}
+                    providerLng={hasLiveRoute ? providerLongitude as number : undefined}
                   />
                 ) : (
                   <View style={[styles.mapArea, { alignItems: 'center', justifyContent: 'center' }]}> 
-                    <Text style={{ color: colors.neutral[500] }}>{t('loadingMap')}</Text>
+                    <Text style={{ color: colors.neutral[500] }}>{hasCustomerLocation ? t('loadingMap') : 'Your location is needed for live tracking.'}</Text>
                   </View>
                 )}
 
@@ -661,27 +671,18 @@ export default function BookingDetailScreen() {
                     <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                     <Text style={styles.mapEtaText}>
                       ETA:{' '}
-                      {booking?.address?.latitude && booking?.address?.longitude && providerProfile?.provider_profile?.latitude && providerProfile?.provider_profile?.longitude
-                        ? formatEta(
-                            estimateEtaMins(
-                              haversineKm(
-                                booking.address.latitude,
-                                booking.address.longitude,
-                                providerProfile.provider_profile.latitude,
-                                providerProfile.provider_profile.longitude,
-                              ),
-                            ),
-                          )
-                        : booking?.estimated_eta_mins
+                      {hasLiveRoute
+                        ? `${formatDistance(liveDistanceKm)} away • ${formatEta(liveEtaMins)}`
+                        : booking.estimated_eta_mins
                         ? formatEta(booking.estimated_eta_mins)
-                        : '15 mins'}
+                        : 'Live location pending'}
                     </Text>
                   </View>
                 )}
                 {status === 'accepted' && (
                   <View style={styles.mapEtaBadge}>
                     <Clock size={14} color={colors.neutral[0]} strokeWidth={2.5} />
-                    <Text style={styles.mapEtaText}>Preparing to start</Text>
+                    <Text style={styles.mapEtaText}>{hasLiveRoute ? `${formatDistance(liveDistanceKm)} away • Live tracking` : 'Professional is preparing to leave'}</Text>
                   </View>
                 )}
                 {status === 'arrived' && (
