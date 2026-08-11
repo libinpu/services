@@ -245,7 +245,7 @@ export default function ProviderProfileScreen() {
         )}
 
         {/* Bio */}
-        {pp?.bio_en && (
+        {!!pp?.bio_en && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('provider')}</Text>
             <Text style={styles.bioText}>
@@ -292,7 +292,7 @@ export default function ProviderProfileScreen() {
                     {new Date(review.created_at).toLocaleDateString()}
                   </Text>
                 </View>
-                {review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
+                {!!review.comment && <Text style={styles.reviewComment}>{review.comment}</Text>}
                 {review.tags.length > 0 && (
                   <View style={styles.reviewTags}>
                     {review.tags.map((tag, idx) => (
