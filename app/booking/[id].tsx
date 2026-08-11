@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, TextInput, Modal, Pressable, Image,
+  Dimensions, TextInput, Modal, Pressable, Image, Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,34 +14,43 @@ import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import { haversineKm, estimateEtaMins, formatEta } from '@/lib/distance';
-import type { BookingWithDetails, ChatMessage, ProviderWithProfile } from '@/lib/types';
-import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, Share2, User, Briefcase, Award, Image as ImageIcon, Receipt } from 'lucide-react-native';
+import type { BookingWithDetails, ProviderWithProfile } from '@/lib/types';
+import { Phone, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, X, Briefcase, Receipt, User } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
 export default function BookingDetailScreen() {
-  const { id, plainOtp } = useLocalSearchParams<{ id: string; plainOtp?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { t, lang } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
   const { isDark } = useTheme();
 
+  interface ChatMessage {
+    id: string;
+    booking_id: string;
+    sender_id: string;
+    content: string;
+    created_at: string;
+  }
+
   const [booking, setBooking] = useState<BookingWithDetails | null>(null);
   const [providerProfile, setProviderProfile] = useState<ProviderWithProfile | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showChat, setShowChat] = useState(false);
   const bookingFetchingRef = useRef(false);
-  const chatFetchingRef = useRef(false);
   const [showTrackingMap, setShowTrackingMap] = useState(true);
   const [extraCharges, setExtraCharges] = useState<any[]>([]);
-  const [showSos, setShowSos] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [otpInput, setOtpInput] = useState('');
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [verifying, setVerifying] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Auto-navigate to My Bookings when provider accepts the job
+  useEffect(() => {
+    if (booking?.status === 'accepted' && !bookingFetchingRef.current) {
+      // Navigate to my bookings tab so user sees the accepted booking
+      router.replace('/(tabs)/bookings' as any);
+    }
+  }, [booking?.status, router]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -452,26 +461,9 @@ export default function BookingDetailScreen() {
     }
   }, [id]);
 
-  const fetchChat = useCallback(async () => {
-    if (!id) return;
-    if (chatFetchingRef.current) return;
-    chatFetchingRef.current = true;
-    try {
-      const { data } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('booking_id', id)
-        .order('created_at', { ascending: true });
-      if (data) setChatMessages(data as ChatMessage[]);
-    } finally {
-      chatFetchingRef.current = false;
-    }
-  }, [id]);
-
   useEffect(() => {
     void fetchBooking();
-    void fetchChat();
-  }, [fetchBooking, fetchChat]);
+  }, [fetchBooking]);
 
   useEffect(() => {
     if (!id) return;
@@ -493,8 +485,6 @@ export default function BookingDetailScreen() {
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [id]);
-
-  // Listen for provider location updates
   useEffect(() => {
     if (!booking?.provider_id) return;
     const providerId = booking.provider_id;
@@ -516,18 +506,6 @@ export default function BookingDetailScreen() {
     return () => { void supabase.removeChannel(channel); };
   }, [booking?.provider_id]);
 
-  const handleSendMessage = async () => {
-    if (!chatInput.trim() || !session?.user?.id) return;
-    const { data: sentMessage, error: msgError } = await supabase
-      .from('chat_messages')
-      .insert({ booking_id: id, sender_id: session.user.id, message: chatInput.trim() })
-      .select('id, booking_id, sender_id, message, created_at')
-      .single();
-    if (!msgError) {
-      setChatInput('');
-      if (sentMessage) setChatMessages((current) => [...current.filter((entry) => entry.id !== sentMessage.id), sentMessage as ChatMessage]);
-    }
-  };
 
   const handleApproveCharge = async (itemId: string) => {
     const { error } = await supabase
@@ -537,29 +515,6 @@ export default function BookingDetailScreen() {
     if (!error) fetchBooking();
   };
 
-  const handleVerifyOtp = async () => {
-    if (!booking?.otp) return;
-    setVerifying(true);
-    setOtpError(null);
-    if (otpInput.trim() === booking.otp) {
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          otp_verified: true,
-          status: 'in_progress',
-          started_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-      if (!error) {
-        setOtpInput('');
-        fetchBooking();
-      }
-    } else {
-      setOtpError('Incorrect OTP. Please check and try again.');
-    }
-    setVerifying(false);
-  };
 
   const handleMarkComplete = async () => {
     const { error } = await supabase
@@ -828,8 +783,8 @@ export default function BookingDetailScreen() {
                 </View>
               </View>
 
-              {/* OTP Display — when provider accepts, is on the way, or arrives */}
-              {['accepted', 'on_the_way', 'arrived'].includes(status) && booking.otp && !booking.otp_verified && (
+              {/* OTP Display — when provider arrives */}
+              {status === 'arrived' && booking.otp && !booking.otp_verified && (
                 <View style={styles.otpSection}>
                   <View style={styles.otpInfoRow}>
                     <ShieldCheck size={20} color={colors.primary[600]} strokeWidth={2} />
@@ -839,7 +794,7 @@ export default function BookingDetailScreen() {
                     </View>
                   </View>
                   <View style={styles.otpDigitsDisplay}>
-                    {(plainOtp || (booking.otp.length === 4 ? booking.otp : '****')).split('').map((digit, idx) => (
+                    {(booking.otp || '----').split('').map((digit, idx) => (
                       <View key={idx} style={styles.otpDigitBox}>
                         <Text style={styles.otpDigitText}>{digit}</Text>
                       </View>
@@ -850,17 +805,15 @@ export default function BookingDetailScreen() {
 
               {/* Action buttons */}
               <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => setShowChat(true)}>
-                  <MessageSquare size={18} color={colors.primary[600]} strokeWidth={2} />
-                  <Text style={styles.actionBtnText}>{t('chat')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn}>
+                <TouchableOpacity 
+                  style={styles.actionBtn} 
+                  onPress={() => {
+                    const phone = provider?.phone;
+                    if (phone) Linking.openURL(`tel:${phone}`);
+                  }}
+                >
                   <Phone size={18} color={colors.primary[600]} strokeWidth={2} />
-                  <Text style={styles.actionBtnText}>{t('call')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, styles.sosBtn]} onPress={() => setShowSos(true)}>
-                  <AlertCircle size={18} color={colors.error[600]} strokeWidth={2} />
-                  <Text style={[styles.actionBtnText, { color: colors.error[600] }]}>{t('sos')}</Text>
+                  <Text style={styles.actionBtnText}>{provider?.phone || t('call')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -992,72 +945,6 @@ export default function BookingDetailScreen() {
           </View>
         </View>
       </ScrollView>
-
-      {/* Chat overlay */}
-      <Modal visible={showChat} animationType="slide" transparent onRequestClose={() => setShowChat(false)}>
-        <View style={styles.chatOverlay}>
-          <View style={styles.chatHeader}>
-            <Text style={styles.chatTitle}>{t('chat')}</Text>
-            <TouchableOpacity onPress={() => setShowChat(false)} style={styles.chatCloseBtn}>
-              <X size={22} color={colors.neutral[700]} strokeWidth={2} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={styles.chatMessages} showsVerticalScrollIndicator={false}>
-            {chatMessages.length === 0 ? (
-              <Text style={styles.chatEmptyText}>No messages yet. Start a conversation!</Text>
-            ) : (
-              chatMessages.map((msg) => (
-                <View
-                  key={msg.id}
-                  style={[
-                    styles.chatBubble,
-                    msg.sender_id === session?.user?.id ? styles.chatBubbleMine : styles.chatBubbleTheirs,
-                  ]}
-                >
-                  <Text style={[styles.chatBubbleText, msg.sender_id === session?.user?.id ? styles.chatBubbleTextMine : styles.chatBubbleTextTheirs]}>{msg.message}</Text>
-                </View>
-              ))
-            )}
-          </ScrollView>
-          <View style={styles.chatInputRow}>
-            <TextInput
-              style={styles.chatInput}
-              value={chatInput}
-              onChangeText={setChatInput}
-              placeholder="Type a message..."
-              placeholderTextColor={colors.neutral[400]}
-            />
-            <TouchableOpacity style={styles.chatSendBtn} onPress={handleSendMessage}>
-              <Text style={styles.chatSendText}>→</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* SOS overlay */}
-      <Modal visible={showSos} animationType="fade" transparent onRequestClose={() => setShowSos(false)}>
-        <View style={styles.sosOverlay}>
-          <View style={styles.sosCard}>
-            <View style={styles.sosIcon}>
-              <AlertCircle size={48} color={colors.error[500]} strokeWidth={1.5} />
-            </View>
-            <Text style={styles.sosTitle}>SOS Alert</Text>
-            <Text style={styles.sosDesc}>
-              Your live location and booking details will be shared with our emergency support team.
-            </Text>
-            <Button
-              label="Send Emergency Alert"
-              onPress={() => {
-                setShowSos(false);
-                setError('Emergency alert sent. Our support team will contact you immediately.');
-              }}
-              variant="danger"
-              style={styles.sosSendBtn}
-            />
-            <Button label={t('close')} onPress={() => setShowSos(false)} variant="ghost" style={styles.sosCloseBtn} />
-          </View>
-        </View>
-      </Modal>
 
       {/* Cancel confirmation */}
       <Modal visible={showCancelConfirm} animationType="fade" transparent onRequestClose={() => setShowCancelConfirm(false)}>

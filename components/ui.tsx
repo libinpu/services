@@ -11,6 +11,7 @@ import {
   StyleProp,
   Platform,
   Animated,
+  DimensionValue,
 } from 'react-native';
 import { ArrowRight, ChevronLeft } from 'lucide-react-native';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
@@ -444,7 +445,7 @@ export function SkeletonBox({
   borderRadius: br = 6,
   style,
 }: {
-  width?: number | string;
+  width?: DimensionValue;
   height?: number;
   borderRadius?: number;
   style?: StyleProp<ViewStyle>;

@@ -9,6 +9,7 @@ import { cache } from '@/lib/cache';
 import { dedupeRequest } from '@/lib/query';
 import { withRequestTimeout } from '@/lib/query';
 import { createRealtimeChannel } from '@/lib/realtime';
+import * as Notifications from 'expo-notifications';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { LoadingState, ErrorState, Button } from '@/components/ui';
@@ -158,14 +159,27 @@ export default function ProviderDashboardScreen() {
         const update = row as Partial<BookingWithDetails>;
         const isActive = ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(update.status || '');
         const isHistory = ['completed', 'cancelled', 'rejected'].includes(update.status || '');
-        setPendingJobs((items) => update.status === 'pending'
-          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
-          : items.filter((item) => item.id !== update.id));
+        setPendingJobs((items) => {
+          const isNewPending = update.status === 'pending' && !items.find(i => i.id === update.id);
+          if (isNewPending) {
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'New Job Request',
+                body: 'A new service request is available nearby.',
+                sound: true,
+              },
+              trigger: null,
+            });
+          }
+          return update.status === 'pending'
+            ? items.find(i => i.id === update.id) ? items.map((item) => item.id === update.id ? { ...item, ...update } : item) : [{...update} as unknown as BookingWithDetails, ...items]
+            : items.filter((item) => item.id !== update.id);
+        });
         setActiveJobs((items) => isActive
-          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
+          ? items.find(i => i.id === update.id) ? items.map((item) => item.id === update.id ? { ...item, ...update } : item) : [{...update} as unknown as BookingWithDetails, ...items]
           : items.filter((item) => item.id !== update.id));
         setPastJobs((items) => isHistory
-          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
+          ? items.find(i => i.id === update.id) ? items.map((item) => item.id === update.id ? { ...item, ...update } : item) : [{...update} as unknown as BookingWithDetails, ...items]
           : items.filter((item) => item.id !== update.id));
       })
       .subscribe();
@@ -309,19 +323,44 @@ export default function ProviderDashboardScreen() {
       try {
         const expoLocation = await import('expo-location');
         const { status } = await expoLocation.requestForegroundPermissionsAsync();
+        
         if (status === 'granted') {
-          const pos = await expoLocation.getCurrentPositionAsync({ accuracy: 3 });
-          updateData.latitude = pos.coords.latitude;
-          updateData.longitude = pos.coords.longitude;
-          updateData.last_location_at = now;
+          try {
+            let pos = await expoLocation.getLastKnownPositionAsync({});
+            if (!pos) {
+              pos = await expoLocation.getCurrentPositionAsync({ accuracy: expoLocation.Accuracy.Balanced });
+            }
+            if (pos) {
+              updateData.latitude = pos.coords.latitude;
+              updateData.longitude = pos.coords.longitude;
+              updateData.last_location_at = now;
+            }
+          } catch (e) {
+            console.log('Location fetch error:', e);
+          }
+        }
+        const { status: notifStatus } = await Notifications.getPermissionsAsync();
+        if (notifStatus !== 'granted') {
+          await Notifications.requestPermissionsAsync();
         }
       } catch {
-        // Location unavailable — proceed anyway
+        // Location or notifications unavailable — proceed anyway
       }
     }
     setIsOnline(true);
     setShiftStartedAt(now);
     updateShiftDuration(now);
+    
+    if (Platform.OS !== 'web') {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Shift Started',
+          body: 'You are now online and ready to receive requests.',
+          sound: true,
+        },
+        trigger: null,
+      });
+    }
     await supabase.from('provider_profiles').update(updateData).eq('id', session.user.id);
     cache.invalidate(`provider-dashboard:${session.user.id}`);
   };
@@ -554,14 +593,7 @@ export default function ProviderDashboardScreen() {
                       <Text style={styles.jobTime}>{new Date(job.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
                     </View>
                   </View>
-                  <View style={styles.jobActions}>
-                    <TouchableOpacity style={styles.jobAcceptBtn} onPress={() => handleAcceptJob(job.id)}>
-                      <Check size={18} color={colors.neutral[0]} strokeWidth={3} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.jobRejectBtn} onPress={() => handleRejectJob(job.id)}>
-                      <X size={18} color={colors.error[600]} strokeWidth={3} />
-                    </TouchableOpacity>
-                  </View>
+                  <ChevronRight size={20} color={colors.neutral[300]} strokeWidth={2} />
                 </TouchableOpacity>
               ))
             )}

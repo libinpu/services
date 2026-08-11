@@ -249,8 +249,6 @@ export default function BookingConfirmationScreen() {
       }
 
       const otp = Math.floor(1000 + Math.random() * 9000).toString();
-      const { hashOtp } = require('@/lib/hash');
-      const hashedOtp = await hashOtp(otp);
 
       const scheduledAt = scheduleMode === 'now'
         ? new Date().toISOString()
@@ -272,7 +270,7 @@ export default function BookingConfirmationScreen() {
           estimated_eta_mins: etaMins,
           payment_method: 'cash',
           payment_status: 'pending',
-          otp: hashedOtp,
+          otp: otp,
           otp_verified: false,
         })
         .select('*')
@@ -281,7 +279,7 @@ export default function BookingConfirmationScreen() {
       if (insertError) throw insertError;
 
       if (data) {
-        router.replace(`/booking/${data.id}?plainOtp=${otp}`);
+        router.replace(`/booking/${data.id}`);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to create booking');
