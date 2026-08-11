@@ -22,22 +22,6 @@ export function useProviderLocation(enabled: boolean) {
       const { status } = await expoLocation.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
 
-      try {
-        let pos = await expoLocation.getLastKnownPositionAsync({});
-        if (!pos) {
-          pos = await expoLocation.getCurrentPositionAsync({ accuracy: expoLocation.Accuracy.Balanced });
-        }
-        if (pos) {
-          setLocation({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            updatedAt: Date.now(),
-          });
-        }
-      } catch (e) {
-        console.log('Initial location fetch error:', e);
-      }
-
       const sub = await expoLocation.watchPositionAsync(
         { accuracy: expoLocation.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
         (pos) => {

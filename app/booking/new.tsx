@@ -9,7 +9,6 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { ServiceSubcategory, Address, Profile } from '@/lib/types';
-import { generateOtp } from '@/lib/otp';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
 
 export default function BookingConfirmationScreen() {
@@ -249,7 +248,9 @@ export default function BookingConfirmationScreen() {
         }
       }
 
-      const otp = generateOtp();
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+      const { hashOtp } = require('@/lib/hash');
+      const hashedOtp = await hashOtp(otp);
 
       const scheduledAt = scheduleMode === 'now'
         ? new Date().toISOString()
@@ -271,7 +272,7 @@ export default function BookingConfirmationScreen() {
           estimated_eta_mins: etaMins,
           payment_method: 'cash',
           payment_status: 'pending',
-          otp: otp,
+          otp: hashedOtp,
           otp_verified: false,
         })
         .select('*')
@@ -280,7 +281,7 @@ export default function BookingConfirmationScreen() {
       if (insertError) throw insertError;
 
       if (data) {
-        router.replace(`/booking/${data.id}`);
+        router.replace(`/booking/${data.id}?plainOtp=${otp}`);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to create booking');

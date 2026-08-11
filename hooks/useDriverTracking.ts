@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { Alert } from 'react-native';

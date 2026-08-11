@@ -1,4 +1,4 @@
-﻿-- Add push_token and shift_started_at to provider_profiles
+-- Add push_token and shift_started_at to provider_profiles
 ALTER TABLE provider_profiles
   ADD COLUMN IF NOT EXISTS push_token TEXT,
   ADD COLUMN IF NOT EXISTS shift_started_at TIMESTAMPTZ;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Pressable, Image, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Pressable, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
@@ -13,8 +13,6 @@ import type { BookingWithDetails } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
 import { formatDistance, formatEta, haversineKm, estimateEtaMins } from '@/lib/distance';
 import { useProviderLocation, updateProviderLocationInDb } from '@/lib/use-provider-location';
-import { OTP_LENGTH, isValidOtp } from '@/lib/otp';
-import { verifyOtp } from '@/lib/hash';
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -94,7 +92,7 @@ export default function ProviderJobDetailScreen() {
       setError(null);
       const { data, error: bookingError } = await supabase
         .from('bookings')
-        .select(`*, subcategory:service_subcategories(*), address:addresses(*), customer:profiles!bookings_customer_id_fkey(id, full_name, phone), provider:profiles!bookings_provider_id_fkey(*, provider_profile:provider_profiles(*)), booking_items(*), reviews(*)`)
+        .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*, provider_profile:provider_profiles(*)), booking_items(*), reviews(*)`)
         .eq('id', id)
         .maybeSingle();
       if (bookingError) throw bookingError;
@@ -210,11 +208,11 @@ export default function ProviderJobDetailScreen() {
 
 
   const handleOtpChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1);
+    if (value.length > 1) return;
     const newOtp = [...otpInput];
-    newOtp[index] = digit;
+    newOtp[index] = value;
     setOtpInput(newOtp);
-    if (digit && index < OTP_LENGTH - 1) otpRefs.current[index + 1]?.focus();
+    if (value && index < 3) otpRefs.current[index + 1]?.focus();
   };
 
   const handleVerifyOtp = async () => {
@@ -222,11 +220,7 @@ export default function ProviderJobDetailScreen() {
     setVerifying(true);
     setOtpError(null);
     const enteredOtp = otpInput.join('');
-    if (!isValidOtp(enteredOtp)) {
-      setOtpError(t('otpIncorrect'));
-      setVerifying(false);
-      return;
-    }
+    const { verifyOtp } = require('@/lib/hash');
     const isMatched = await verifyOtp(enteredOtp, booking.otp);
     if (isMatched) {
       const { error } = await supabase.from('bookings').update({
@@ -577,15 +571,13 @@ export default function ProviderJobDetailScreen() {
 
         {['accepted', 'on_the_way', 'arrived', 'in_progress'].includes(status) && (
           <View style={styles.contactRow}>
-            <TouchableOpacity 
-              style={styles.contactBtn}
-              onPress={() => {
-                const phone = (booking as any)?.customer?.phone;
-                if (phone) Linking.openURL(`tel:${phone}`);
-              }}
-            >
+            <TouchableOpacity style={styles.contactBtn}>
               <Phone size={20} color={colors.primary[600]} strokeWidth={2} />
-              <Text style={styles.contactBtnText}>{(booking as any)?.customer?.phone || t('call')}</Text>
+              <Text style={styles.contactBtnText}>{t('call')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.contactBtn}>
+              <MessageSquare size={20} color={colors.primary[600]} strokeWidth={2} />
+              <Text style={styles.contactBtnText}>{t('chat')}</Text>
             </TouchableOpacity>
           </View>
         )}
