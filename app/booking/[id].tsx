@@ -13,6 +13,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
+import { isValidOtp } from '@/lib/otp';
 import { haversineKm, estimateEtaMins, formatEta } from '@/lib/distance';
 import type { BookingWithDetails, ProviderWithProfile } from '@/lib/types';
 import { Phone, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, X, Briefcase, Receipt, User } from 'lucide-react-native';
@@ -784,7 +785,7 @@ export default function BookingDetailScreen() {
               </View>
 
               {/* OTP Display — when provider arrives */}
-              {status === 'arrived' && booking.otp && !booking.otp_verified && (
+              {status === 'arrived' && isValidOtp(booking.otp) && !booking.otp_verified && (
                 <View style={styles.otpSection}>
                   <View style={styles.otpInfoRow}>
                     <ShieldCheck size={20} color={colors.primary[600]} strokeWidth={2} />
@@ -794,7 +795,7 @@ export default function BookingDetailScreen() {
                     </View>
                   </View>
                   <View style={styles.otpDigitsDisplay}>
-                    {(booking.otp || '----').split('').map((digit, idx) => (
+                    {booking.otp.split('').map((digit, idx) => (
                       <View key={idx} style={styles.otpDigitBox}>
                         <Text style={styles.otpDigitText}>{digit}</Text>
                       </View>

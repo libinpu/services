@@ -13,6 +13,8 @@ import type { BookingWithDetails } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
 import { formatDistance, formatEta, haversineKm, estimateEtaMins } from '@/lib/distance';
 import { useProviderLocation, updateProviderLocationInDb } from '@/lib/use-provider-location';
+import { OTP_LENGTH, isValidOtp } from '@/lib/otp';
+import { verifyOtp } from '@/lib/hash';
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -208,11 +210,11 @@ export default function ProviderJobDetailScreen() {
 
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return;
+    const digit = value.replace(/\D/g, '').slice(-1);
     const newOtp = [...otpInput];
-    newOtp[index] = value;
+    newOtp[index] = digit;
     setOtpInput(newOtp);
-    if (value && index < 3) otpRefs.current[index + 1]?.focus();
+    if (digit && index < OTP_LENGTH - 1) otpRefs.current[index + 1]?.focus();
   };
 
   const handleVerifyOtp = async () => {
@@ -220,7 +222,12 @@ export default function ProviderJobDetailScreen() {
     setVerifying(true);
     setOtpError(null);
     const enteredOtp = otpInput.join('');
-    const isMatched = enteredOtp === booking.otp;
+    if (!isValidOtp(enteredOtp)) {
+      setOtpError(t('otpIncorrect'));
+      setVerifying(false);
+      return;
+    }
+    const isMatched = await verifyOtp(enteredOtp, booking.otp);
     if (isMatched) {
       const { error } = await supabase.from('bookings').update({
         otp_verified: true,

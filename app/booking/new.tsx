@@ -9,6 +9,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { ServiceSubcategory, Address, Profile } from '@/lib/types';
+import { generateOtp } from '@/lib/otp';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
 
 export default function BookingConfirmationScreen() {
@@ -248,7 +249,7 @@ export default function BookingConfirmationScreen() {
         }
       }
 
-      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+      const otp = generateOtp();
 
       const scheduledAt = scheduleMode === 'now'
         ? new Date().toISOString()
