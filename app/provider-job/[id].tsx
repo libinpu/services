@@ -85,7 +85,7 @@ export default function ProviderJobDetailScreen() {
       setError(null);
       const { data, error: bookingError } = await supabase
         .from('bookings')
-        .select(`*, subcategory:service_subcategories(*), address:addresses(*), customer:profiles!bookings_customer_id_fkey(id, full_name, phone), provider:profiles!bookings_provider_id_fkey(*, provider_profile:provider_profiles(*)), booking_items(*), reviews(*)`)
+        .select(`*, subcategory:service_subcategories(*), address:addresses(*), provider:profiles!bookings_provider_id_fkey(*, provider_profile:provider_profiles(*)), booking_items(*), reviews(*)`)
         .eq('id', id)
         .maybeSingle();
       if (bookingError) throw bookingError;
@@ -233,11 +233,11 @@ export default function ProviderJobDetailScreen() {
 
 
   const handleOtpChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1);
+    if (value.length > 1) return;
     const newOtp = [...otpInput];
-    newOtp[index] = digit;
+    newOtp[index] = value;
     setOtpInput(newOtp);
-    if (digit && index < OTP_LENGTH - 1) otpRefs.current[index + 1]?.focus();
+    if (value && index < 3) otpRefs.current[index + 1]?.focus();
   };
 
   const handleVerifyOtp = async () => {
@@ -613,15 +613,13 @@ export default function ProviderJobDetailScreen() {
 
         {['accepted', 'on_the_way', 'arrived', 'in_progress'].includes(status) && (
           <View style={styles.contactRow}>
-            <TouchableOpacity 
-              style={styles.contactBtn}
-              onPress={() => {
-                const phone = (booking as any)?.customer?.phone;
-                if (phone) Linking.openURL(`tel:${phone}`);
-              }}
-            >
+            <TouchableOpacity style={styles.contactBtn}>
               <Phone size={20} color={colors.primary[600]} strokeWidth={2} />
-              <Text style={styles.contactBtnText}>{(booking as any)?.customer?.phone || t('call')}</Text>
+              <Text style={styles.contactBtnText}>{t('call')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.contactBtn}>
+              <MessageSquare size={20} color={colors.primary[600]} strokeWidth={2} />
+              <Text style={styles.contactBtnText}>{t('chat')}</Text>
             </TouchableOpacity>
           </View>
         )}

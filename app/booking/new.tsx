@@ -256,7 +256,6 @@ export default function BookingConfirmationScreen() {
       let customerLng = selectedAddress.longitude;
       let customerAccuracy: number | null = null;
 
-      // Prefer fresh GPS for the service location when available.
       const gps = await fetchCurrentLocation();
       if (gps && (gps.accuracy == null || gps.accuracy <= TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M)) {
         customerLat = gps.latitude;
@@ -296,16 +295,18 @@ export default function BookingConfirmationScreen() {
       if (insertError) throw insertError;
 
       if (data) {
+        let plainOtpQuery = '';
         if (finalStatus !== 'cancelled') {
           try {
-            await initBookingOtp(data.id);
+            const { otp } = await initBookingOtp(data.id);
+            plainOtpQuery = `?plainOtp=${otp}`;
           } catch {
-            // Fallback for environments without edge functions deployed yet.
             const fallbackOtp = generateOtp();
             await supabase.from('bookings').update({ otp: fallbackOtp }).eq('id', data.id);
+            plainOtpQuery = `?plainOtp=${fallbackOtp}`;
           }
         }
-        router.replace(`/booking/${data.id}`);
+        router.replace(`/booking/${data.id}${plainOtpQuery}`);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to create booking');

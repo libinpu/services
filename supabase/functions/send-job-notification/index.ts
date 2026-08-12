@@ -1,4 +1,4 @@
-﻿// Supabase Edge Function: send-job-notification
+// Supabase Edge Function: send-job-notification
 // Triggered via HTTP POST from a Postgres trigger (pg_net) when a new booking is inserted.
 // Finds all on-shift providers (no active job) and sends Expo push notifications.
 

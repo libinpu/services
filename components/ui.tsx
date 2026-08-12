@@ -11,7 +11,6 @@ import {
   StyleProp,
   Platform,
   Animated,
-  DimensionValue,
 } from 'react-native';
 import { ArrowRight, ChevronLeft } from 'lucide-react-native';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
@@ -445,7 +444,7 @@ export function SkeletonBox({
   borderRadius: br = 6,
   style,
 }: {
-  width?: DimensionValue;
+  width?: number | string;
   height?: number;
   borderRadius?: number;
   style?: StyleProp<ViewStyle>;
@@ -455,8 +454,8 @@ export function SkeletonBox({
   React.useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
       ])
     );
     anim.start();
@@ -465,7 +464,7 @@ export function SkeletonBox({
 
   return (
     <Animated.View
-      style={[{ width, height, borderRadius: br, backgroundColor: colors.neutral[200], opacity }, style]}
+      style={[{ width: width as ViewStyle['width'], height, borderRadius: br, backgroundColor: colors.neutral[200], opacity }, style]}
     />
   );
 }

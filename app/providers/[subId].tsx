@@ -143,9 +143,8 @@ export default function ProvidersScreen() {
         if (!provData) {
           const provRes = await supabase
             .from('profiles')
-            .select('id, full_name, avatar_url, provider_profile:provider_profiles!inner(rating_avg, jobs_completed, experience_years, is_verified, is_online, latitude, longitude, category_ids)')
+            .select('id, full_name, avatar_url, provider_profile:provider_profiles(rating_avg, jobs_completed, experience_years, is_verified, is_online, latitude, longitude, category_ids)')
             .eq('role', 'provider')
-            .eq('provider_profile.is_online', true)
             .filter('provider_profile.category_ids', 'cs', `{${catId}}`)
             .order('created_at', { ascending: false })
             .limit(10);

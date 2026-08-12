@@ -1,4 +1,4 @@
-﻿-- Migration: Postgres trigger to call send-job-notification edge function on new booking
+-- Migration: Postgres trigger to call send-job-notification edge function on new booking
 -- Uses pg_net (built into Supabase) to make an async HTTP call to the edge function.
 
 -- Enable pg_net if not already enabled
