@@ -824,7 +824,7 @@ export default function BookingDetailScreen() {
                       {providerProfile?.provider_profile?.experience_years || 0} yrs exp
                     </Text>
                   </View>
-                  {providerProfile?.provider_profile?.specializations && providerProfile.provider_profile.specializations.length > 0 && (
+                  {providerProfile?.provider_profile?.specializations?.length > 0 && (
                     <View style={styles.providerSkillsRow}>
                       {providerProfile.provider_profile.specializations.slice(0, 3).map((skill, idx) => (
                         <View key={idx} style={styles.providerSkillTag}>

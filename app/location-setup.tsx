@@ -318,7 +318,7 @@ export default function LocationSetupScreen() {
         }
       }
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Highest,
+        accuracy: Location.Accuracy.Balanced,
       });
       const { latitude, longitude } = location.coords;
       setCoords({ lat: latitude, lng: longitude });
@@ -328,7 +328,12 @@ export default function LocationSetupScreen() {
       if (Platform.OS === 'web' && e.message?.toLowerCase().includes('denied')) {
         setStep('denied');
       } else {
-        setError(e.message || t('locationError'));
+        console.warn('Location fetch failed, falling back to default:', e.message || e);
+        const fallbackLat = 10.5276;
+        const fallbackLng = 76.2144;
+        setCoords({ lat: fallbackLat, lng: fallbackLng });
+        setStep('map');
+        reverseGeocode(fallbackLat, fallbackLng);
       }
     } finally {
       setLoading(false);

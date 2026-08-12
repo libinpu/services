@@ -20,7 +20,7 @@ export function useDriverTracking(deliveryId: string, driverId: string) {
 
       const subscription = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.High,
+          accuracy: Location.Accuracy.Balanced,
           distanceInterval: 10, // Update callback from platform
           timeInterval: 5000, // Platform may deliver every ~5s
         },

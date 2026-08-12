@@ -18,18 +18,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { colors, radius } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
-import { ProviderProfile, Booking, Profile, Address, Wallet, ProviderApplication } from '@/lib/types';
+import { ProviderProfile, Booking, Profile } from '@/lib/types';
 
 type AdminTab = 'dashboard' | 'approvals' | 'requests' | 'tables' | 'users';
-
-type UserDetailsState = {
-  profile: Profile | null;
-  providerProfile: ProviderProfile | null;
-  providerApplication: ProviderApplication | null;
-  addresses: Address[];
-  bookings: Booking[];
-  wallet: Wallet | null;
-};
 
 export default function AdminScreen() {
   const router = useRouter();
@@ -56,10 +47,6 @@ export default function AdminScreen() {
 
   // Modal State
   const [selectedProvider, setSelectedProvider] = useState<ProviderProfile | null>(null);
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
-  const [selectedUserDetails, setSelectedUserDetails] = useState<UserDetailsState | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   const styles = StyleSheet.create({
     container: {
@@ -405,124 +392,7 @@ export default function AdminScreen() {
       borderRadius: radius.full,
       alignItems: 'center',
     },
-    detailSection: {
-      backgroundColor: colors.neutral[50],
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.neutral[200],
-      padding: 12,
-      gap: 8,
-    },
-    detailTitle: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.neutral[700],
-    },
-    detailRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: 8,
-    },
-    detailLabel: {
-      fontSize: 12,
-      color: colors.neutral[400],
-      flex: 1,
-    },
-    detailValue: {
-      fontSize: 12,
-      color: colors.neutral[700],
-      fontWeight: '600',
-      flex: 1,
-      textAlign: 'right',
-    },
-    detailChip: {
-      backgroundColor: colors.primary[50],
-      borderRadius: 999,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      alignSelf: 'flex-start',
-    },
-    detailChipText: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: colors.primary[600],
-    },
   });
-
-  const formatDate = (value: string | null | undefined) => {
-    if (!value) return 'Not available';
-    try {
-      return new Date(value).toLocaleString();
-    } catch {
-      return value;
-    }
-  };
-
-  const loadUserDetails = useCallback(async (user: Profile) => {
-    setDetailsLoading(true);
-    setDetailsError(null);
-    setSelectedUser(user);
-    setSelectedUserDetails(null);
-
-    try {
-      const [providerProfileResult, providerApplicationResult, addressesResult, bookingsResult, walletResult] = await Promise.all([
-        supabase
-          .from('provider_profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('provider_applications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('addresses')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('bookings')
-          .select('*')
-          .or(`customer_id.eq.${user.id},provider_id.eq.${user.id}`)
-          .order('created_at', { ascending: false })
-          .limit(25),
-        supabase
-          .from('wallets')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-      ]);
-
-      if (providerProfileResult.error) throw providerProfileResult.error;
-      if (providerApplicationResult.error) throw providerApplicationResult.error;
-      if (addressesResult.error) throw addressesResult.error;
-      if (bookingsResult.error) throw bookingsResult.error;
-      if (walletResult.error) throw walletResult.error;
-
-      setSelectedUserDetails({
-        profile: user,
-        providerProfile: (providerProfileResult.data as ProviderProfile | null) ?? null,
-        providerApplication: (providerApplicationResult.data as ProviderApplication | null) ?? null,
-        addresses: (addressesResult.data as Address[] | null) ?? [],
-        bookings: (bookingsResult.data as Booking[] | null) ?? [],
-        wallet: (walletResult.data as Wallet | null) ?? null,
-      });
-    } catch (error) {
-      console.warn('User details fetch error:', error);
-      setDetailsError('Unable to load this user’s database details right now.');
-    } finally {
-      setDetailsLoading(false);
-    }
-  }, []);
-
-  const closeUserDetails = () => {
-    setSelectedUser(null);
-    setSelectedUserDetails(null);
-    setDetailsError(null);
-  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -958,11 +828,6 @@ export default function AdminScreen() {
                   </View>
                   
                   <View style={styles.cardActions}>
-                    <TouchableOpacity style={styles.btnInspect} onPress={() => void loadUserDetails(p)}>
-                      <Eye color={colors.neutral[700]} size={14} />
-                      <Text style={styles.btnInspectText}>View Details</Text>
-                    </TouchableOpacity>
-
                     <TouchableOpacity 
                       style={styles.btnReject} 
                       onPress={() => handleDeleteUser(p.id)}
@@ -977,123 +842,6 @@ export default function AdminScreen() {
           )}
         </ScrollView>
       )}
-
-      {/* USER DETAILS MODAL */}
-      <Modal visible={!!selectedUser} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>{selectedUser?.full_name || 'User Details'}</Text>
-                <Text style={styles.cardSub}>{selectedUser?.email || selectedUser?.phone || 'No contact info'}</Text>
-              </View>
-              <TouchableOpacity onPress={closeUserDetails}>
-                <XCircle color={colors.neutral[400]} size={24} />
-              </TouchableOpacity>
-            </View>
-
-            {detailsLoading ? (
-              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={colors.primary[500]} />
-                <Text style={styles.loadingText}>Loading live database details...</Text>
-              </View>
-            ) : detailsError ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyText}>{detailsError}</Text>
-              </View>
-            ) : selectedUserDetails ? (
-              <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: 12, paddingVertical: 4 }}>
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailTitle}>Profile Snapshot</Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Role</Text>
-                    <Text style={styles.detailValue}>{selectedUserDetails.profile?.role?.toUpperCase() || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Status</Text>
-                    <Text style={styles.detailValue}>{selectedUserDetails.profile?.is_active ? 'Active' : 'Inactive'}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Phone</Text>
-                    <Text style={styles.detailValue}>{selectedUserDetails.profile?.phone || 'Not provided'}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Language</Text>
-                    <Text style={styles.detailValue}>{selectedUserDetails.profile?.preferred_language?.toUpperCase() || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Created</Text>
-                    <Text style={styles.detailValue}>{formatDate(selectedUserDetails.profile?.created_at)}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Updated</Text>
-                    <Text style={styles.detailValue}>{formatDate(selectedUserDetails.profile?.updated_at)}</Text>
-                  </View>
-                </View>
-
-                {selectedUserDetails.providerProfile ? (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailTitle}>Provider Profile</Text>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Verified</Text>
-                      <Text style={styles.detailValue}>{selectedUserDetails.providerProfile.is_verified ? 'Yes' : 'No'}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Status</Text>
-                      <Text style={styles.detailValue}>{selectedUserDetails.providerProfile.background_check_status?.toUpperCase() || 'N/A'}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Jobs</Text>
-                      <Text style={styles.detailValue}>{selectedUserDetails.providerProfile.jobs_completed ?? 0}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Rating</Text>
-                      <Text style={styles.detailValue}>{selectedUserDetails.providerProfile.rating_avg?.toFixed(1) || '0.0'}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Price / hour</Text>
-                      <Text style={styles.detailValue}>₹{selectedUserDetails.providerProfile.price_per_hour ?? 0}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Experience</Text>
-                      <Text style={styles.detailValue}>{selectedUserDetails.providerProfile.experience_years ?? 0} yrs</Text>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailTitle}>Provider Profile</Text>
-                    <Text style={styles.detailValue}>No provider profile linked in the database.</Text>
-                  </View>
-                )}
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailTitle}>Related Records</Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Addresses</Text>
-                    <Text style={styles.detailValue}>{selectedUserDetails.addresses.length}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Bookings</Text>
-                    <Text style={styles.detailValue}>{selectedUserDetails.bookings.length}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Wallet Balance</Text>
-                    <Text style={styles.detailValue}>₹{selectedUserDetails.wallet?.balance ?? 0}</Text>
-                  </View>
-                  {selectedUserDetails.providerApplication && (
-                    <View style={{ marginTop: 4 }}>
-                      <Text style={styles.detailLabel}>Provider Application</Text>
-                      <View style={styles.detailChip}>
-                        <Text style={styles.detailChipText}>{selectedUserDetails.providerApplication.status?.toUpperCase() || 'UNKNOWN'}</Text>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              </ScrollView>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
 
       {/* INSPECT CERTIFICATE MODAL */}
       <Modal visible={!!selectedProvider} animationType="slide" transparent>

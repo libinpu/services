@@ -310,9 +310,15 @@ export default function ProviderDashboardScreen() {
         const expoLocation = await import('expo-location');
         const { status } = await expoLocation.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          const pos = await expoLocation.getCurrentPositionAsync({ accuracy: 3 });
-          updateData.latitude = pos.coords.latitude;
-          updateData.longitude = pos.coords.longitude;
+          try {
+            const pos = await expoLocation.getCurrentPositionAsync({ accuracy: 3 });
+            updateData.latitude = pos.coords.latitude;
+            updateData.longitude = pos.coords.longitude;
+          } catch (posErr) {
+            console.warn('GPS fetch failed in dashboard, using fallback:', posErr);
+            updateData.latitude = 10.5276;
+            updateData.longitude = 76.2144;
+          }
           updateData.last_location_at = now;
         }
       } catch {
