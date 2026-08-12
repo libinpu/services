@@ -11,10 +11,14 @@ import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import type { BookingWithDetails } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
-import { formatDistance, formatEta, haversineKm, estimateEtaMins } from '@/lib/distance';
-import { useProviderLocation, updateProviderLocationInDb } from '@/lib/use-provider-location';
+import { haversineKm, estimateEtaMins, formatDistance, formatEta, isWithinArrivalRadius } from '@/lib/distance';
+import { useProviderLocationSync } from '@/lib/use-provider-location';
 import { OTP_LENGTH, isValidOtp } from '@/lib/otp';
-import { verifyOtp } from '@/lib/hash';
+import { createRealtimeChannel } from '@/lib/realtime';
+import { markBookingArrived, uploadProviderLocation, verifyBookingOtp } from '@/lib/tracking-api';
+import { TRACKING_CONFIG } from '@/lib/tracking-config';
+import { trackingLog } from '@/lib/tracking-logger';
+import type { DeviceLocation } from '@/lib/location-service';
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -62,29 +66,16 @@ export default function ProviderJobDetailScreen() {
   const billFileRef = useRef<HTMLInputElement>(null);
   const otpRefs = useRef<(TextInput | null)[]>([]);
   const bookingFetchingRef = useRef(false);
-  const liveLocation = useProviderLocation(['accepted', 'on_the_way', 'arrived'].includes(booking?.status || ''));
-  const liveLocRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
-  const lastSyncedLocationRef = useRef<{ lat: number; lng: number } | null>(null);
-  const dbSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const arrivalRequestedRef = useRef(false);
 
-  useEffect(() => {
-    liveLocRef.current = { lat: liveLocation.latitude, lng: liveLocation.longitude };
-  }, [liveLocation]);
+  const isTrackingActive = ['accepted', 'on_the_way', 'arrived', 'in_progress'].includes(booking?.status || '');
 
-  useEffect(() => {
+  const uploadLocation = useCallback(async (loc: DeviceLocation) => {
     if (!session?.user?.id) return;
-    if (!booking || !['accepted', 'on_the_way', 'arrived', 'in_progress'].includes(booking.status)) return;
-    dbSyncRef.current = setInterval(async () => {
-      const { lat, lng } = liveLocRef.current;
-      const previous = lastSyncedLocationRef.current;
-      const moved = !previous || Math.abs(previous.lat - lat!) > 0.0001 || Math.abs(previous.lng - lng!) > 0.0001;
-      if (lat != null && lng != null && moved) {
-        await updateProviderLocationInDb(supabase, session.user.id, lat, lng);
-        lastSyncedLocationRef.current = { lat, lng };
-      }
-    }, 60000);
-    return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
-  }, [session?.user?.id, booking?.status]);
+    await uploadProviderLocation(session.user.id, loc, id);
+  }, [session?.user?.id, id]);
+
+  const liveLocation = useProviderLocationSync(isTrackingActive, session?.user?.id, uploadLocation);
 
   const fetchBooking = useCallback(async () => {
     if (!id) return;
@@ -112,6 +103,38 @@ export default function ProviderJobDetailScreen() {
   useEffect(() => {
     void fetchBooking();
   }, [fetchBooking]);
+
+  useEffect(() => {
+    if (!id) return;
+    const channel = createRealtimeChannel(`provider-job:${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${id}` }, () => {
+        trackingLog('JOB_STATE_CHANGE', 'Booking updated via realtime');
+        void fetchBooking();
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [id, fetchBooking]);
+
+  // Auto-detect arrival when within radius with acceptable GPS accuracy.
+  useEffect(() => {
+    if (!booking || booking.status !== 'on_the_way' || arrivalRequestedRef.current) return;
+    const destLat = booking.customer_latitude ?? booking.address?.latitude;
+    const destLng = booking.customer_longitude ?? booking.address?.longitude;
+    const lat = liveLocation.latitude;
+    const lng = liveLocation.longitude;
+    if (destLat == null || destLng == null || lat == null || lng == null) return;
+    if (liveLocation.accuracy != null && liveLocation.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) return;
+    if (!isWithinArrivalRadius(lat, lng, destLat, destLng)) return;
+
+    arrivalRequestedRef.current = true;
+    void markBookingArrived(id!, {
+      latitude: lat,
+      longitude: lng,
+      accuracy: liveLocation.accuracy,
+    })
+      .then(() => fetchBooking())
+      .catch(() => { arrivalRequestedRef.current = false; });
+  }, [booking, liveLocation.latitude, liveLocation.longitude, liveLocation.accuracy, id, fetchBooking]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -218,7 +241,6 @@ export default function ProviderJobDetailScreen() {
   };
 
   const handleVerifyOtp = async () => {
-    if (!booking?.otp) return;
     setVerifying(true);
     setOtpError(null);
     const enteredOtp = otpInput.join('');
@@ -227,30 +249,19 @@ export default function ProviderJobDetailScreen() {
       setVerifying(false);
       return;
     }
-    const isMatched = await verifyOtp(enteredOtp, booking.otp);
-    if (isMatched) {
-      const { error } = await supabase.from('bookings').update({
+    try {
+      await verifyBookingOtp(id!, enteredOtp);
+      setBooking((current) => current ? {
+        ...current,
         otp_verified: true,
         status: 'in_progress',
         started_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('id', id);
-
-      if (!error) {
-        setBooking((current) => current ? {
-          ...current,
-          otp_verified: true,
-          status: 'in_progress',
-          started_at: new Date().toISOString(),
-        } : current);
-        setOtpInput(['', '', '', '']);
-        setShowSelfieModal('start');
-        await fetchBooking();
-      } else {
-        setOtpError(t('otpIncorrect'));
-      }
-    } else {
-      setOtpError(t('otpIncorrect'));
+      } : current);
+      setOtpInput(['', '', '', '']);
+      setShowSelfieModal('start');
+      await fetchBooking();
+    } catch (e: any) {
+      setOtpError(e.message || t('otpIncorrect'));
     }
     setVerifying(false);
   };
@@ -285,15 +296,33 @@ export default function ProviderJobDetailScreen() {
     fetchBooking();
   };
 
-  const handleStartNavigation = () => {
-    if (booking?.address) {
-      supabase.from('bookings').update({ status: 'on_the_way', updated_at: new Date().toISOString() }).eq('id', id).then(() => fetchBooking());
+  const handleStartNavigation = async () => {
+    if (!booking?.address) return;
+    const lat = booking.customer_latitude ?? booking.address.latitude;
+    const lng = booking.customer_longitude ?? booking.address.longitude;
+    if (lat != null && lng != null) {
+      const url = Platform.select({
+        ios: `maps://?daddr=${lat},${lng}&dirflg=d`,
+        android: `google.navigation:q=${lat},${lng}`,
+        default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+      });
+      if (url) void Linking.openURL(url);
     }
+    await supabase.from('bookings').update({ status: 'on_the_way', updated_at: new Date().toISOString() }).eq('id', id);
+    arrivalRequestedRef.current = false;
+    fetchBooking();
   };
 
   const handleMarkArrived = async () => {
-    await supabase.from('bookings').update({ status: 'arrived', updated_at: new Date().toISOString() }).eq('id', id);
-    fetchBooking();
+    const lat = liveLocation.latitude;
+    const lng = liveLocation.longitude;
+    if (lat == null || lng == null) return;
+    try {
+      await markBookingArrived(id!, { latitude: lat, longitude: lng, accuracy: liveLocation.accuracy });
+      fetchBooking();
+    } catch (e: any) {
+      setError(e.message || 'Could not confirm arrival');
+    }
   };
 
   const handleEndJob = () => { setShowSelfieModal('end'); };
@@ -379,14 +408,16 @@ export default function ProviderJobDetailScreen() {
           <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
         </View>
 
-        {['accepted', 'on_the_way', 'arrived'].includes(status) && (
+        {['accepted', 'on_the_way', 'arrived', 'in_progress'].includes(status) && (
           <View style={styles.mapContainer}>
             <View style={styles.mapArea}>
               <LiveTrackingMap 
-                userLat={booking?.address?.latitude || 10.8505} 
-                userLng={booking?.address?.longitude || 76.2711} 
+                userLat={booking.customer_latitude ?? booking?.address?.latitude ?? 10.8505} 
+                userLng={booking.customer_longitude ?? booking?.address?.longitude ?? 76.2711} 
                 providerLat={liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude} 
                 providerLng={liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude} 
+                providerHeading={liveLocation.heading ?? (booking as any)?.provider?.provider_profile?.heading}
+                destinationLabel="Customer location"
               />
               {status === 'on_the_way' && (
                 <View style={styles.mapEtaBadge}>
@@ -468,6 +499,11 @@ export default function ProviderJobDetailScreen() {
         {status === 'on_the_way' && (
           <View style={styles.actionSection}>
             <Button label={t('startJob')} onPress={handleMarkArrived} style={styles.actionBtn} />
+            {liveLocation.error && (
+              <Text style={{ textAlign: 'center', marginTop: spacing.sm, color: colors.warning[600], fontSize: typography.sizes.sm }}>
+                {liveLocation.error}
+              </Text>
+            )}
           </View>
         )}
 

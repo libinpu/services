@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 
 -- Function that fires after a new booking is inserted
 CREATE OR REPLACE FUNCTION notify_providers_on_new_booking()
-RETURNS TRIGGER AS 
+RETURNS TRIGGER AS $$
 DECLARE
   edge_url TEXT;
   service_role_key TEXT;
@@ -31,7 +31,7 @@ BEGIN
 
   RETURN NEW;
 END;
- LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Attach trigger to bookings table
 DROP TRIGGER IF EXISTS on_booking_created ON bookings;

@@ -1,3 +1,32 @@
+import { TRACKING_CONFIG } from './tracking-config';
+
+/** Haversine distance in meters between two lat/long points. */
+export function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  return haversineKm(lat1, lon1, lat2, lon2) * 1000;
+}
+
+/** Whether two coordinates are within the configured arrival radius. */
+export function isWithinArrivalRadius(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+  radiusM = TRACKING_CONFIG.ARRIVAL_RADIUS_M,
+): boolean {
+  return haversineMeters(lat1, lon1, lat2, lon2) <= radiusM;
+}
+
+/** Bearing in degrees from point A to B (0 = north). */
+export function bearingDegrees(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const r = Math.PI / 180;
+  const dLon = (lon2 - lon1) * r;
+  const y = Math.sin(dLon) * Math.cos(lat2 * r);
+  const x =
+    Math.cos(lat1 * r) * Math.sin(lat2 * r) -
+    Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos(dLon);
+  return (Math.atan2(y, x) * (180 / Math.PI) + 360) % 360;
+}
+
 // Haversine distance in km between two lat/long points
 export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;

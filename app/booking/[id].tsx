@@ -15,6 +15,8 @@ import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import { isValidOtp } from '@/lib/otp';
 import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
+import { TRACKING_CONFIG } from '@/lib/tracking-config';
+import { trackingLog } from '@/lib/tracking-logger';
 import type { BookingWithDetails, ProviderWithProfile } from '@/lib/types';
 import { Phone, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, X, Briefcase, Receipt, User } from 'lucide-react-native';
 
@@ -44,14 +46,8 @@ export default function BookingDetailScreen() {
   const [extraCharges, setExtraCharges] = useState<any[]>([]);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-
-  // Auto-navigate to My Bookings when provider accepts the job
-  useEffect(() => {
-    if (booking?.status === 'accepted' && !bookingFetchingRef.current) {
-      // Navigate to my bookings tab so user sees the accepted booking
-      router.replace('/(tabs)/bookings' as any);
-    }
-  }, [booking?.status, router]);
+  const [roadEta, setRoadEta] = useState<{ distanceMeters: number; durationSeconds: number | null; isRoadRoute: boolean } | null>(null);
+  const [providerLocationAt, setProviderLocationAt] = useState<string | null>(null);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -435,7 +431,7 @@ export default function BookingDetailScreen() {
           created_at, updated_at, estimated_eta_mins, distance_km,
           subcategory:service_subcategories(id, name_en, name_ml, base_price, estimated_time_mins),
           address:addresses(id, label, address_line, area, city, district, state, pincode, latitude, longitude),
-          provider:profiles!bookings_provider_id_fkey(id, full_name, avatar_url, provider_profile:provider_profiles(rating_avg, jobs_completed, is_verified, latitude, longitude)),
+          provider:profiles!bookings_provider_id_fkey(id, full_name, avatar_url, phone, provider_profile:provider_profiles(rating_avg, jobs_completed, is_verified, latitude, longitude, heading, last_location_at, location_accuracy)),
           booking_items(id, booking_id, description_en, description_ml, amount, is_approved_by_customer, bill_photo_url, created_at),
           reviews(id, booking_id, customer_id, provider_id, rating, tags, comment, photo_url, created_at)
         `)
@@ -448,6 +444,8 @@ export default function BookingDetailScreen() {
       // Provider profile is now embedded in the booking query — no second fetch needed
       if (data?.provider) {
         setProviderProfile(data.provider as unknown as ProviderWithProfile);
+        const lastAt = (data.provider as any)?.provider_profile?.last_location_at;
+        if (lastAt) setProviderLocationAt(lastAt);
       }
 
       if (data) {
@@ -491,6 +489,8 @@ export default function BookingDetailScreen() {
     const providerId = booking.provider_id;
     const channel = createRealtimeChannel(`provider-location:${providerId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'provider_profiles', filter: `id=eq.${providerId}` }, (payload) => {
+        trackingLog('REALTIME_LOCATION_RECEIVED', 'Provider location update', { providerId });
+        setProviderLocationAt(payload.new.last_location_at ?? null);
         setProviderProfile((current: any) => {
           if (!current) return current;
           return {
@@ -499,6 +499,9 @@ export default function BookingDetailScreen() {
               ...current.provider_profile,
               latitude: payload.new.latitude,
               longitude: payload.new.longitude,
+              heading: payload.new.heading,
+              last_location_at: payload.new.last_location_at,
+              location_accuracy: payload.new.location_accuracy,
             }
           };
         });
@@ -561,6 +564,12 @@ export default function BookingDetailScreen() {
   const provider = booking.provider;
   const subcategory = booking.subcategory;
   const address = booking.address;
+  const otp = isValidOtp(booking.otp) ? booking.otp : null;
+  // The customer must have the code before the professional reaches the OTP
+  // entry step. It stays hidden for unassigned, cancelled, and completed jobs.
+  const shouldShowOtp = ['accepted', 'on_the_way', 'arrived'].includes(status)
+    && otp !== null
+    && !booking.otp_verified;
 
   const statusFlow: Record<string, { label: string; color: string }> = {
     pending: { label: t('pending'), color: colors.warning[500] },
@@ -574,8 +583,8 @@ export default function BookingDetailScreen() {
     rejected: { label: t('rejected'), color: colors.error[500] },
   };
   const statusInfo = statusFlow[status] || statusFlow.pending;
-  const customerLatitude = booking.address?.latitude ?? null;
-  const customerLongitude = booking.address?.longitude ?? null;
+  const customerLatitude = booking.customer_latitude ?? booking.address?.latitude ?? null;
+  const customerLongitude = booking.customer_longitude ?? booking.address?.longitude ?? null;
   const providerLatitude = providerProfile?.provider_profile?.latitude ?? null;
   const providerLongitude = providerProfile?.provider_profile?.longitude ?? null;
   const hasCustomerLocation = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
@@ -583,7 +592,16 @@ export default function BookingDetailScreen() {
   const liveDistanceKm = hasLiveRoute
     ? haversineKm(customerLatitude as number, customerLongitude as number, providerLatitude as number, providerLongitude as number)
     : null;
-  const liveEtaMins = liveDistanceKm == null ? null : estimateEtaMins(liveDistanceKm);
+  const liveEtaMins = roadEta?.durationSeconds != null
+    ? Math.max(1, Math.round(roadEta.durationSeconds / 60))
+    : liveDistanceKm == null
+      ? null
+      : estimateEtaMins(liveDistanceKm);
+  const locationStaleMs = providerLocationAt
+    ? Date.now() - new Date(providerLocationAt).getTime()
+    : null;
+  const isLocationStale = locationStaleMs != null && locationStaleMs > TRACKING_CONFIG.LOCATION_STALE_MS;
+  const isProviderNearby = liveDistanceKm != null && liveDistanceKm * 1000 <= TRACKING_CONFIG.ARRIVAL_RADIUS_M * 2;
 
   // Progress steps for the tracking bar
   const trackingSteps = [
@@ -658,6 +676,9 @@ export default function BookingDetailScreen() {
                     userLng={customerLongitude as number}
                     providerLat={hasLiveRoute ? providerLatitude as number : undefined}
                     providerLng={hasLiveRoute ? providerLongitude as number : undefined}
+                    providerHeading={providerProfile?.provider_profile?.heading}
+                    destinationLabel="Your location"
+                    onEtaChange={setRoadEta}
                   />
                 ) : (
                   <View style={[styles.mapArea, { alignItems: 'center', justifyContent: 'center' }]}> 
@@ -670,9 +691,10 @@ export default function BookingDetailScreen() {
                   <View style={styles.mapEtaBadge}>
                     <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                     <Text style={styles.mapEtaText}>
-                      ETA:{' '}
-                      {hasLiveRoute
-                        ? `${formatDistance(liveDistanceKm)} away • ${formatEta(liveEtaMins)}`
+                      {isLocationStale
+                        ? `Location updated ${Math.round((locationStaleMs ?? 0) / 1000)}s ago`
+                        : hasLiveRoute
+                        ? `${formatDistance(roadEta ? roadEta.distanceMeters / 1000 : liveDistanceKm)} away • ${formatEta(liveEtaMins)}`
                         : booking.estimated_eta_mins
                         ? formatEta(booking.estimated_eta_mins)
                         : 'Live location pending'}
@@ -682,7 +704,11 @@ export default function BookingDetailScreen() {
                 {status === 'accepted' && (
                   <View style={styles.mapEtaBadge}>
                     <Clock size={14} color={colors.neutral[0]} strokeWidth={2.5} />
-                    <Text style={styles.mapEtaText}>{hasLiveRoute ? `${formatDistance(liveDistanceKm)} away • Live tracking` : 'Professional is preparing to leave'}</Text>
+                    <Text style={styles.mapEtaText}>
+                      {hasLiveRoute
+                        ? `${formatDistance(liveDistanceKm)} away • ${isProviderNearby ? 'Professional nearby' : 'Live tracking'}`
+                        : 'Professional is preparing to leave'}
+                    </Text>
                   </View>
                 )}
                 {status === 'arrived' && (
@@ -785,8 +811,8 @@ export default function BookingDetailScreen() {
                 </View>
               </View>
 
-              {/* OTP Display — when provider arrives */}
-              {status === 'arrived' && isValidOtp(booking.otp) && !booking.otp_verified && (
+              {/* Keep the OTP available to the customer once a professional is assigned. */}
+              {shouldShowOtp && otp && (
                 <View style={styles.otpSection}>
                   <View style={styles.otpInfoRow}>
                     <ShieldCheck size={20} color={colors.primary[600]} strokeWidth={2} />
@@ -796,7 +822,7 @@ export default function BookingDetailScreen() {
                     </View>
                   </View>
                   <View style={styles.otpDigitsDisplay}>
-                    {booking.otp.split('').map((digit, idx) => (
+                    {otp.split('').map((digit, idx) => (
                       <View key={idx} style={styles.otpDigitBox}>
                         <Text style={styles.otpDigitText}>{digit}</Text>
                       </View>

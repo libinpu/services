@@ -20,10 +20,22 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Seva needs your location to show nearby services and live job tracking.",
+          "locationAlwaysAndWhenInUsePermission": "Seva needs background location so customers can track you while travelling to a job.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "android": {
+      "package": "com.anonymous.boltexponativewind"
     }
   }
 }

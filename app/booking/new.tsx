@@ -10,6 +10,9 @@ import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { ServiceSubcategory, Address, Profile } from '@/lib/types';
 import { generateOtp } from '@/lib/otp';
+import { initBookingOtp } from '@/lib/tracking-api';
+import { fetchCurrentLocation } from '@/lib/location-service';
+import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
 
 export default function BookingConfirmationScreen() {
@@ -249,7 +252,17 @@ export default function BookingConfirmationScreen() {
         }
       }
 
-      const otp = generateOtp();
+      let customerLat = selectedAddress.latitude;
+      let customerLng = selectedAddress.longitude;
+      let customerAccuracy: number | null = null;
+
+      // Prefer fresh GPS for the service location when available.
+      const gps = await fetchCurrentLocation();
+      if (gps && (gps.accuracy == null || gps.accuracy <= TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M)) {
+        customerLat = gps.latitude;
+        customerLng = gps.longitude;
+        customerAccuracy = gps.accuracy;
+      }
 
       const scheduledAt = scheduleMode === 'now'
         ? new Date().toISOString()
@@ -271,8 +284,11 @@ export default function BookingConfirmationScreen() {
           estimated_eta_mins: etaMins,
           payment_method: 'cash',
           payment_status: 'pending',
-          otp: otp,
           otp_verified: false,
+          customer_latitude: customerLat,
+          customer_longitude: customerLng,
+          customer_location_accuracy: customerAccuracy,
+          customer_location_at: new Date().toISOString(),
         })
         .select('*')
         .maybeSingle();
@@ -280,6 +296,15 @@ export default function BookingConfirmationScreen() {
       if (insertError) throw insertError;
 
       if (data) {
+        if (finalStatus !== 'cancelled') {
+          try {
+            await initBookingOtp(data.id);
+          } catch {
+            // Fallback for environments without edge functions deployed yet.
+            const fallbackOtp = generateOtp();
+            await supabase.from('bookings').update({ otp: fallbackOtp }).eq('id', data.id);
+          }
+        }
         router.replace(`/booking/${data.id}`);
       }
     } catch (e: any) {

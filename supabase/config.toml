@@ -13,3 +13,18 @@ entrypoint = "./functions/admin-dashboard-data/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/send-job-notification/index.ts"
+
+[functions.init-booking-otp]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/init-booking-otp/index.ts"
+
+[functions.mark-booking-arrived]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/mark-booking-arrived/index.ts"
+
+[functions.verify-booking-otp]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/verify-booking-otp/index.ts"

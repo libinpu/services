@@ -101,6 +101,9 @@ export interface ProviderProfile {
   police_verification_url: string | null;
   latitude: number | null;
   longitude: number | null;
+  heading?: number | null;
+  location_accuracy?: number | null;
+  speed?: number | null;
   last_location_at: string | null;
   created_at: string;
   updated_at: string;
@@ -142,6 +145,14 @@ export interface Booking {
   payment_status: PaymentStatus;
   otp: string | null;
   otp_verified: boolean;
+  otp_hash?: string | null;
+  otp_expires_at?: string | null;
+  otp_attempts?: number;
+  arrived_at?: string | null;
+  customer_latitude?: number | null;
+  customer_longitude?: number | null;
+  customer_location_accuracy?: number | null;
+  customer_location_at?: string | null;
   started_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
