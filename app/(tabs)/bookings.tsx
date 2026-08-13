@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
+import { createRealtimeChannel } from '@/lib/realtime';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { LoadingState, ErrorState, EmptyState, SkeletonList } from '@/components/ui';
@@ -14,7 +15,7 @@ import { Calendar, Clock, IndianRupee, ChevronRight, RotateCw, Download } from '
 type TabKey = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 
 const STATUS_MAP: Record<TabKey, string[]> = {
-  upcoming: ['pending', 'accepted'],
+  upcoming: ['pending', 'assigned', 'accepted'],
   ongoing: ['on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'],
   completed: ['completed'],
   cancelled: ['cancelled', 'rejected'],
@@ -210,7 +211,6 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const isFirstFocus = useRef(true);
 
   useEffect(() => {
     if (params.tab && ['upcoming', 'ongoing', 'completed', 'cancelled'].includes(params.tab)) {
@@ -252,13 +252,25 @@ export default function BookingsScreen() {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Refresh when returning to this screen — skip the initial mount (handled by useEffect above)
+  // Auto-refresh when provider accepts or booking status changes
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const channel = createRealtimeChannel(`customer-bookings:${session.user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `customer_id=eq.${session.user.id}`,
+      }, () => {
+        void fetchBookings();
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [session?.user?.id, fetchBookings]);
+
+  // Refresh whenever this screen is focused (including returning from booking detail).
   useFocusEffect(
     useCallback(() => {
-      if (isFirstFocus.current) {
-        isFirstFocus.current = false;
-        return;
-      }
       fetchBookings();
     }, [fetchBookings])
   );
@@ -407,12 +419,13 @@ export default function BookingsScreen() {
 }
 
 function isActiveStatus(status: string): boolean {
-  return ['pending', 'accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(status);
+  return ['pending', 'assigned', 'accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(status);
 }
 
 function getStatusColor(status: string): string {
   const colorMap: Record<string, string> = {
     pending: colors.accent[500],
+    assigned: colors.warning[500],
     accepted: colors.accent[500],
     on_the_way: colors.accent[500],
     arrived: colors.accent[500],

@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, TextInput, Modal, Pressable, Image,
+  Dimensions, TextInput, Modal, Pressable, Image, AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -37,6 +37,9 @@ export default function BookingDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
   const bookingFetchingRef = useRef(false);
+  const pendingRefreshRef = useRef(false);
+  const previousStatusRef = useRef<string | null>(null);
+  const [justAccepted, setJustAccepted] = useState(false);
   const chatFetchingRef = useRef(false);
   const [showTrackingMap, setShowTrackingMap] = useState(true);
   const [extraCharges, setExtraCharges] = useState<any[]>([]);
@@ -410,14 +413,16 @@ export default function BookingDetailScreen() {
     sosCloseBtn: { width: '100%', marginTop: spacing.sm },
   });
 
-  const fetchBooking = useCallback(async () => {
+  const fetchBooking = useCallback(async (options?: { force?: boolean }) => {
     if (!id) return;
-    if (bookingFetchingRef.current) return;
+    if (bookingFetchingRef.current) {
+      if (options?.force) pendingRefreshRef.current = true;
+      return;
+    }
     bookingFetchingRef.current = true;
     try {
       setError(null);
 
-      // Detail-only projection: avoid expanding every column on five tables.
       const { data, error: bookingError } = await supabase
         .from('bookings')
         .select(`
@@ -425,6 +430,7 @@ export default function BookingDetailScreen() {
           booking_mode, estimated_cost, final_cost, payment_method, payment_status, otp,
           otp_verified, started_at, completed_at, cancelled_at, cancellation_reason,
           created_at, updated_at, estimated_eta_mins, distance_km,
+          customer_latitude, customer_longitude, customer_location_accuracy, customer_location_at,
           subcategory:service_subcategories(id, name_en, name_ml, base_price, estimated_time_mins),
           address:addresses(id, label, address_line, area, city, district, state, pincode, latitude, longitude),
           provider:profiles!bookings_provider_id_fkey(id, full_name, avatar_url, phone, provider_profile:provider_profiles(rating_avg, jobs_completed, is_verified, latitude, longitude, heading, last_location_at, location_accuracy)),
@@ -437,11 +443,13 @@ export default function BookingDetailScreen() {
       if (bookingError) throw bookingError;
       setBooking(data as unknown as BookingWithDetails);
 
-      // Provider profile is now embedded in the booking query — no second fetch needed
       if (data?.provider) {
         setProviderProfile(data.provider as unknown as ProviderWithProfile);
         const lastAt = (data.provider as any)?.provider_profile?.last_location_at;
         if (lastAt) setProviderLocationAt(lastAt);
+      } else if (data?.provider_id) {
+        // Provider assigned but join not loaded yet — fetch on next refresh.
+        setProviderProfile(null);
       }
 
       if (data) {
@@ -453,6 +461,10 @@ export default function BookingDetailScreen() {
     } finally {
       bookingFetchingRef.current = false;
       setLoading(false);
+      if (pendingRefreshRef.current) {
+        pendingRefreshRef.current = false;
+        void fetchBooking({ force: true });
+      }
     }
   }, [id]);
 
@@ -477,14 +489,22 @@ export default function BookingDetailScreen() {
     void fetchChat();
   }, [fetchBooking, fetchChat]);
 
+  useFocusEffect(
+    useCallback(() => {
+      void fetchBooking({ force: true });
+    }, [fetchBooking]),
+  );
+
   useEffect(() => {
     if (!id) return;
     const channel = createRealtimeChannel(`booking-detail:${id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${id}` }, () => {
-        void fetchBooking();
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${id}` }, (payload) => {
+        const update = payload.new as Partial<BookingWithDetails>;
+        setBooking((current) => (current ? { ...current, ...update } : current));
+        void fetchBooking({ force: true });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'booking_items', filter: `booking_id=eq.${id}` }, () => {
-        void fetchBooking();
+        void fetchBooking({ force: true });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `booking_id=eq.${id}` }, (payload) => {
         setChatMessages((current) => {
@@ -496,7 +516,45 @@ export default function BookingDetailScreen() {
       })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [id]);
+  }, [id, fetchBooking]);
+
+  // Poll while waiting for provider assignment or acceptance (realtime fallback).
+  useEffect(() => {
+    if (!booking) return;
+    if (!['pending', 'assigned'].includes(booking.status)) return;
+    const timer = setInterval(() => {
+      void fetchBooking({ force: true });
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [booking?.status, fetchBooking]);
+
+  // Refetch when app returns to foreground while on this screen.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void fetchBooking({ force: true });
+    });
+    return () => sub.remove();
+  }, [fetchBooking]);
+
+  // Load provider details once assigned/accepted if join was missing.
+  useEffect(() => {
+    if (!booking?.provider_id) return;
+    if (booking.provider || providerProfile) return;
+    void fetchBooking({ force: true });
+  }, [booking?.provider_id, booking?.provider, providerProfile, fetchBooking]);
+
+  // Show brief banner when provider accepts (assigned → on_the_way).
+  useEffect(() => {
+    if (!booking?.status) return;
+    const prev = previousStatusRef.current;
+    if (prev === 'assigned' && booking.status === 'on_the_way') {
+      setJustAccepted(true);
+      const timer = setTimeout(() => setJustAccepted(false), 5000);
+      previousStatusRef.current = booking.status;
+      return () => clearTimeout(timer);
+    }
+    previousStatusRef.current = booking.status;
+  }, [booking?.status]);
 
   // Listen for provider location updates
   useEffect(() => {
@@ -657,6 +715,15 @@ export default function BookingDetailScreen() {
           <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
         </View>
 
+        {justAccepted && (
+          <View style={[styles.statusBanner, { backgroundColor: colors.success[500] + '20', marginTop: spacing.sm }]}>
+            <CheckCircle size={18} color={colors.success[600]} strokeWidth={2} />
+            <Text style={[styles.statusText, { color: colors.success[700], marginLeft: spacing.sm }]}>
+              Professional accepted! Live tracking is now active.
+            </Text>
+          </View>
+        )}
+
         {/* Pending: Waiting for provider */}
         {status === 'pending' && (
           <View style={styles.waitingCard}>
@@ -688,14 +755,16 @@ export default function BookingDetailScreen() {
           </View>
         )}
 
-        {status === 'assigned' && provider && (
+        {status === 'assigned' && (
           <View style={styles.waitingCard}>
             <View style={styles.waitingIconWrap}>
               <User size={48} color={colors.warning[500]} strokeWidth={1.5} />
             </View>
             <Text style={styles.waitingTitle}>Professional assigned</Text>
             <Text style={styles.waitingDesc}>
-              {provider.full_name || 'A professional'} has been assigned. Waiting for them to accept your request...
+              {provider?.full_name
+                ? `${provider.full_name} has been assigned. Waiting for them to accept your request...`
+                : 'A professional has been assigned. Waiting for them to accept your request...'}
             </Text>
             {booking.distance_km != null && (
               <Text style={[styles.waitingDesc, { marginTop: spacing.sm }]}>
@@ -708,7 +777,7 @@ export default function BookingDetailScreen() {
         )}
 
         {/* Accepted / On the way / Arrived — Zomato/Swiggy style tracking */}
-        {['accepted', 'on_the_way', 'arrived'].includes(status) && provider && (
+        {['accepted', 'on_the_way', 'arrived'].includes(status) && (provider || booking.provider_id) && (
           <>
             {/* Map View */}
             <View style={styles.mapContainer}>
@@ -803,6 +872,7 @@ export default function BookingDetailScreen() {
             </View>
 
             {/* Provider Card — Zomato/Swiggy style with full details */}
+            {provider && (
             <View style={styles.providerCardWrap}>
               <View style={styles.providerCard}>
                 <View style={styles.providerAvatarLarge}>
@@ -889,6 +959,7 @@ export default function BookingDetailScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            )}
           </>
         )}
 
