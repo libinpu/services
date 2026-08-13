@@ -11,6 +11,8 @@ import type { ServiceSubcategory, ProviderWithProfile } from '@/lib/types';
 import { Star, ShieldCheck, MapPin, Zap, ChevronRight, User } from 'lucide-react-native';
 import { cache } from '@/lib/cache';
 import { SkeletonList } from '@/components/ui';
+import { haversineKm, formatDistance } from '@/lib/distance';
+import { fetchCurrentLocation } from '@/lib/location-service';
 
 export default function ProvidersScreen() {
   const { subId } = useLocalSearchParams<{ subId: string }>();
@@ -23,6 +25,7 @@ export default function ProvidersScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'auto' | 'manual'>('auto');
+  const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -165,6 +168,12 @@ export default function ProvidersScreen() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    void fetchCurrentLocation().then((gps) => {
+      if (gps) setCustomerCoords({ lat: gps.latitude, lng: gps.longitude });
+    });
+  }, []);
+
   const handleAutoAssign = () => {
     if (subcategory) {
       router.push(`/booking/new?subId=${subcategory.id}&mode=auto`);
@@ -259,6 +268,9 @@ export default function ProvidersScreen() {
               providers.map((provider) => {
                 const pp = provider.provider_profile;
                 if (!pp) return null;
+                const distanceKm = customerCoords && pp.latitude != null && pp.longitude != null
+                  ? haversineKm(customerCoords.lat, customerCoords.lng, pp.latitude, pp.longitude)
+                  : null;
                 return (
                   <TouchableOpacity
                     key={provider.id}
@@ -294,7 +306,9 @@ export default function ProvidersScreen() {
                       <View style={styles.distanceRow}>
                         <View style={styles.distanceTag}>
                           <MapPin size={12} color={colors.neutral[400]} strokeWidth={2} />
-                          <Text style={styles.distanceText}>2.5 km away</Text>
+                          <Text style={styles.distanceText}>
+                            {distanceKm != null ? `${formatDistance(distanceKm)} away` : 'Distance unavailable'}
+                          </Text>
                         </View>
                       </View>
                     </View>

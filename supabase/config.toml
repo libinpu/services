@@ -28,3 +28,18 @@ entrypoint = "./functions/mark-booking-arrived/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/verify-booking-otp/index.ts"
+
+[functions.accept-booking]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/accept-booking/index.ts"
+
+[functions.reject-booking]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/reject-booking/index.ts"
+
+[functions.auto-assign-provider]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/auto-assign-provider/index.ts"

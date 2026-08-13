@@ -9,8 +9,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { ServiceSubcategory, Address, Profile } from '@/lib/types';
-import { generateOtp } from '@/lib/otp';
-import { initBookingOtp } from '@/lib/tracking-api';
+import { assignNearestProvider } from '@/lib/tracking-api';
 import { fetchCurrentLocation } from '@/lib/location-service';
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
@@ -188,80 +187,33 @@ export default function BookingConfirmationScreen() {
     fetchData();
   }, [fetchData]);
 
-  function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
   const handleConfirmBooking = async () => {
-    if (!session?.user?.id || !subcategory || !selectedAddress) {
-      setError(t('selectAddressFirst') || 'Please select an address before confirming.');
-      setSubmitting(false);
+    if (!session?.user?.id || !subcategory) {
+      setError('Please sign in and select a service.');
       return;
     }
     setSubmitting(true);
     setError(null);
 
     try {
-      let finalProviderId = providerId || null;
-      let finalStatus = 'pending';
-      let bestDistance: number | null = null;
-      let etaMins: number | null = null;
-
-      if (mode === 'auto') {
-        // Only fetch online providers — limit to 50 to avoid full-table scans
-        const { data: providers, error: provErr } = await supabase
-          .from('profiles')
-          .select(`id, full_name, provider_profile:provider_profiles!inner(is_online, rating_avg, jobs_completed, latitude, longitude)`)
-          .eq('role', 'provider')
-          .eq('provider_profile.is_online', true)
-          .filter('provider_profile.category_ids', 'cs', `{${subcategory.category_id}}`)
-          .limit(50);
-
-        if (provErr) throw provErr;
-
-        if (selectedAddress.latitude && selectedAddress.longitude && providers && providers.length > 0) {
-          const withDistance = providers.map((p: any) => {
-            const pp = p.provider_profile;
-            if (pp?.latitude != null && pp?.longitude != null) {
-              return { ...p, _dist: haversineKm(selectedAddress.latitude!, selectedAddress.longitude!, pp.latitude, pp.longitude) };
-            }
-            return { ...p, _dist: Infinity };
-          });
-
-          const nearby = withDistance.filter((p: any) => p._dist <= 10);
-
-          if (nearby.length > 0) {
-            nearby.sort((a: any, b: any) => a._dist - b._dist);
-            finalProviderId = nearby[0].id;
-            bestDistance = nearby[0]._dist;
-            etaMins = Math.max(5, Math.round(((bestDistance || 0) / 25) * 60));
-            finalStatus = 'accepted';
-          } else {
-            finalStatus = 'cancelled';
-          }
-        } else {
-          finalStatus = 'cancelled';
-        }
-      }
-
-      let customerLat = selectedAddress.latitude;
-      let customerLng = selectedAddress.longitude;
-      let customerAccuracy: number | null = null;
-
       const gps = await fetchCurrentLocation();
-      if (gps && (gps.accuracy == null || gps.accuracy <= TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M)) {
-        customerLat = gps.latitude;
-        customerLng = gps.longitude;
-        customerAccuracy = gps.accuracy;
+      if (!gps) {
+        setError('Location permission and GPS are required to request a service.');
+        setSubmitting(false);
+        return;
       }
+      if (gps.accuracy != null && gps.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) {
+        setError('GPS accuracy is too low. Move to an open area and try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      const customerLat = gps.latitude;
+      const customerLng = gps.longitude;
+      const customerAccuracy = gps.accuracy;
+
+      let finalProviderId = providerId || null;
+      let finalStatus: 'pending' | 'assigned' = mode === 'manual' && providerId ? 'assigned' : 'pending';
 
       const scheduledAt = scheduleMode === 'now'
         ? new Date().toISOString()
@@ -273,14 +225,12 @@ export default function BookingConfirmationScreen() {
           customer_id: session.user.id,
           provider_id: finalProviderId,
           subcategory_id: subcategory.id,
-          address_id: selectedAddress.id,
+          address_id: selectedAddress?.id ?? null,
           zone_id: null,
           status: finalStatus,
           scheduled_at: scheduledAt,
           booking_mode: mode as 'auto' | 'manual',
           estimated_cost: 0,
-          distance_km: bestDistance,
-          estimated_eta_mins: etaMins,
           payment_method: 'cash',
           payment_status: 'pending',
           otp_verified: false,
@@ -295,18 +245,14 @@ export default function BookingConfirmationScreen() {
       if (insertError) throw insertError;
 
       if (data) {
-        let plainOtpQuery = '';
-        if (finalStatus !== 'cancelled') {
+        if (mode === 'auto') {
           try {
-            const { otp } = await initBookingOtp(data.id);
-            plainOtpQuery = `?plainOtp=${otp}`;
+            await assignNearestProvider(data.id);
           } catch {
-            const fallbackOtp = generateOtp();
-            await supabase.from('bookings').update({ otp: fallbackOtp }).eq('id', data.id);
-            plainOtpQuery = `?plainOtp=${fallbackOtp}`;
+            // Booking detail refreshes via realtime after server assignment.
           }
         }
-        router.replace(`/booking/${data.id}${plainOtpQuery}`);
+        router.replace(`/booking/${data.id}`);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to create booking');
@@ -402,10 +348,10 @@ export default function BookingConfirmationScreen() {
           )}
         </View>
 
-        {/* Address */}
+        {/* Saved address (optional) */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('address')}</Text>
+            <Text style={styles.sectionTitle}>{t('address')} (optional)</Text>
             <TouchableOpacity onPress={() => router.push('/location-setup')}>
               <Text style={styles.changeText}>{t('changeAddress')}</Text>
             </TouchableOpacity>

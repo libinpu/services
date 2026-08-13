@@ -11,7 +11,7 @@ import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
 import type { BookingWithDetails } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
-import { haversineKm, estimateEtaMins, formatDistance, formatEta, isWithinArrivalRadius } from '@/lib/distance';
+import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
 import { useProviderLocationSync } from '@/lib/use-provider-location';
 import { OTP_LENGTH, isValidOtp } from '@/lib/otp';
 import { createRealtimeChannel } from '@/lib/realtime';
@@ -19,6 +19,8 @@ import { markBookingArrived, uploadProviderLocation, verifyBookingOtp } from '@/
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { trackingLog } from '@/lib/tracking-logger';
 import type { DeviceLocation } from '@/lib/location-service';
+import { ArrivalDetector } from '@/lib/arrival-detection';
+import { setStoredActiveJobId } from '@/lib/active-job-tracker';
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,8 +69,9 @@ export default function ProviderJobDetailScreen() {
   const otpRefs = useRef<(TextInput | null)[]>([]);
   const bookingFetchingRef = useRef(false);
   const arrivalRequestedRef = useRef(false);
+  const arrivalDetectorRef = useRef(new ArrivalDetector());
 
-  const isTrackingActive = ['accepted', 'on_the_way', 'arrived', 'in_progress'].includes(booking?.status || '');
+  const isTrackingActive = ['assigned', 'accepted', 'on_the_way', 'arrived', 'in_progress'].includes(booking?.status || '');
 
   const uploadLocation = useCallback(async (loc: DeviceLocation) => {
     if (!session?.user?.id) return;
@@ -115,7 +118,6 @@ export default function ProviderJobDetailScreen() {
     return () => { void supabase.removeChannel(channel); };
   }, [id, fetchBooking]);
 
-  // Auto-detect arrival when within radius with acceptable GPS accuracy.
   useEffect(() => {
     if (!booking || booking.status !== 'on_the_way' || arrivalRequestedRef.current) return;
     const destLat = booking.customer_latitude ?? booking.address?.latitude;
@@ -123,18 +125,28 @@ export default function ProviderJobDetailScreen() {
     const lat = liveLocation.latitude;
     const lng = liveLocation.longitude;
     if (destLat == null || destLng == null || lat == null || lng == null) return;
-    if (liveLocation.accuracy != null && liveLocation.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) return;
-    if (!isWithinArrivalRadius(lat, lng, destLat, destLng)) return;
+
+    const ready = arrivalDetectorRef.current.evaluate(
+      { latitude: lat, longitude: lng, accuracy: liveLocation.accuracy },
+      destLat,
+      destLng,
+    );
+    if (!ready) return;
 
     arrivalRequestedRef.current = true;
     void markBookingArrived(id!, {
       latitude: lat,
       longitude: lng,
       accuracy: liveLocation.accuracy,
-    })
+    }, arrivalDetectorRef.current.consecutiveCount)
       .then(() => fetchBooking())
-      .catch(() => { arrivalRequestedRef.current = false; });
+      .catch(() => { arrivalRequestedRef.current = false; arrivalDetectorRef.current.reset(); });
   }, [booking, liveLocation.latitude, liveLocation.longitude, liveLocation.accuracy, id, fetchBooking]);
+
+  useEffect(() => {
+    if (booking && isTrackingActive) void setStoredActiveJobId(booking.id);
+    if (booking && ['completed', 'cancelled', 'rejected'].includes(booking.status)) void setStoredActiveJobId(null);
+  }, [booking?.id, booking?.status, isTrackingActive]);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
@@ -318,7 +330,7 @@ export default function ProviderJobDetailScreen() {
     const lng = liveLocation.longitude;
     if (lat == null || lng == null) return;
     try {
-      await markBookingArrived(id!, { latitude: lat, longitude: lng, accuracy: liveLocation.accuracy });
+      await markBookingArrived(id!, { latitude: lat, longitude: lng, accuracy: liveLocation.accuracy }, arrivalDetectorRef.current.consecutiveCount);
       fetchBooking();
     } catch (e: any) {
       setError(e.message || 'Could not confirm arrival');
@@ -389,6 +401,9 @@ export default function ProviderJobDetailScreen() {
     completed: { label: t('completed'), color: colors.success[500] },
   };
   const statusInfo = statusFlow[status] || statusFlow.accepted;
+  const customerLat = booking.customer_latitude ?? booking.address?.latitude ?? null;
+  const customerLng = booking.customer_longitude ?? booking.address?.longitude ?? null;
+  const hasCustomerLocation = customerLat != null && customerLng != null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -411,33 +426,39 @@ export default function ProviderJobDetailScreen() {
         {['accepted', 'on_the_way', 'arrived', 'in_progress'].includes(status) && (
           <View style={styles.mapContainer}>
             <View style={styles.mapArea}>
+              {hasCustomerLocation ? (
               <LiveTrackingMap 
-                userLat={booking.customer_latitude ?? booking?.address?.latitude ?? 10.8505} 
-                userLng={booking.customer_longitude ?? booking?.address?.longitude ?? 76.2711} 
+                userLat={customerLat as number} 
+                userLng={customerLng as number} 
                 providerLat={liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude} 
                 providerLng={liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude} 
                 providerHeading={liveLocation.heading ?? (booking as any)?.provider?.provider_profile?.heading}
                 destinationLabel="Customer location"
               />
-              {status === 'on_the_way' && (
+              ) : (
+                <View style={[styles.mapArea, { alignItems: 'center', justifyContent: 'center' }]}>
+                  <Text style={{ color: colors.neutral[500] }}>Customer GPS location unavailable</Text>
+                </View>
+              )}
+              {status === 'on_the_way' && hasCustomerLocation && (
                 <View style={styles.mapEtaBadge}>
                   <Navigation size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                   <Text style={styles.mapEtaText}>
                     ETA: {
-                      booking?.address?.latitude && booking?.address?.longitude && (liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude) && (liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude)
-                      ? formatEta(estimateEtaMins(haversineKm(booking.address.latitude, booking.address.longitude, liveLocation.latitude ?? (booking as any).provider.provider_profile.latitude, liveLocation.longitude ?? (booking as any).provider.provider_profile.longitude)))
+                      liveLocation.latitude != null && liveLocation.longitude != null
+                      ? formatEta(estimateEtaMins(haversineKm(customerLat as number, customerLng as number, liveLocation.latitude, liveLocation.longitude)))
                       : (booking?.estimated_eta_mins ? formatEta(booking.estimated_eta_mins) : 'On the way')
                     }
                   </Text>
                 </View>
               )}
-              {status === 'accepted' && (
+              {status === 'accepted' && hasCustomerLocation && (
                 <View style={styles.mapEtaBadge}>
                   <Clock size={14} color={colors.neutral[0]} strokeWidth={2.5} />
                   <Text style={styles.mapEtaText}>
                     {
-                      booking?.address?.latitude && booking?.address?.longitude && (liveLocation.latitude ?? (booking as any)?.provider?.provider_profile?.latitude) && (liveLocation.longitude ?? (booking as any)?.provider?.provider_profile?.longitude)
-                      ? formatDistance(haversineKm(booking.address.latitude, booking.address.longitude, liveLocation.latitude ?? (booking as any).provider.provider_profile.latitude, liveLocation.longitude ?? (booking as any).provider.provider_profile.longitude))
+                      liveLocation.latitude != null && liveLocation.longitude != null
+                      ? formatDistance(haversineKm(customerLat as number, customerLng as number, liveLocation.latitude, liveLocation.longitude))
                       : (booking?.distance_km ? formatDistance(booking.distance_km) : 'Start navigation')
                     }
                   </Text>

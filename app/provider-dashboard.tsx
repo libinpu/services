@@ -8,6 +8,9 @@ import { supabase } from '@/lib/supabase';
 import { cache } from '@/lib/cache';
 import { dedupeRequest } from '@/lib/query';
 import { withRequestTimeout } from '@/lib/query';
+import { acceptBooking, rejectBooking } from '@/lib/tracking-api';
+import { fetchCurrentLocation } from '@/lib/location-service';
+import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { createRealtimeChannel } from '@/lib/realtime';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
@@ -128,7 +131,7 @@ export default function ProviderDashboardScreen() {
         .limit(50);
       if (jobsError) throw jobsError;
       const jobs = (data || []) as unknown as BookingWithDetails[];
-      setPendingJobs(jobs.filter((job) => job.status === 'pending'));
+      setPendingJobs(jobs.filter((job) => job.status === 'assigned'));
       setActiveJobs(jobs.filter((job) => ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(job.status)));
       setPastJobs(jobs.filter((job) => ['completed', 'cancelled', 'rejected'].includes(job.status)).slice(0, 20));
     } catch (e: any) {
@@ -153,14 +156,31 @@ export default function ProviderDashboardScreen() {
     if (!session?.user?.id) return;
     const channel = createRealtimeChannel(`provider-dashboard-bookings:${session.user.id}`)
       .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'bookings', filter: `provider_id=eq.${session.user.id}`,
+      }, ({ new: row }) => {
+        const insert = row as BookingWithDetails;
+        if (insert.status === 'assigned') {
+          setPendingJobs((items) => [insert, ...items.filter((item) => item.id !== insert.id)]);
+        }
+      })
+      .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'bookings', filter: `provider_id=eq.${session.user.id}`,
       }, ({ new: row }) => {
         const update = row as Partial<BookingWithDetails>;
         const isActive = ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(update.status || '');
         const isHistory = ['completed', 'cancelled', 'rejected'].includes(update.status || '');
-        setPendingJobs((items) => update.status === 'pending'
-          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
-          : items.filter((item) => item.id !== update.id));
+        setPendingJobs((items) => {
+          if (update.status === 'assigned') {
+            const exists = items.some((item) => item.id === update.id);
+            return exists
+              ? items.map((item) => item.id === update.id ? { ...item, ...update } as BookingWithDetails : item)
+              : [{ ...update } as BookingWithDetails, ...items];
+          }
+          return items.filter((item) => item.id !== update.id);
+        });
+        if (update.status === 'assigned') {
+          setActiveJobs((items) => items.filter((item) => item.id !== update.id));
+        }
         setActiveJobs((items) => isActive
           ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
           : items.filter((item) => item.id !== update.id));
@@ -298,33 +318,21 @@ export default function ProviderDashboardScreen() {
 
   const startShift = async () => {
     if (!session?.user?.id) return;
+    const gps = await fetchCurrentLocation();
+    if (!gps || (gps.accuracy != null && gps.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M)) {
+      setError('Valid GPS location is required to go online.');
+      return;
+    }
     const now = new Date().toISOString();
-    const updateData: any = {
+    const updateData = {
       is_online: true,
       shift_started_at: now,
+      latitude: gps.latitude,
+      longitude: gps.longitude,
+      location_accuracy: gps.accuracy,
+      last_location_at: now,
       updated_at: now,
     };
-    // Try to grab location
-    if (Platform.OS !== 'web') {
-      try {
-        const expoLocation = await import('expo-location');
-        const { status } = await expoLocation.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          try {
-            const pos = await expoLocation.getCurrentPositionAsync({ accuracy: 3 });
-            updateData.latitude = pos.coords.latitude;
-            updateData.longitude = pos.coords.longitude;
-          } catch (posErr) {
-            console.warn('GPS fetch failed in dashboard, using fallback:', posErr);
-            updateData.latitude = 10.5276;
-            updateData.longitude = 76.2144;
-          }
-          updateData.last_location_at = now;
-        }
-      } catch {
-        // Location unavailable — proceed anyway
-      }
-    }
     setIsOnline(true);
     setShiftStartedAt(now);
     updateShiftDuration(now);
@@ -347,28 +355,29 @@ export default function ProviderDashboardScreen() {
 
   const handleAcceptJob = async (jobId: string) => {
     setActionLoading(true);
-    const updatedAt = new Date().toISOString();
-    await supabase.from('bookings').update({ status: 'accepted', updated_at: updatedAt }).eq('id', jobId);
-    setPendingJobs((current) => {
-      const job = current.find((entry) => entry.id === jobId);
-      if (job) setActiveJobs((active) => [{ ...job, status: 'accepted' as const, updated_at: updatedAt }, ...active]);
-      return current.filter((entry) => entry.id !== jobId);
-    });
-    setActionLoading(false);
-    setShowJobModal(false);
+    try {
+      await acceptBooking(jobId);
+      await fetchJobs();
+      setShowJobModal(false);
+      router.push(`/provider-job/${jobId}`);
+    } catch (e: any) {
+      setError(e.message || 'Could not accept job');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleRejectJob = async (jobId: string) => {
     setActionLoading(true);
-    const updatedAt = new Date().toISOString();
-    await supabase.from('bookings').update({ status: 'rejected', updated_at: updatedAt }).eq('id', jobId);
-    setPendingJobs((current) => {
-      const job = current.find((entry) => entry.id === jobId);
-      if (job) setPastJobs((past) => [{ ...job, status: 'rejected' as const, updated_at: updatedAt }, ...past].slice(0, 20));
-      return current.filter((entry) => entry.id !== jobId);
-    });
-    setActionLoading(false);
-    setShowJobModal(false);
+    try {
+      await rejectBooking(jobId);
+      await fetchJobs();
+      setShowJobModal(false);
+    } catch (e: any) {
+      setError(e.message || 'Could not reject job');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading) return <LoadingState label={t('loading')} />;

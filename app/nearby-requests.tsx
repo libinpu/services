@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { createRealtimeChannel } from '@/lib/realtime';
+import { acceptBooking, rejectBooking } from '@/lib/tracking-api';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { Header, LoadingState, ErrorState } from '@/components/ui';
 import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
@@ -89,13 +90,12 @@ export default function NearbyRequestsScreen() {
       const provLat = liveLocRef.current.lat ?? providerProfileData.latitude;
       const provLon = liveLocRef.current.lng ?? providerProfileData.longitude;
 
-      // Get all pending bookings that either have no provider assigned yet,
-      // or are assigned to this provider (so they can accept from here too)
+      // Assigned bookings for this provider awaiting acceptance
       const bookingRes = await supabase
         .from('bookings')
         .select('*, subcategory:service_subcategories(id, name_en, name_ml, category_id), address:addresses(id, label, address_line, area, district, latitude, longitude)')
-        .eq('status', 'pending')
-        .or(`provider_id.is.null,provider_id.eq.${userId}`);
+        .eq('status', 'assigned')
+        .eq('provider_id', userId);
 
       const matched = ((bookingRes.data as BookingWithDetails[]) || []).filter((b) => {
         const catId = b.subcategory?.category_id;
@@ -105,8 +105,8 @@ export default function NearbyRequestsScreen() {
 
       // Compute distance + ETA for each
       const withDistance: NearbyRequest[] = matched.map((b) => {
-        const custLat = b.address?.latitude;
-        const custLon = b.address?.longitude;
+        const custLat = b.customer_latitude ?? b.address?.latitude;
+        const custLon = b.customer_longitude ?? b.address?.longitude;
         let dist: number | null = null;
         let eta: number | null = null;
         if (provLat != null && provLon != null && custLat != null && custLon != null) {
@@ -181,8 +181,8 @@ export default function NearbyRequestsScreen() {
     if (!session?.user?.id) return;
     // One scoped channel replaces the old 8-second list poll. The in-flight
     // guard in fetchRequests coalesces bursts of booking events.
-    const channel = createRealtimeChannel(`nearby-pending-bookings:${session.user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: 'status=eq.pending' }, () => {
+    const channel = createRealtimeChannel(`nearby-assigned-bookings:${session.user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `provider_id=eq.${session.user.id}` }, () => {
         void fetchRequests();
       })
       .subscribe();
@@ -194,16 +194,10 @@ export default function NearbyRequestsScreen() {
     fetchRequests();
   };
 
-  const handleAccept = async (jobId: string, distanceKm: number | null, etaMins: number | null) => {
+  const handleAccept = async (jobId: string) => {
     setActionLoading(true);
     try {
-      await supabase.from('bookings').update({
-        status: 'accepted',
-        provider_id: session?.user?.id,
-        distance_km: distanceKm,
-        estimated_eta_mins: etaMins,
-        updated_at: new Date().toISOString(),
-      }).eq('id', jobId);
+      await acceptBooking(jobId);
       closeModal();
       router.push(`/provider-job/${jobId}`);
     } catch (e: any) {
@@ -216,12 +210,7 @@ export default function NearbyRequestsScreen() {
   const handleReject = async (jobId: string) => {
     setActionLoading(true);
     try {
-      // If the booking was assigned to this provider, reject it.
-      // If it was unassigned (broadcast), just remove it from the provider's view by ignoring.
-      await supabase.from('bookings').update({
-        status: 'rejected',
-        updated_at: new Date().toISOString(),
-      }).eq('id', jobId).eq('provider_id', session?.user?.id);
+      await rejectBooking(jobId);
       closeModal();
       fetchRequests();
     } catch (e: any) {
@@ -386,7 +375,7 @@ export default function NearbyRequestsScreen() {
                 </View>
               </View>
               <View style={styles.cardActions}>
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(req.id, req._distanceKm, req._etaMins)}>
+                <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(req.id)}>
                   <Check size={20} color={colors.neutral[0]} strokeWidth={3} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(req.id)}>
@@ -452,7 +441,7 @@ export default function NearbyRequestsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.modalAcceptBtn}
-                    onPress={() => handleAccept(selectedRequest.id, selectedRequest._distanceKm, selectedRequest._etaMins)}
+                    onPress={() => handleAccept(selectedRequest.id)}
                     disabled={actionLoading}
                   >
                     <Check size={20} color={colors.neutral[0]} strokeWidth={3} />

@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Platform, LogBox } from 'react-native';
 import { registerForPushNotificationsAsync, setForegroundNotificationHandler } from '@/lib/notifications';
+import { restoreActiveProviderJob } from '@/lib/active-job-tracker';
 
 if (Platform.OS === 'web') {
   LogBox.ignoreLogs([
@@ -161,6 +162,10 @@ function AppShell() {
   useEffect(() => {
     if (!session?.user?.id || profile?.role !== 'provider') return;
     if (Platform.OS === 'web') return;
+
+    void restoreActiveProviderJob(session.user.id).then((job) => {
+      if (job?.id) router.push(`/provider-job/${job.id}`);
+    }).catch(() => {});
 
     // Set foreground notification behaviour
     setForegroundNotificationHandler();

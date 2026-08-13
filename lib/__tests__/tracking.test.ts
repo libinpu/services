@@ -49,7 +49,8 @@ describe('distance and arrival', () => {
 
 describe('job state transitions (documented)', () => {
   const validTransitions: Record<string, string[]> = {
-    pending: ['accepted', 'cancelled', 'rejected'],
+    pending: ['assigned', 'cancelled'],
+    assigned: ['on_the_way', 'rejected', 'cancelled'],
     accepted: ['on_the_way', 'cancelled'],
     on_the_way: ['arrived', 'cancelled'],
     arrived: ['in_progress', 'cancelled'],
@@ -57,8 +58,12 @@ describe('job state transitions (documented)', () => {
     awaiting_confirmation: ['completed'],
   };
 
-  it('REQUESTED → COMPLETED is invalid', () => {
+  it('pending cannot jump to completed', () => {
     expect(validTransitions.pending).not.toContain('completed');
+  });
+
+  it('assigned becomes on_the_way after provider accepts', () => {
+    expect(validTransitions.assigned).toContain('on_the_way');
   });
 
   it('on_the_way can only become arrived or cancelled', () => {

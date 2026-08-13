@@ -29,16 +29,32 @@ async function invokeFunction<T>(name: string, body: Record<string, unknown>): P
   return json as T;
 }
 
-/** Backend generates a secure OTP for the booking (customer only). */
-export async function initBookingOtp(bookingId: string): Promise<{ otp: string }> {
-  trackingLog('OTP_REQUEST', 'Initializing booking OTP', { bookingId });
-  return invokeFunction('init-booking-otp', { bookingId });
+/** Backend assigns nearest eligible provider within 10 km. */
+export async function assignNearestProvider(bookingId: string) {
+  trackingLog('JOB_STATE_CHANGE', 'Requesting nearest provider assignment', { bookingId });
+  return invokeFunction<{ success: boolean; status: string; providerId?: string; message?: string }>(
+    'auto-assign-provider',
+    { bookingId },
+  );
 }
 
-/** Backend validates proximity and transitions EN_ROUTE → ARRIVED. */
+/** Provider accepts an assigned job → on_the_way. */
+export async function acceptBooking(bookingId: string) {
+  trackingLog('JOB_STATE_CHANGE', 'Provider accepting booking', { bookingId });
+  return invokeFunction<{ success: boolean; status: string }>('accept-booking', { bookingId });
+}
+
+/** Provider rejects an assigned job; auto mode may reassign. */
+export async function rejectBooking(bookingId: string, reason?: string) {
+  trackingLog('JOB_STATE_CHANGE', 'Provider rejecting booking', { bookingId });
+  return invokeFunction<{ success: boolean; status: string }>('reject-booking', { bookingId, reason });
+}
+
+/** Backend validates proximity and transitions on_the_way → arrived; OTP generated server-side. */
 export async function markBookingArrived(
   bookingId: string,
   location: Pick<DeviceLocation, 'latitude' | 'longitude' | 'accuracy'>,
+  consecutiveReadings: number,
 ): Promise<{ success: boolean; status: string }> {
   trackingLog('ARRIVAL_DETECTED', 'Requesting backend arrival confirmation', { bookingId });
   return invokeFunction('mark-booking-arrived', {
@@ -46,6 +62,7 @@ export async function markBookingArrived(
     latitude: location.latitude,
     longitude: location.longitude,
     accuracy: location.accuracy,
+    consecutiveReadings,
   });
 }
 
@@ -91,7 +108,7 @@ export async function fetchActiveProviderJob(providerId: string) {
     .from('bookings')
     .select('id, status')
     .eq('provider_id', providerId)
-    .in('status', ['accepted', 'on_the_way', 'arrived', 'in_progress'])
+    .in('status', ['assigned', 'accepted', 'on_the_way', 'arrived', 'in_progress'])
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();

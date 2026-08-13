@@ -328,12 +328,8 @@ export default function LocationSetupScreen() {
       if (Platform.OS === 'web' && e.message?.toLowerCase().includes('denied')) {
         setStep('denied');
       } else {
-        console.warn('Location fetch failed, falling back to default:', e.message || e);
-        const fallbackLat = 10.5276;
-        const fallbackLng = 76.2144;
-        setCoords({ lat: fallbackLat, lng: fallbackLng });
-        setStep('map');
-        reverseGeocode(fallbackLat, fallbackLng);
+        setError('Could not get your location. Please enable GPS and try again.');
+        setStep('denied');
       }
     } finally {
       setLoading(false);

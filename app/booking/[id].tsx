@@ -23,7 +23,7 @@ import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, Cir
 const { width, height } = Dimensions.get('window');
 
 export default function BookingDetailScreen() {
-  const { id, plainOtp } = useLocalSearchParams<{ id: string; plainOtp?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { t, lang } = useLanguage();
   const { session } = useAuth();
   const router = useRouter();
@@ -591,12 +591,11 @@ export default function BookingDetailScreen() {
   const subcategory = booking.subcategory;
   const address = booking.address;
   const otp = isValidOtp(booking.otp) ? booking.otp : null;
-  const shouldShowOtp = ['accepted', 'on_the_way', 'arrived'].includes(status)
-    && !booking.otp_verified
-    && (isValidOtp(plainOtp) || otp !== null);
+  const shouldShowOtp = status === 'arrived' && !booking.otp_verified && otp !== null;
 
   const statusFlow: Record<string, { label: string; color: string }> = {
-    pending: { label: t('pending'), color: colors.warning[500] },
+    pending: { label: 'Finding professional', color: colors.warning[500] },
+    assigned: { label: 'Waiting for acceptance', color: colors.warning[500] },
     accepted: { label: t('accepted'), color: colors.accent[500] },
     on_the_way: { label: t('onTheWay'), color: colors.accent[500] },
     arrived: { label: t('arrived'), color: colors.accent[500] },
@@ -626,18 +625,18 @@ export default function BookingDetailScreen() {
     : null;
   const isLocationStale = locationStaleMs != null && locationStaleMs > TRACKING_CONFIG.LOCATION_STALE_MS;
   const isProviderNearby = liveDistanceKm != null && liveDistanceKm * 1000 <= TRACKING_CONFIG.ARRIVAL_RADIUS_M * 2;
-  const displayOtp = isValidOtp(plainOtp) ? plainOtp : otp;
+  const displayOtp = otp;
 
   // Progress steps for the tracking bar
   const trackingSteps = [
     { key: 'pending', label: 'Booked', icon: CheckCircle },
-    { key: 'accepted', label: 'Accepted', icon: ShieldCheck },
+    { key: 'assigned', label: 'Assigned', icon: User },
     { key: 'on_the_way', label: 'On the way', icon: Navigation },
     { key: 'arrived', label: 'Arrived', icon: MapPin },
     { key: 'in_progress', label: 'In Progress', icon: Clock },
     { key: 'awaiting_confirmation', label: 'Done', icon: CheckCircle },
   ];
-  const currentStepIndex = trackingSteps.findIndex((s) => s.key === status);
+  const currentStepIndex = trackingSteps.findIndex((s) => s.key === status || (status === 'accepted' && s.key === 'on_the_way'));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -686,6 +685,25 @@ export default function BookingDetailScreen() {
               We couldn't find any professionals within 10 km of your location for this service.
             </Text>
             <Button label="Back to Home" onPress={() => router.replace('/(tabs)')} style={[styles.cancelBtn, { marginTop: spacing.lg }]} />
+          </View>
+        )}
+
+        {status === 'assigned' && provider && (
+          <View style={styles.waitingCard}>
+            <View style={styles.waitingIconWrap}>
+              <User size={48} color={colors.warning[500]} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.waitingTitle}>Professional assigned</Text>
+            <Text style={styles.waitingDesc}>
+              {provider.full_name || 'A professional'} has been assigned. Waiting for them to accept your request...
+            </Text>
+            {booking.distance_km != null && (
+              <Text style={[styles.waitingDesc, { marginTop: spacing.sm }]}>
+                {formatDistance(booking.distance_km)} away
+                {booking.estimated_eta_mins != null ? ` • ~${formatEta(booking.estimated_eta_mins)}` : ''}
+              </Text>
+            )}
+            <Button label={t('cancel')} onPress={() => setShowCancelConfirm(true)} variant="outline" style={styles.cancelBtn} />
           </View>
         )}
 
@@ -824,9 +842,9 @@ export default function BookingDetailScreen() {
                       {providerProfile?.provider_profile?.experience_years || 0} yrs exp
                     </Text>
                   </View>
-                  {providerProfile?.provider_profile?.specializations?.length > 0 && (
+                  {(providerProfile?.provider_profile?.specializations?.length ?? 0) > 0 && (
                     <View style={styles.providerSkillsRow}>
-                      {providerProfile.provider_profile.specializations.slice(0, 3).map((skill, idx) => (
+                      {(providerProfile?.provider_profile?.specializations ?? []).slice(0, 3).map((skill, idx) => (
                         <View key={idx} style={styles.providerSkillTag}>
                           <Text style={styles.providerSkillText}>{skill}</Text>
                         </View>

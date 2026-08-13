@@ -9,8 +9,8 @@ const corsHeaders = {
 
 const ARRIVAL_RADIUS_M = 50;
 const ACCURACY_THRESHOLD_M = 80;
-const MAX_OTP_ATTEMPTS = 5;
 const OTP_EXPIRATION_MS = 15 * 60 * 1000;
+const ARRIVAL_CONSECUTIVE_READINGS = 3;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -31,6 +31,10 @@ async function sha256(value: string): Promise<string> {
     .join("");
 }
 
+function generateOtp(): string {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -45,7 +49,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { bookingId, latitude, longitude, accuracy } = await req.json();
+    const { bookingId, latitude, longitude, accuracy, consecutiveReadings } = await req.json();
     if (!bookingId || latitude == null || longitude == null) {
       return new Response(JSON.stringify({ error: "bookingId, latitude, longitude required" }), {
         status: 400,
@@ -55,6 +59,14 @@ Deno.serve(async (req: Request) => {
 
     if (accuracy != null && accuracy > ACCURACY_THRESHOLD_M) {
       return new Response(JSON.stringify({ error: "GPS accuracy too low for arrival" }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const readings = Number(consecutiveReadings ?? 0);
+    if (readings < ARRIVAL_CONSECUTIVE_READINGS) {
+      return new Response(JSON.stringify({ error: "Insufficient consecutive arrival readings", readings }), {
         status: 422,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -81,7 +93,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: booking, error: bookingErr } = await supabase
       .from("bookings")
-      .select("id, provider_id, status, customer_latitude, customer_longitude, address:addresses(latitude, longitude)")
+      .select("id, provider_id, status, customer_latitude, customer_longitude, otp_hash")
       .eq("id", bookingId)
       .maybeSingle();
 
@@ -99,15 +111,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (booking.status !== "on_the_way") {
-      return new Response(JSON.stringify({ success: true, status: booking.status }), {
+    if (booking.status === "arrived") {
+      return new Response(JSON.stringify({ success: true, status: "arrived" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const destLat = booking.customer_latitude ?? booking.address?.latitude;
-    const destLng = booking.customer_longitude ?? booking.address?.longitude;
+    if (booking.status !== "on_the_way") {
+      return new Response(JSON.stringify({ error: "Invalid job state for arrival" }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const destLat = booking.customer_latitude;
+    const destLng = booking.customer_longitude;
 
     if (destLat == null || destLng == null) {
       return new Response(JSON.stringify({ error: "Customer location unavailable" }), {
@@ -124,11 +143,19 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const otp = generateOtp();
+    const otpHash = await sha256(otp);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRATION_MS).toISOString();
+
     const { error: updateErr } = await supabase
       .from("bookings")
       .update({
         status: "arrived",
         arrived_at: new Date().toISOString(),
+        otp,
+        otp_hash: otpHash,
+        otp_expires_at: expiresAt,
+        otp_attempts: 0,
         updated_at: new Date().toISOString(),
       })
       .eq("id", bookingId);

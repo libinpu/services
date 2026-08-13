@@ -3,21 +3,29 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// Haversine distance in km between two lat/long points
+const MATCH_RADIUS_KM = 10;
+const ACCURACY_THRESHOLD_M = 80;
+const PROVIDER_LOCATION_MAX_AGE_MS = 5 * 60 * 1000;
+const ACTIVE_STATUSES = ["assigned", "accepted", "on_the_way", "arrived", "in_progress", "awaiting_confirmation"];
+
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function isFresh(lastAt: string | null | undefined): boolean {
+  if (!lastAt) return false;
+  return Date.now() - new Date(lastAt).getTime() <= PROVIDER_LOCATION_MAX_AGE_MS;
 }
 
 Deno.serve(async (req: Request) => {
@@ -36,12 +44,12 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const { data: booking, error: bookingErr } = await supabase
       .from("bookings")
-      .select("*, subcategory:service_subcategories(*), address:addresses(*)")
+      .select("*, subcategory:service_subcategories(category_id)")
       .eq("id", bookingId)
       .maybeSingle();
 
@@ -60,17 +68,23 @@ Deno.serve(async (req: Request) => {
     }
 
     if (booking.provider_id) {
-      await supabase
-        .from("bookings")
-        .update({ status: "accepted", updated_at: new Date().toISOString() })
-        .eq("id", bookingId);
-      return new Response(JSON.stringify({ success: true, message: "Provider accepted" }), {
+      return new Response(JSON.stringify({ success: true, status: "assigned", providerId: booking.provider_id }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const custLat = booking.customer_latitude;
+    const custLng = booking.customer_longitude;
     const catId = booking.subcategory?.category_id;
+
+    if (custLat == null || custLng == null) {
+      return new Response(JSON.stringify({ error: "Customer GPS location required" }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!catId) {
       return new Response(JSON.stringify({ error: "No category found for booking" }), {
         status: 400,
@@ -80,10 +94,10 @@ Deno.serve(async (req: Request) => {
 
     const { data: providers, error: provErr } = await supabase
       .from("profiles")
-      .select(`id, full_name, provider_profile:provider_profiles(is_online, rating_avg, jobs_completed, latitude, longitude)`)
+      .select(`id, provider_profile:provider_profiles(is_online, latitude, longitude, location_accuracy, last_location_at, category_ids)`)
       .eq("role", "provider")
       .filter("provider_profile.category_ids", "cs", `{${catId}}`)
-      .limit(20);
+      .limit(100);
 
     if (provErr) {
       return new Response(JSON.stringify({ error: "Failed to find providers" }), {
@@ -92,82 +106,76 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Prefer online providers; fall back to all matched
-    const onlineProviders = (providers || []).filter((p: any) => p.provider_profile?.is_online);
-    const targetProviders = onlineProviders.length > 0 ? onlineProviders : (providers || []);
+    const { data: activeJobs } = await supabase
+      .from("bookings")
+      .select("provider_id")
+      .in("status", ACTIVE_STATUSES);
 
-    if (targetProviders.length === 0) {
-      const { data: fallback } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("role", "provider")
-        .limit(1);
+    const busyProviders = new Set((activeJobs || []).map((j: { provider_id: string }) => j.provider_id));
 
-      if (fallback && fallback.length > 0) {
-        await supabase
-          .from("bookings")
-          .update({ provider_id: fallback[0].id, updated_at: new Date().toISOString() })
-          .eq("id", bookingId);
+    const candidates = (providers || [])
+      .map((p: any) => {
+        const pp = p.provider_profile;
+        if (!pp?.is_online || busyProviders.has(p.id)) return null;
+        if (pp.latitude == null || pp.longitude == null) return null;
+        if (!isFresh(pp.last_location_at)) return null;
+        if (pp.location_accuracy != null && pp.location_accuracy > ACCURACY_THRESHOLD_M) return null;
+        const distanceKm = haversineKm(custLat, custLng, pp.latitude, pp.longitude);
+        if (distanceKm > MATCH_RADIUS_KM) return null;
+        return { id: p.id, distanceKm };
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.distanceKm - b.distanceKm);
 
-        return new Response(JSON.stringify({ success: true, message: "Assigned to provider (pending acceptance)" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    if (candidates.length === 0) {
+      await supabase
+        .from("bookings")
+        .update({
+          status: "cancelled",
+          cancellation_reason: "No nearby professional available within 10 km",
+          cancelled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", bookingId);
 
-      return new Response(JSON.stringify({ error: "No providers available" }), {
-        status: 404,
+      return new Response(JSON.stringify({
+        success: false,
+        message: "No nearby professional available",
+        status: "cancelled",
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Sort by distance to customer address if we have coordinates
-    const custLat = booking.address?.latitude;
-    const custLon = booking.address?.longitude;
-
-    let assignedProvider = targetProviders[0];
-    let bestDistance: number | null = null;
-
-    if (custLat != null && custLon != null) {
-      const withDistance = targetProviders.map((p: any) => {
-        const pp = p.provider_profile;
-        if (pp?.latitude != null && pp?.longitude != null) {
-          return { ...p, _dist: haversineKm(custLat, custLon, pp.latitude, pp.longitude) };
-        }
-        return { ...p, _dist: Infinity };
-      });
-      withDistance.sort((a: any, b: any) => a._dist - b._dist);
-      assignedProvider = withDistance[0];
-      bestDistance = withDistance[0]._dist === Infinity ? null : withDistance[0]._dist;
-    }
-
-    // Estimate ETA: assume 25 km/h average city speed
-    const etaMins = bestDistance != null ? Math.max(5, Math.round((bestDistance / 25) * 60)) : null;
+    const assigned = candidates[0];
+    const etaMins = Math.max(5, Math.round((assigned.distanceKm / 25) * 60));
 
     await supabase
       .from("bookings")
       .update({
-        provider_id: assignedProvider.id,
-        distance_km: bestDistance,
+        provider_id: assigned.id,
+        status: "assigned",
+        distance_km: assigned.distanceKm,
         estimated_eta_mins: etaMins,
         updated_at: new Date().toISOString(),
       })
       .eq("id", bookingId);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Provider assigned (pending acceptance)",
-        providerId: assignedProvider.id,
-        distanceKm: bestDistance,
-        etaMins: etaMins,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      status: "assigned",
+      providerId: assigned.id,
+      distanceKm: assigned.distanceKm,
+      etaMins,
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err: any) {
-    return new Response(
-      JSON.stringify({ error: err.message || "Internal error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: err.message || "Internal error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

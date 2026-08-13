@@ -22,6 +22,12 @@ export const TRACKING_CONFIG = {
   LOCATION_BUFFER_MAX: 20,
   /** Show "stale location" warning after this (ms). */
   LOCATION_STALE_MS: 30_000,
+  /** Maximum provider matching/search radius (km). */
+  MATCH_RADIUS_KM: 10,
+  /** Provider GPS older than this is not eligible for matching (ms). */
+  PROVIDER_LOCATION_MAX_AGE_MS: 5 * 60 * 1000,
+  /** Consecutive in-radius readings required before arrival request. */
+  ARRIVAL_CONSECUTIVE_READINGS: 3,
 } as const;
 
 export type TrackingConfig = typeof TRACKING_CONFIG;
