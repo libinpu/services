@@ -105,3 +105,7 @@ BEGIN
     RETURN json_build_object('success', true, 'status', 'assigned', 'providerId', v_provider_id, 'distanceKm', v_distance_km, 'etaMins', v_eta_mins);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.auto_assign_provider(uuid) TO authenticated;
+NOTIFY pgrst, 'reload schema';
+
