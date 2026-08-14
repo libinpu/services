@@ -115,7 +115,16 @@ export default function ProviderJobDetailScreen() {
         void fetchBooking();
       })
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+
+    // Polling fallback every 5 seconds
+    const timer = setInterval(() => {
+      void fetchBooking();
+    }, 5000);
+
+    return () => { 
+      void supabase.removeChannel(channel); 
+      clearInterval(timer);
+    };
   }, [id, fetchBooking]);
 
   useEffect(() => {

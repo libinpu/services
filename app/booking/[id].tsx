@@ -18,7 +18,7 @@ import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/d
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { trackingLog } from '@/lib/tracking-logger';
 import type { BookingWithDetails, ChatMessage, ProviderWithProfile } from '@/lib/types';
-import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, User, Receipt } from 'lucide-react-native';
+import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, User, Receipt, Home } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -518,13 +518,13 @@ export default function BookingDetailScreen() {
     return () => { void supabase.removeChannel(channel); };
   }, [id, fetchBooking]);
 
-  // Poll while waiting for provider assignment or acceptance (realtime fallback).
+  // Poll while waiting for provider assignment or acceptance, or during active job (realtime fallback).
   useEffect(() => {
     if (!booking) return;
-    if (!['pending', 'assigned'].includes(booking.status)) return;
+    if (['completed', 'cancelled', 'rejected'].includes(booking.status)) return;
     const timer = setInterval(() => {
       void fetchBooking({ force: true });
-    }, 3000);
+    }, 5000);
     return () => clearInterval(timer);
   }, [booking?.status, fetchBooking]);
 
@@ -707,6 +707,11 @@ export default function BookingDetailScreen() {
             router.replace('/(tabs)');
           }
         }}
+        right={
+          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ padding: spacing.sm }}>
+            <Home size={24} color={colors.neutral[0]} />
+          </TouchableOpacity>
+        }
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Status Banner */}
