@@ -157,40 +157,17 @@ export default function ProviderDashboardScreen() {
     const channel = createRealtimeChannel(`provider-dashboard-bookings:${session.user.id}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'bookings', filter: `provider_id=eq.${session.user.id}`,
-      }, ({ new: row }) => {
-        const insert = row as BookingWithDetails;
-        if (insert.status === 'assigned') {
-          setPendingJobs((items) => [insert, ...items.filter((item) => item.id !== insert.id)]);
-        }
+      }, () => {
+        void fetchJobs();
       })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'bookings', filter: `provider_id=eq.${session.user.id}`,
-      }, ({ new: row }) => {
-        const update = row as Partial<BookingWithDetails>;
-        const isActive = ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation'].includes(update.status || '');
-        const isHistory = ['completed', 'cancelled', 'rejected'].includes(update.status || '');
-        setPendingJobs((items) => {
-          if (update.status === 'assigned') {
-            const exists = items.some((item) => item.id === update.id);
-            return exists
-              ? items.map((item) => item.id === update.id ? { ...item, ...update } as BookingWithDetails : item)
-              : [{ ...update } as BookingWithDetails, ...items];
-          }
-          return items.filter((item) => item.id !== update.id);
-        });
-        if (update.status === 'assigned') {
-          setActiveJobs((items) => items.filter((item) => item.id !== update.id));
-        }
-        setActiveJobs((items) => isActive
-          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
-          : items.filter((item) => item.id !== update.id));
-        setPastJobs((items) => isHistory
-          ? items.map((item) => item.id === update.id ? { ...item, ...update } : item)
-          : items.filter((item) => item.id !== update.id));
+      }, () => {
+        void fetchJobs();
       })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, fetchJobs]);
 
   // Shift timer — tick every 30 seconds while on shift
   useEffect(() => {
