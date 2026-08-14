@@ -28,10 +28,9 @@ async function invokeFunction<T>(name: string, body: Record<string, unknown>): P
 /** Backend assigns nearest eligible provider within 10 km. */
 export async function assignNearestProvider(bookingId: string) {
   trackingLog('JOB_STATE_CHANGE', 'Requesting nearest provider assignment', { bookingId });
-  return invokeFunction<{ success: boolean; status: string; providerId?: string; message?: string }>(
-    'auto-assign-provider',
-    { bookingId },
-  );
+  const { data, error } = await supabase.rpc('auto_assign_provider', { p_booking_id: bookingId });
+  if (error) throw error;
+  return data as { success: boolean; status: string; providerId?: string; message?: string };
 }
 
 /** Provider accepts an assigned job → on_the_way. */
@@ -86,7 +85,10 @@ export async function verifyBookingOtp(
   otp: string,
 ): Promise<{ success: boolean; status: string }> {
   trackingLog('OTP_VERIFICATION', 'Submitting OTP for backend verification', { bookingId });
-  return invokeFunction('verify-booking-otp', { bookingId, otp });
+  const { data, error } = await supabase.rpc('verify_booking_otp', { p_booking_id: bookingId, p_otp: otp });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data as { success: boolean; status: string };
 }
 
 /** Publish provider GPS to Supabase (validated by RLS). */

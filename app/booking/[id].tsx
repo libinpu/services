@@ -604,17 +604,6 @@ export default function BookingDetailScreen() {
     if (!error) fetchBooking();
   };
 
-  const handleMarkComplete = async () => {
-    const { error } = await supabase
-      .from('bookings')
-      .update({
-        status: 'awaiting_confirmation',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-    if (!error) fetchBooking();
-  };
 
   const handleConfirmComplete = async () => {
     const { error } = await supabase
@@ -1011,7 +1000,6 @@ export default function BookingDetailScreen() {
               </View>
             )}
 
-            <Button label={t('jobCompleted')} onPress={handleMarkComplete} style={styles.completeBtn} />
           </View>
         )}
 

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -169,8 +170,19 @@ export default function BookingConfirmationScreen() {
       setSubcategory(subRes.data as ServiceSubcategory);
 
       if (addrRes.data && Array.isArray(addrRes.data) && addrRes.data.length > 0) {
-        setAddresses(addrRes.data as Address[]);
-        setSelectedAddress(addrRes.data[0] as Address);
+        const addrList = addrRes.data as Address[];
+        setAddresses(addrList);
+        
+        // Try to load user's explicit selection
+        let selectedId = null;
+        if (session?.user?.id) {
+          try {
+            selectedId = await AsyncStorage.getItem(`selected_address_${session.user.id}`);
+          } catch { /* silent */ }
+        }
+        
+        const matchedAddress = selectedId ? addrList.find(a => a.id === selectedId) : null;
+        setSelectedAddress(matchedAddress || addrList[0]);
       }
 
       if (!provRes.error && provRes.data && !Array.isArray(provRes.data)) {
@@ -183,9 +195,11 @@ export default function BookingConfirmationScreen() {
     }
   }, [subId, session?.user?.id, providerId, t]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const handleConfirmBooking = async () => {
     if (!session?.user?.id || !subcategory) {
