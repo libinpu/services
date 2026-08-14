@@ -63,8 +63,8 @@ serve(async (req: Request) => {
     }
 
     const serviceName = sub?.name_en ?? 'Service';
-    const area = address ? ${address.area || ''} .trim() : 'Nearby';
-    const cost = booking.estimated_cost ? ₹ : '';
+    const area = address ? `${address.area || ''}`.trim() : 'Nearby';
+    const cost = booking.estimated_cost ? `₹${booking.estimated_cost}` : '';
 
     // Build Expo push messages
     const messages = freeProviders
@@ -72,8 +72,8 @@ serve(async (req: Request) => {
       .map((p: any) => ({
         to: p.push_token,
         sound: 'default',
-        title: 🔔 New Job: ,
-        body: ${area} · Tap to accept,
+        title: `🔔 New Job: ${serviceName}${cost ? ` · ${cost}` : ''}`,
+        body: `${area} · Tap to accept`,
         data: { bookingId: booking.id, screen: 'provider-job' },
         priority: 'high',
         channelId: 'job-alerts',

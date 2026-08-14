@@ -23,20 +23,25 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "bookingId required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: authData, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !authData.user) {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const authRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: authHeader,
+        apikey: SERVICE_ROLE_KEY,
+      },
+    });
+    if (!authRes.ok) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const userData = await authRes.json();
+    const userId: string = userData.id;
+    if (!userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
     const { data: booking, error: bookingErr } = await supabase
       .from("bookings")
@@ -48,7 +53,7 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Booking not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    if (booking.provider_id !== authData.user.id) {
+    if (booking.provider_id !== userId) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -67,6 +72,7 @@ Deno.serve(async (req: Request) => {
       .eq("id", bookingId);
 
     if (booking.booking_mode === "auto") {
+      const assignUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-assign-provider`;
       await fetch(assignUrl, {
         method: "POST",
         headers: {

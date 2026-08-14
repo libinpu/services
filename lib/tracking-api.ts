@@ -2,22 +2,18 @@ import { supabase } from './supabase';
 import { trackingLog } from './tracking-logger';
 import type { DeviceLocation } from './location-service';
 
-const FUNCTIONS_BASE = () => {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://wrozyadpfcktedltxhox.supabase.co';
-  return `${url}/functions/v1`;
-};
-
 async function invokeFunction<T>(name: string, body: Record<string, unknown>): Promise<T> {
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
   if (!token) throw new Error('Not authenticated');
 
-  const res = await fetch(`${FUNCTIONS_BASE()}/${name}`, {
+  const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://wrozyadpfcktedltxhox.supabase.co'}/functions/v1/${name}`;
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
-      apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
     },
     body: JSON.stringify(body),
   });
@@ -40,14 +36,32 @@ export async function assignNearestProvider(bookingId: string) {
 
 /** Provider accepts an assigned job → on_the_way. */
 export async function acceptBooking(bookingId: string) {
-  trackingLog('JOB_STATE_CHANGE', 'Provider accepting booking', { bookingId });
-  return invokeFunction<{ success: boolean; status: string }>('accept-booking', { bookingId });
+  trackingLog('JOB_STATE_CHANGE', 'Provider accepting booking (via RPC)', { bookingId });
+  const { data, error } = await supabase.rpc('accept_booking', { p_booking_id: bookingId });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+  return data as { success: boolean; status: string };
 }
 
 /** Provider rejects an assigned job; auto mode may reassign. */
 export async function rejectBooking(bookingId: string, reason?: string) {
-  trackingLog('JOB_STATE_CHANGE', 'Provider rejecting booking', { bookingId });
-  return invokeFunction<{ success: boolean; status: string }>('reject-booking', { bookingId, reason });
+  trackingLog('JOB_STATE_CHANGE', 'Provider rejecting booking (via RPC)', { bookingId });
+  const { data, error } = await supabase.rpc('reject_booking', { p_booking_id: bookingId, p_reason: reason || 'Provider rejected the job' });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+
+  // If auto-mode, the client needs to re-trigger auto-assign-provider
+  // since RPCs cannot do HTTP fetches easily
+  try {
+    const { data: booking } = await supabase.from('bookings').select('booking_mode').eq('id', bookingId).single();
+    if (booking?.booking_mode === 'auto') {
+      await assignNearestProvider(bookingId);
+    }
+  } catch (e) {
+    trackingLog('ERROR', 'Failed to trigger auto-reassign after reject', { error: String(e) });
+  }
+
+  return data as { success: boolean; status: string };
 }
 
 /** Backend validates proximity and transitions on_the_way → arrived; OTP generated server-side. */
