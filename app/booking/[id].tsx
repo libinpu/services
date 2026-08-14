@@ -543,11 +543,11 @@ export default function BookingDetailScreen() {
     void fetchBooking({ force: true });
   }, [booking?.provider_id, booking?.provider, providerProfile, fetchBooking]);
 
-  // Show brief banner when provider accepts (assigned → on_the_way).
+  // Show brief banner when provider accepts (assigned → accepted).
   useEffect(() => {
     if (!booking?.status) return;
     const prev = previousStatusRef.current;
-    if (prev === 'assigned' && booking.status === 'on_the_way') {
+    if (prev === 'assigned' && booking.status === 'accepted') {
       setJustAccepted(true);
       const timer = setTimeout(() => setJustAccepted(false), 5000);
       previousStatusRef.current = booking.status;
@@ -678,12 +678,13 @@ export default function BookingDetailScreen() {
   const trackingSteps = [
     { key: 'pending', label: 'Booked', icon: CheckCircle },
     { key: 'assigned', label: 'Assigned', icon: User },
+    { key: 'accepted', label: 'Accepted', icon: CheckCircle },
     { key: 'on_the_way', label: 'On the way', icon: Navigation },
     { key: 'arrived', label: 'Arrived', icon: MapPin },
     { key: 'in_progress', label: 'In Progress', icon: Clock },
     { key: 'awaiting_confirmation', label: 'Done', icon: CheckCircle },
   ];
-  const currentStepIndex = trackingSteps.findIndex((s) => s.key === status || (status === 'accepted' && s.key === 'on_the_way'));
+  const currentStepIndex = trackingSteps.findIndex((s) => s.key === status);
 
   return (
     <SafeAreaView style={styles.container}>
