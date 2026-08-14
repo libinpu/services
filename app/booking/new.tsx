@@ -169,20 +169,41 @@ export default function BookingConfirmationScreen() {
       if (subRes.error) throw subRes.error;
       setSubcategory(subRes.data as ServiceSubcategory);
 
-      if (addrRes.data && Array.isArray(addrRes.data) && addrRes.data.length > 0) {
+      if (addrRes.data && Array.isArray(addrRes.data)) {
         const addrList = addrRes.data as Address[];
         setAddresses(addrList);
-        
-        // Try to load user's explicit selection
-        let selectedId = null;
-        if (session?.user?.id) {
-          try {
-            selectedId = await AsyncStorage.getItem(`selected_address_${session.user.id}`);
-          } catch { /* silent */ }
+
+        if (addrList.length === 0) {
+          // No addresses at all — clear any stale selection
+          setSelectedAddress(null);
+          if (session?.user?.id) {
+            try { await AsyncStorage.removeItem(`selected_address_${session.user.id}`); } catch { /* silent */ }
+          }
+        } else {
+          // Try to load user's explicit selection
+          let selectedId: string | null = null;
+          if (session?.user?.id) {
+            try {
+              selectedId = await AsyncStorage.getItem(`selected_address_${session.user.id}`);
+            } catch { /* silent */ }
+          }
+
+          if (selectedId) {
+            const matchedAddress = addrList.find(a => a.id === selectedId);
+            if (matchedAddress) {
+              setSelectedAddress(matchedAddress);
+            } else {
+              // Saved ID no longer exists — clear it and show nothing selected
+              setSelectedAddress(null);
+              if (session?.user?.id) {
+                try { await AsyncStorage.removeItem(`selected_address_${session.user.id}`); } catch { /* silent */ }
+              }
+            }
+          } else {
+            // No saved preference — don't auto-select anything
+            setSelectedAddress(null);
+          }
         }
-        
-        const matchedAddress = selectedId ? addrList.find(a => a.id === selectedId) : null;
-        setSelectedAddress(matchedAddress || addrList[0]);
       }
 
       if (!provRes.error && provRes.data && !Array.isArray(provRes.data)) {
@@ -366,7 +387,7 @@ export default function BookingConfirmationScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('address')} (optional)</Text>
-            <TouchableOpacity onPress={() => router.push('/location-setup')}>
+            <TouchableOpacity onPress={() => router.push('/location-setup?fromBooking=true')}>
               <Text style={styles.changeText}>{t('changeAddress')}</Text>
             </TouchableOpacity>
           </View>
@@ -383,7 +404,7 @@ export default function BookingConfirmationScreen() {
               </View>
             </View>
           ) : (
-            <TouchableOpacity style={styles.addAddressBtn} onPress={() => router.push('/location-setup')}>
+            <TouchableOpacity style={styles.addAddressBtn} onPress={() => router.push('/location-setup?fromBooking=true')}>
               <Text style={styles.addAddressText}>+ Add address</Text>
             </TouchableOpacity>
           )}

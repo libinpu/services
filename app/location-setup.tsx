@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MapWebView } from '@/components/MapWebView';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
@@ -38,6 +38,8 @@ export default function LocationSetupScreen() {
   const { session } = useAuth();
   const router = useRouter();
   const { isDark } = useTheme();
+
+  const { fromBooking } = useLocalSearchParams<{ fromBooking?: string }>();
 
   const [step, setStep] = useState<'list' | 'permission' | 'map' | 'details' | 'outside' | 'denied'>('list');
 
@@ -94,6 +96,10 @@ export default function LocationSetupScreen() {
     try {
       await AsyncStorage.setItem(`selected_address_${session?.user?.id}`, id);
     } catch { /* silent */ }
+    // If opened from booking flow, go back immediately so booking screen picks up new selection
+    if (fromBooking === 'true') {
+      router.back();
+    }
   };
 
   const handleDeleteAddress = async (id: string) => {

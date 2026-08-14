@@ -70,13 +70,16 @@ export async function markBookingArrived(
   consecutiveReadings: number,
 ): Promise<{ success: boolean; status: string }> {
   trackingLog('ARRIVAL_DETECTED', 'Requesting backend arrival confirmation', { bookingId });
-  return invokeFunction('mark-booking-arrived', {
-    bookingId,
-    latitude: location.latitude,
-    longitude: location.longitude,
-    accuracy: location.accuracy,
-    consecutiveReadings,
+  const { data, error } = await supabase.rpc('mark_booking_arrived', {
+    p_booking_id: bookingId,
+    p_latitude: location.latitude,
+    p_longitude: location.longitude,
+    p_accuracy: location.accuracy,
+    p_consecutive_readings: consecutiveReadings,
   });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+  return data as { success: boolean; status: string };
 }
 
 /** Backend verifies OTP — never trust client-side comparison. */
