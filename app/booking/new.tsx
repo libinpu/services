@@ -11,7 +11,7 @@ import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import type { ServiceSubcategory, Address, Profile } from '@/lib/types';
 import { assignNearestProvider } from '@/lib/tracking-api';
-import { fetchCurrentLocation } from '@/lib/location-service';
+import { fetchCurrentLocation, openLocationSettings, getLocationServiceState, checkLocationServicesEnabled } from '@/lib/location-service';
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
 
@@ -230,19 +230,39 @@ export default function BookingConfirmationScreen() {
     setSubmitting(true);
     setError(null);
 
-    try {
-      const gps = await fetchCurrentLocation();
+    // Ensure GPS services are enabled before attempting to fetch location
+    const servicesEnabled = await checkLocationServicesEnabled();
+    if (!servicesEnabled) {
+      // Prompt user to enable GPS via device settings
+      await openLocationSettings();
+      // After returning from settings, re‑check services
+      const servicesNow = await checkLocationServicesEnabled();
+      if (!servicesNow) {
+        setError('Enable GPS to continue');
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    // Attempt to get current location (will also verify services internally)
+    let gps = await fetchCurrentLocation();
+    if (!gps) {
+      // If still no location, prompt settings again and retry once
+      await openLocationSettings();
+      gps = await fetchCurrentLocation();
       if (!gps) {
         setError('Location permission and GPS are required to request a service.');
         setSubmitting(false);
         return;
       }
-      if (gps.accuracy != null && gps.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) {
-        setError('GPS accuracy is too low. Move to an open area and try again.');
-        setSubmitting(false);
-        return;
-      }
+    }
+    if (gps.accuracy != null && gps.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) {
+      setError('GPS accuracy is too low. Move to an open area and try again.');
+      setSubmitting(false);
+      return;
+    }
 
+    try {
       const customerLat = gps.latitude;
       const customerLng = gps.longitude;
       const customerAccuracy = gps.accuracy;
