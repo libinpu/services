@@ -280,13 +280,7 @@ export default function BookingConfirmationScreen() {
       if (insertError) throw insertError;
 
       if (data) {
-        if (mode === 'auto') {
-          try {
-            await assignNearestProvider(data.id);
-          } catch {
-            // Booking detail refreshes via realtime after server assignment.
-          }
-        }
+        // Trigger notification will automatically run and dispatch to nearby providers
         router.replace(`/booking/${data.id}`);
       }
     } catch (e: any) {

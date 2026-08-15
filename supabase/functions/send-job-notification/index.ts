@@ -1,7 +1,3 @@
-// Supabase Edge Function: send-job-notification
-// Triggered via HTTP POST from a Postgres trigger (pg_net) when a new booking is inserted.
-// Finds all on-shift providers (no active job) and sends Expo push notifications.
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -11,80 +7,125 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 serve(async (req: Request) => {
   try {
     const body = await req.json();
     const booking = body.record ?? body;
 
-    if (!booking?.id) {
-      return new Response(JSON.stringify({ error: 'No booking record provided' }), { status: 400 });
+    if (!booking?.id || !booking.customer_latitude || !booking.customer_longitude) {
+      return new Response(JSON.stringify({ error: 'Invalid booking or missing customer GPS' }), { status: 400 });
     }
 
-    // Only notify for pending bookings
     if (booking.status !== 'pending') {
       return new Response(JSON.stringify({ skipped: true, reason: 'Not a pending booking' }), { status: 200 });
     }
 
-    // Get service subcategory name
+    // 1. Get service category details
     const { data: sub } = await supabase
       .from('service_subcategories')
-      .select('name_en')
+      .select('name_en, category_id')
       .eq('id', booking.subcategory_id)
       .maybeSingle();
 
-    // Get address area
-    const { data: address } = await supabase
-      .from('addresses')
-      .select('area, district')
-      .eq('id', booking.address_id)
-      .maybeSingle();
+    if (!sub) {
+      return new Response(JSON.stringify({ error: 'Service category not found' }), { status: 400 });
+    }
 
-    // Find all on-shift providers who don't have an active job
-    // "active job" = bookings with status in (accepted, on_the_way, arrived, in_progress, awaiting_confirmation)
+    // 2. Find all active bookings to exclude busy providers
     const { data: activeBookings } = await supabase
       .from('bookings')
       .select('provider_id')
-      .in('status', ['accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation']);
+      .in('status', ['assigned', 'accepted', 'on_the_way', 'arrived', 'in_progress', 'awaiting_confirmation']);
 
     const busyProviderIds = new Set((activeBookings || []).map((b: any) => b.provider_id).filter(Boolean));
 
-    // Get on-shift providers with push tokens
+    // 3. Find online providers providing this category
     const { data: providers } = await supabase
       .from('provider_profiles')
-      .select('id, push_token')
+      .select('id, latitude, longitude, category_ids, location_accuracy')
       .eq('is_online', true)
-      .not('push_token', 'is', null)
       .not('shift_started_at', 'is', null);
 
-    const freeProviders = (providers || []).filter((p: any) => !busyProviderIds.has(p.id));
+    const eligibleProviders = (providers || []).filter((p: any) => {
+      // Must not be busy
+      if (busyProviderIds.has(p.id)) return false;
+      // Must provide this category
+      if (!p.category_ids || !p.category_ids.includes(sub.category_id)) return false;
+      // Must have valid GPS with acceptable accuracy (e.g. <= 80m)
+      if (!p.latitude || !p.longitude || (p.location_accuracy && p.location_accuracy > 80)) return false;
+      
+      return true;
+    });
 
-    if (freeProviders.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, reason: 'No free on-shift providers' }), { status: 200 });
+    // 4. Filter by 10km radius
+    const nearbyProviders = eligibleProviders.map((p: any) => {
+      const distance = haversineKm(booking.customer_latitude, booking.customer_longitude, p.latitude, p.longitude);
+      return { ...p, distance };
+    }).filter(p => p.distance <= 10);
+
+    if (nearbyProviders.length === 0) {
+      return new Response(JSON.stringify({ sent: 0, reason: 'No eligible nearby providers found' }), { status: 200 });
     }
 
-    const serviceName = sub?.name_en ?? 'Service';
-    const area = address ? `${address.area || ''}`.trim() : 'Nearby';
+    // 5. Insert requests into booking_provider_requests
+    const requestInserts = nearbyProviders.map(p => ({
+      booking_id: booking.id,
+      provider_id: p.id,
+      distance_km: p.distance,
+      status: 'pending'
+    }));
+
+    const { error: insertError } = await supabase
+      .from('booking_provider_requests')
+      .insert(requestInserts);
+
+    if (insertError) {
+      console.error('[send-job-notification] Failed to insert requests', insertError);
+      // Proceed anyway if it's a unique constraint error on retry, but log it
+    }
+
+    // 6. Get push tokens securely from provider_devices
+    const providerIdsToNotify = nearbyProviders.map(p => p.id);
+    const { data: devices } = await supabase
+      .from('provider_devices')
+      .select('provider_id, push_token')
+      .in('provider_id', providerIdsToNotify);
+
+    const tokens = (devices || []).filter(d => d.push_token?.startsWith('ExponentPushToken'));
+
+    if (tokens.length === 0) {
+      return new Response(JSON.stringify({ sent: 0, reason: 'No valid push tokens among eligible providers' }), { status: 200 });
+    }
+
+    const serviceName = sub.name_en ?? 'Service';
     const cost = booking.estimated_cost ? `₹${booking.estimated_cost}` : '';
 
-    // Build Expo push messages
-    const messages = freeProviders
-      .filter((p: any) => p.push_token?.startsWith('ExponentPushToken'))
-      .map((p: any) => ({
-        to: p.push_token,
-        sound: 'default',
-        title: `🔔 New Job: ${serviceName}${cost ? ` · ${cost}` : ''}`,
-        body: `${area} · Tap to accept`,
-        data: { bookingId: booking.id, screen: 'provider-job' },
-        priority: 'high',
-        channelId: 'job-alerts',
-        badge: 1,
-      }));
+    // 7. Send push notifications
+    const messages = tokens.map(d => ({
+      to: d.push_token,
+      sound: 'default',
+      title: `🔔 New Request: ${serviceName}${cost ? ` · ${cost}` : ''}`,
+      body: `Tap to accept this nearby job`,
+      data: { bookingId: booking.id, screen: 'provider-job' },
+      priority: 'high',
+      channelId: 'job-alerts',
+      badge: 1,
+    }));
 
-    if (messages.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, reason: 'No valid Expo push tokens' }), { status: 200 });
-    }
-
-    // Send to Expo Push API (chunked at 100 per request)
     const chunks = [];
     for (let i = 0; i < messages.length; i += 100) {
       chunks.push(messages.slice(i, i + 100));
@@ -100,7 +141,7 @@ serve(async (req: Request) => {
       if (res.ok) totalSent += chunk.length;
     }
 
-    return new Response(JSON.stringify({ sent: totalSent, providers: freeProviders.length }), {
+    return new Response(JSON.stringify({ sent: totalSent, matchedProviders: nearbyProviders.length }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

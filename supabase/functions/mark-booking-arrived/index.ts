@@ -7,10 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const ARRIVAL_RADIUS_M = 5000;
-const ACCURACY_THRESHOLD_M = 2000;
+const ARRIVAL_RADIUS_M = 50;
+const ACCURACY_THRESHOLD_M = 50;
 const OTP_EXPIRATION_MS = 15 * 60 * 1000;
-const ARRIVAL_CONSECUTIVE_READINGS = 0;
+const ARRIVAL_CONSECUTIVE_READINGS = 3;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;

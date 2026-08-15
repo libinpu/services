@@ -33,10 +33,10 @@ export async function assignNearestProvider(bookingId: string) {
   return data as { success: boolean; status: string; providerId?: string; message?: string };
 }
 
-/** Provider accepts an assigned job → accepted state. */
+/** Provider accepts an assigned job → accepted state (atomic). */
 export async function acceptBooking(bookingId: string) {
-  trackingLog('JOB_STATE_CHANGE', 'Provider accepting booking (via RPC)', { bookingId });
-  const { data, error } = await supabase.rpc('accept_booking', { p_booking_id: bookingId });
+  trackingLog('JOB_STATE_CHANGE', 'Provider atomically accepting booking', { bookingId });
+  const { data, error } = await supabase.rpc('atomic_accept_booking', { p_booking_id: bookingId });
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return data as { success: boolean; status: string };
