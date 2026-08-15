@@ -15,11 +15,7 @@ import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/d
 import { useProviderLocationSync } from '@/lib/use-provider-location';
 import { OTP_LENGTH, isValidOtp } from '@/lib/otp';
 import { createRealtimeChannel } from '@/lib/realtime';
-<<<<<<< HEAD
 import { markBookingArrived, uploadProviderLocation, verifyBookingOtp, startNavigation, startJob, completeJob } from '@/lib/tracking-api';
-=======
-import { markBookingArrived, uploadProviderLocation, verifyBookingOtp, startNavigation } from '@/lib/tracking-api';
->>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { trackingLog } from '@/lib/tracking-logger';
 import type { DeviceLocation } from '@/lib/location-service';
@@ -317,33 +313,11 @@ export default function ProviderJobDetailScreen() {
   };
 
   const handleStartNavigation = async () => {
-<<<<<<< HEAD
-    if (!booking?.address) return;
-    const lat = booking.customer_latitude ?? booking.address.latitude;
-    const lng = booking.customer_longitude ?? booking.address.longitude;
-    try {
-      // Secure backend transition: accepted → on_the_way
-      await startNavigation(id!);
-    } catch (e: any) {
-      setError(e.message || 'Could not start navigation');
-      return;
-    }
-    if (lat != null && lng != null) {
-      const url = Platform.select({
-        ios: `maps://?daddr=${lat},${lng}&dirflg=d`,
-        android: `google.navigation:q=${lat},${lng}`,
-        default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-      });
-      if (url) void Linking.openURL(url);
-    }
-    arrivalRequestedRef.current = false;
-    fetchBooking();
-=======
     if (actionLoading) return;
     setActionLoading(true);
     setError(null);
     try {
-      // 1. First commit the status change — customer must see this ONLY after provider confirms
+      // 1. Secure backend transition: accepted → on_the_way
       await startNavigation(id!);
 
       // 2. Open maps AFTER status is updated
@@ -371,7 +345,6 @@ export default function ProviderJobDetailScreen() {
     } finally {
       setActionLoading(false);
     }
->>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
   };
 
   const handleMarkArrived = async () => {

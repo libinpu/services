@@ -42,14 +42,7 @@ export async function acceptBooking(bookingId: string) {
   return data as { success: boolean; status: string };
 }
 
-/** Provider starts navigation → transitions accepted → on_the_way. */
-export async function startNavigation(bookingId: string) {
-  trackingLog('JOB_STATE_CHANGE', 'Provider starting navigation (via RPC)', { bookingId });
-  const { data, error } = await supabase.rpc('start_navigation', { p_booking_id: bookingId });
-  if (error) throw new Error(error.message);
-  if (data?.error) throw new Error(data.error);
-  return data as { success: boolean; status: string };
-}
+
 
 /** Provider rejects an assigned job; auto mode may reassign. */
 export async function rejectBooking(bookingId: string, reason?: string) {
@@ -66,7 +59,7 @@ export async function rejectBooking(bookingId: string, reason?: string) {
       await assignNearestProvider(bookingId);
     }
   } catch (e) {
-    trackingLog('ERROR', 'Failed to trigger auto-reassign after reject', { error: String(e) });
+    trackingLog('JOB_STATE_CHANGE', 'Failed to trigger auto-reassign after reject', { error: String(e) });
   }
 
   return data as { success: boolean; status: string };

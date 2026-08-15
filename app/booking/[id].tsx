@@ -604,10 +604,7 @@ export default function BookingDetailScreen() {
     if (!error) fetchBooking();
   };
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
 
   const handleConfirmComplete = async () => {
     try {
@@ -1000,12 +997,9 @@ export default function BookingDetailScreen() {
               </View>
             )}
 
-<<<<<<< HEAD
             <Text style={{ fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center', marginTop: spacing.md, fontFamily: typography.fontFamilyRegular }}>
               The professional will mark the job as complete when finished.
             </Text>
-=======
->>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
           </View>
         )}
 

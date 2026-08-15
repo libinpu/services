@@ -72,13 +72,8 @@ Deno.serve(async (req: Request) => {
     const { count } = await supabase
       .from("bookings")
       .select("id", { count: "exact", head: true })
-<<<<<<< HEAD
-      .eq("provider_id", authData.user.id)
-      .in("status", ACTIVE_STATUSES)
-=======
       .eq("provider_id", userId)
-      .in("status", ACTIVE_STATUSES.filter((s) => s !== "assigned"))
->>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
+      .in("status", ACTIVE_STATUSES)
       .neq("id", bookingId);
 
     if ((count ?? 0) > 0) {
