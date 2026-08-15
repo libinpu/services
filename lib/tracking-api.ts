@@ -75,29 +75,54 @@ export async function verifyBookingOtp(
   return invokeFunction('verify-booking-otp', { bookingId, otp });
 }
 
+/** Provider starts navigation: accepted → on_the_way. */
+export async function startNavigation(bookingId: string) {
+  trackingLog('JOB_STATE_CHANGE', 'Provider starting navigation to customer', { bookingId });
+  return invokeFunction<{ success: boolean; status: string }>('start-navigation', { bookingId });
+}
+
+/** Provider starts job after OTP verified + selfie: arrived → in_progress. */
+export async function startJob(bookingId: string, startSelfieUrl?: string) {
+  trackingLog('JOB_STATE_CHANGE', 'Provider starting job (post-OTP)', { bookingId });
+  return invokeFunction<{ success: boolean; status: string }>('start-job', { bookingId, startSelfieUrl });
+}
+
+/** Provider completes job + end selfie: in_progress → awaiting_confirmation. */
+export async function completeJob(bookingId: string, endSelfieUrl?: string) {
+  trackingLog('JOB_STATE_CHANGE', 'Provider completing job', { bookingId });
+  return invokeFunction<{ success: boolean; status: string }>('complete-job', { bookingId, endSelfieUrl });
+}
+
+/** Customer confirms job completion: awaiting_confirmation → completed. */
+export async function confirmComplete(bookingId: string, finalCost?: number, paymentMethod?: string) {
+  trackingLog('JOB_STATE_CHANGE', 'Customer confirming job completion', { bookingId });
+  return invokeFunction<{ success: boolean; status: string }>('confirm-complete', { bookingId, finalCost, paymentMethod });
+}
+
 /** Publish provider GPS to Supabase (validated by RLS). */
 export async function uploadProviderLocation(
   providerId: string,
   location: DeviceLocation,
   bookingId?: string,
 ): Promise<void> {
-  trackingLog('LOCATION_UPLOAD', 'Uploading provider location', {
+  if (!bookingId) return;
+  trackingLog('LOCATION_UPLOAD', 'Uploading provider location to secure table', {
     bookingId,
     accuracy: location.accuracy,
   });
 
   const { error } = await supabase
-    .from('provider_profiles')
-    .update({
+    .from('booking_provider_locations')
+    .insert({
+      booking_id: bookingId,
+      provider_id: providerId,
       latitude: location.latitude,
       longitude: location.longitude,
       heading: location.heading,
-      location_accuracy: location.accuracy,
+      accuracy: location.accuracy,
       speed: location.speed,
-      last_location_at: new Date(location.timestamp).toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', providerId);
+      recorded_at: new Date(location.timestamp).toISOString(),
+    });
 
   if (error) throw error;
 }

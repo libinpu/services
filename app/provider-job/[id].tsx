@@ -15,7 +15,7 @@ import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/d
 import { useProviderLocationSync } from '@/lib/use-provider-location';
 import { OTP_LENGTH, isValidOtp } from '@/lib/otp';
 import { createRealtimeChannel } from '@/lib/realtime';
-import { markBookingArrived, uploadProviderLocation, verifyBookingOtp } from '@/lib/tracking-api';
+import { markBookingArrived, uploadProviderLocation, verifyBookingOtp, startNavigation, startJob, completeJob } from '@/lib/tracking-api';
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { trackingLog } from '@/lib/tracking-logger';
 import type { DeviceLocation } from '@/lib/location-service';
@@ -284,23 +284,18 @@ export default function ProviderJobDetailScreen() {
     const selfieType = showSelfieModal;
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const selfieUrl = `selfie_${selfieType}_${Date.now()}.jpg`;
-    if (selfieType === 'start') {
-      const { error } = await supabase.from('bookings').update({
-        status: 'in_progress',
-        updated_at: new Date().toISOString(),
-      }).eq('id', id);
-      if (!error) {
+    try {
+      if (selfieType === 'start') {
+        // Secure backend transition: arrived → in_progress (requires OTP verified)
+        await startJob(id!, selfieUrl);
         setBooking((current) => current ? { ...current, start_selfie_url: selfieUrl, status: 'in_progress' } : current);
-      }
-    } else if (selfieType === 'end') {
-      const { error } = await supabase.from('bookings').update({
-        status: 'awaiting_confirmation',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('id', id);
-      if (!error) {
+      } else if (selfieType === 'end') {
+        // Secure backend transition: in_progress → awaiting_confirmation
+        await completeJob(id!, selfieUrl);
         setBooking((current) => current ? { ...current, end_selfie_url: selfieUrl, status: 'awaiting_confirmation', completed_at: new Date().toISOString() } : current);
       }
+    } catch (e: any) {
+      setError(e.message || 'Failed to update job status');
     }
     setShowSelfieModal(null);
     setSelfieCaptured(false);
@@ -312,6 +307,13 @@ export default function ProviderJobDetailScreen() {
     if (!booking?.address) return;
     const lat = booking.customer_latitude ?? booking.address.latitude;
     const lng = booking.customer_longitude ?? booking.address.longitude;
+    try {
+      // Secure backend transition: accepted → on_the_way
+      await startNavigation(id!);
+    } catch (e: any) {
+      setError(e.message || 'Could not start navigation');
+      return;
+    }
     if (lat != null && lng != null) {
       const url = Platform.select({
         ios: `maps://?daddr=${lat},${lng}&dirflg=d`,
@@ -320,7 +322,6 @@ export default function ProviderJobDetailScreen() {
       });
       if (url) void Linking.openURL(url);
     }
-    await supabase.from('bookings').update({ status: 'on_the_way', updated_at: new Date().toISOString() }).eq('id', id);
     arrivalRequestedRef.current = false;
     fetchBooking();
   };

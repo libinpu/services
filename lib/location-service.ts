@@ -60,7 +60,7 @@ function mapPosition(pos: any): DeviceLocation {
 }
 
 function isAccurateEnough(location: DeviceLocation): boolean {
-  if (location.accuracy == null) return true;
+  if (location.accuracy == null) return false;
   return location.accuracy <= TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M;
 }
 
@@ -123,46 +123,47 @@ export async function fetchCurrentLocation(timeoutMs = 15_000): Promise<DeviceLo
       return null;
     }
 
-    let best: DeviceLocation | null = null;
-    const lastKnown = await Location.getLastKnownPositionAsync({});
-    if (lastKnown) {
-      best = mapPosition(lastKnown);
-    }
+    const current = await Promise.race([
+      Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs))
+    ]);
 
-    const currentPromise = Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
-
-    const timeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), timeoutMs);
-    });
-
-    const current = await Promise.race([currentPromise, timeoutPromise]);
     if (current) {
       const mapped = mapPosition(current);
-      if (!best || mapped.timestamp >= best.timestamp) {
-        best = mapped;
-      }
-    }
+      // Validate latitude, longitude, and timestamp age (should not be stale)
+      const now = Date.now();
+      const isStale = now - mapped.timestamp > TRACKING_CONFIG.LOCATION_STALE_MS;
 
-    if (best) {
-      if (best.mocked) {
-        trackingLog('LOCATION_UPDATE', 'Mock location detected');
+      if (mapped.mocked) {
+        trackingLog('LOCATION_UPDATE', 'Mock location detected and rejected');
+        setState({ error: 'Mock location detected' });
+        return null;
       }
-      if (!isAccurateEnough(best)) {
-        trackingLog('LOCATION_UPDATE', 'Poor GPS accuracy', { accuracy: best.accuracy });
-        setState({ location: best, error: 'GPS accuracy is low. Waiting for a better location…' });
-      } else {
-        setState({ location: best, error: null });
+
+      if (isStale) {
+        trackingLog('LOCATION_UPDATE', 'Stale GPS reading rejected', { ageMs: now - mapped.timestamp });
+        setState({ error: 'GPS signal is stale. Getting accurate location...' });
+        return null;
       }
+
+      if (!isAccurateEnough(mapped)) {
+        trackingLog('LOCATION_UPDATE', 'Poor GPS accuracy', { accuracy: mapped.accuracy });
+        setState({ location: mapped, error: 'GPS accuracy is low. Waiting for a better location…' });
+        return null;
+      }
+
+      setState({ location: mapped, error: null });
       trackingLog('LOCATION_UPDATE', 'Current location fetched', {
-        accuracy: best.accuracy,
-        mocked: best.mocked,
+        accuracy: mapped.accuracy,
+        mocked: mapped.mocked,
       });
+      return mapped;
     } else {
       setState({ error: 'Location unavailable — timeout' });
     }
-    return best;
+    return null;
   } catch (e: any) {
     trackingLog('LOCATION_UPDATE', 'Fetch failed', { message: e?.message });
     setState({ error: 'Location unavailable' });
@@ -193,18 +194,25 @@ export async function startLocationWatching(): Promise<boolean> {
 
     watchSubscription = await Location.watchPositionAsync(
       {
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.BestForNavigation,
         timeInterval: TRACKING_CONFIG.LOCATION_UPDATE_INTERVAL_MS,
         distanceInterval: TRACKING_CONFIG.MIN_LOCATION_UPDATE_DISTANCE_M,
       },
       (pos) => {
         const mapped = mapPosition(pos);
         if (mapped.mocked) {
-          trackingLog('LOCATION_UPDATE', 'Mock location in watch stream');
+          trackingLog('LOCATION_UPDATE', 'Mock location in watch stream rejected');
+          return;
+        }
+        if (!isAccurateEnough(mapped)) {
+          setState({
+            error: 'GPS accuracy is low. Waiting for a better location…',
+          });
+          return;
         }
         setState({
           location: mapped,
-          error: isAccurateEnough(mapped) ? null : 'GPS accuracy is low. Waiting for a better location…',
+          error: null,
         });
         trackingLog('LOCATION_UPDATE', 'Watch update', { accuracy: mapped.accuracy });
       },
@@ -233,3 +241,4 @@ export function stopLocationWatching(): void {
 export function getLocationServiceState(): LocationServiceState {
   return { ...currentState };
 }
+

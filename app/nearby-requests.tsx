@@ -11,6 +11,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { Header, LoadingState, ErrorState } from '@/components/ui';
 import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
 import { useProviderLocation, updateProviderLocationInDb } from '@/lib/use-provider-location';
+import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import type { BookingWithDetails, ProviderWithProfile } from '@/lib/types';
 import { MapPin, Clock, Navigation, Check, X, Briefcase, Ruler, CircleAlert as AlertCircle } from 'lucide-react-native';
 
@@ -61,13 +62,27 @@ export default function NearbyRequestsScreen() {
       const { lat, lng } = liveLocRef.current;
       const previous = lastSyncedLocationRef.current;
       const moved = !previous || Math.abs(previous.lat - lat!) > 0.0001 || Math.abs(previous.lng - lng!) > 0.0001;
-      if (lat != null && lng != null && moved) {
-        await updateProviderLocationInDb(supabase, session.user.id, lat, lng);
+      
+      // Validate GPS coordinates and ensure they are not fake
+      const isGpsValid = lat != null && lng != null && 
+                         lat !== 0 && lng !== 0 && 
+                         (liveLocation.accuracy == null || liveLocation.accuracy <= TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M);
+
+      if (isGpsValid && moved) {
+        await updateProviderLocationInDb(
+          supabase, 
+          session.user.id, 
+          lat, 
+          lng, 
+          liveLocation.heading, 
+          liveLocation.accuracy, 
+          liveLocation.speed
+        );
         lastSyncedLocationRef.current = { lat, lng };
       }
-    }, 60000);
+    }, 30000);
     return () => { if (dbSyncRef.current) clearInterval(dbSyncRef.current); };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, liveLocation]);
 
   const fetchRequests = useCallback(async () => {
     if (!userId || !providerProfile?.provider_profile) {

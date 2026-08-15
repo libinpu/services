@@ -18,7 +18,11 @@ async function sha256(value: string): Promise<string> {
 }
 
 function generateOtp(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  const vals = new Uint32Array(1);
+  crypto.getRandomValues(vals);
+  // Map value to 1000 - 9999
+  const otpVal = 1000 + (vals[0] % 9000);
+  return otpVal.toString();
 }
 
 Deno.serve(async (req: Request) => {

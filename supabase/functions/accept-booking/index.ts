@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const ACTIVE_STATUSES = ["assigned", "accepted", "on_the_way", "arrived", "in_progress", "awaiting_confirmation"];
+const ACTIVE_STATUSES = ["accepted", "on_the_way", "arrived", "in_progress", "awaiting_confirmation"];
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -55,30 +55,32 @@ Deno.serve(async (req: Request) => {
     }
 
     if (booking.status !== "assigned") {
-      return new Response(JSON.stringify({ error: "Booking is not awaiting acceptance" }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Booking is not awaiting acceptance", currentStatus: booking.status }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Ensure provider does not have another active job
     const { count } = await supabase
       .from("bookings")
       .select("id", { count: "exact", head: true })
       .eq("provider_id", authData.user.id)
-      .in("status", ACTIVE_STATUSES.filter((s) => s !== "assigned"))
+      .in("status", ACTIVE_STATUSES)
       .neq("id", bookingId);
 
     if ((count ?? 0) > 0) {
       return new Response(JSON.stringify({ error: "You already have an active job" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // CORRECT: assigned → accepted (NOT on_the_way; provider navigates separately)
     const { error: updateErr } = await supabase
       .from("bookings")
-      .update({ status: "on_the_way", updated_at: new Date().toISOString() })
+      .update({ status: "accepted", updated_at: new Date().toISOString() })
       .eq("id", bookingId);
 
     if (updateErr) {
       return new Response(JSON.stringify({ error: updateErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ success: true, status: "on_the_way" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, status: "accepted" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }

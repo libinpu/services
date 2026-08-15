@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { Alert } from 'react-native';
+import { TRACKING_CONFIG } from '../lib/tracking-config';
 
-export function useDriverTracking(deliveryId: string, driverId: string) {
+export function useDriverTracking(bookingId: string, providerId: string) {
   const [isTracking, setIsTracking] = useState(false);
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const lastSentRef = useRef<{ ts: number; lat: number; lng: number } | null>(null);
@@ -20,9 +21,9 @@ export function useDriverTracking(deliveryId: string, driverId: string) {
 
       const subscription = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.Balanced,
-          distanceInterval: 10, // Update callback from platform
-          timeInterval: 5000, // Platform may deliver every ~5s
+          accuracy: Location.Accuracy.BestForNavigation,
+          distanceInterval: TRACKING_CONFIG.MIN_LOCATION_UPDATE_DISTANCE_M,
+          timeInterval: TRACKING_CONFIG.LOCATION_UPDATE_INTERVAL_MS,
         },
         async (location) => {
           try {
@@ -30,14 +31,21 @@ export function useDriverTracking(deliveryId: string, driverId: string) {
             const lng = location.coords.longitude;
             const now = Date.now();
 
-            // Throttle writes: only send if moved by >=30m or last write >15s
-            const last = lastSentRef.current;
-            const minIntervalMs = 15000; // 15s
-            const minDistanceM = 30; // 30 meters
+            if (location.mocked) {
+              console.warn('Rejected mocked location update in driver tracking');
+              return;
+            }
 
+            if (location.coords.accuracy != null && location.coords.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) {
+              console.warn('Rejected inaccurate location update in driver tracking');
+              return;
+            }
+
+            // Throttle writes: only send if moved by min interval distance or time
+            const last = lastSentRef.current;
             let shouldSend = false;
             if (!last) shouldSend = true;
-            else if (now - last.ts > minIntervalMs) shouldSend = true;
+            else if (now - last.ts > TRACKING_CONFIG.LOCATION_UPDATE_INTERVAL_MS) shouldSend = true;
             else {
               const toRad = (v: number) => (v * Math.PI) / 180;
               const R = 6371000; // meters
@@ -46,20 +54,21 @@ export function useDriverTracking(deliveryId: string, driverId: string) {
               const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(last.lat)) * Math.cos(toRad(lat)) * Math.sin(dLon/2) * Math.sin(dLon/2);
               const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
               const distance = R * c;
-              if (distance >= minDistanceM) shouldSend = true;
+              if (distance >= TRACKING_CONFIG.MIN_LOCATION_UPDATE_DISTANCE_M) shouldSend = true;
             }
 
             if (!shouldSend) return;
 
-            const { error } = await supabase.from('delivery_tracking').upsert({
-              delivery_id: deliveryId,
-              driver_id: driverId,
+            const { error } = await supabase.from('booking_provider_locations').insert({
+              booking_id: bookingId,
+              provider_id: providerId,
               latitude: lat,
               longitude: lng,
               heading: location.coords.heading,
               speed: location.coords.speed,
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'delivery_id' });
+              accuracy: location.coords.accuracy,
+              recorded_at: new Date().toISOString(),
+            });
 
             if (error) {
               console.error('Error updating location:', error);
@@ -95,3 +104,4 @@ export function useDriverTracking(deliveryId: string, driverId: string) {
 
   return { isTracking, startTracking, stopTracking };
 }
+

@@ -17,6 +17,7 @@ import { isValidOtp } from '@/lib/otp';
 import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { trackingLog } from '@/lib/tracking-logger';
+import { confirmComplete } from '@/lib/tracking-api';
 import type { BookingWithDetails, ChatMessage, ProviderWithProfile } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, User, Receipt } from 'lucide-react-native';
 
@@ -558,12 +559,11 @@ export default function BookingDetailScreen() {
 
   // Listen for provider location updates
   useEffect(() => {
-    if (!booking?.provider_id) return;
-    const providerId = booking.provider_id;
-    const channel = createRealtimeChannel(`provider-location:${providerId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'provider_profiles', filter: `id=eq.${providerId}` }, (payload) => {
-        trackingLog('REALTIME_LOCATION_RECEIVED', 'Provider location update', { providerId });
-        setProviderLocationAt(payload.new.last_location_at ?? null);
+    if (!id) return;
+    const channel = createRealtimeChannel(`provider-location:${id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'booking_provider_locations', filter: `booking_id=eq.${id}` }, (payload) => {
+        trackingLog('REALTIME_LOCATION_RECEIVED', 'Provider location update', { bookingId: id });
+        setProviderLocationAt(payload.new.recorded_at ?? null);
         setProviderProfile((current: any) => {
           if (!current) return current;
           return {
@@ -573,15 +573,15 @@ export default function BookingDetailScreen() {
               latitude: payload.new.latitude,
               longitude: payload.new.longitude,
               heading: payload.new.heading,
-              last_location_at: payload.new.last_location_at,
-              location_accuracy: payload.new.location_accuracy,
+              last_location_at: payload.new.recorded_at,
+              location_accuracy: payload.new.accuracy,
             }
           };
         });
       })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [booking?.provider_id]);
+  }, [id]);
 
   const handleSendMessage = async () => {
     if (!chatInput.trim() || !session?.user?.id) return;
@@ -604,30 +604,15 @@ export default function BookingDetailScreen() {
     if (!error) fetchBooking();
   };
 
-  const handleMarkComplete = async () => {
-    const { error } = await supabase
-      .from('bookings')
-      .update({
-        status: 'awaiting_confirmation',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-    if (!error) fetchBooking();
-  };
+
 
   const handleConfirmComplete = async () => {
-    const { error } = await supabase
-      .from('bookings')
-      .update({
-        status: 'completed',
-        final_cost: 0,
-        payment_status: 'paid',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-    if (!error) {
+    try {
+      // Secure backend transition: awaiting_confirmation → completed (only customer)
+      await confirmComplete(id as string);
       router.push(`/feedback/${id}`);
+    } catch (e: any) {
+      setError(e.message || 'Could not confirm completion');
     }
   };
 
@@ -1006,7 +991,9 @@ export default function BookingDetailScreen() {
               </View>
             )}
 
-            <Button label={t('jobCompleted')} onPress={handleMarkComplete} style={styles.completeBtn} />
+            <Text style={{ fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center', marginTop: spacing.md, fontFamily: typography.fontFamilyRegular }}>
+              The professional will mark the job as complete when finished.
+            </Text>
           </View>
         )}
 
