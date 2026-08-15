@@ -19,7 +19,7 @@ import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { trackingLog } from '@/lib/tracking-logger';
 import { confirmComplete } from '@/lib/tracking-api';
 import type { BookingWithDetails, ChatMessage, ProviderWithProfile } from '@/lib/types';
-import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, User, Receipt } from 'lucide-react-native';
+import { Phone, MessageSquare, MapPin, Star, ShieldCheck, Navigation, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, X, User, Receipt, Home } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -519,13 +519,13 @@ export default function BookingDetailScreen() {
     return () => { void supabase.removeChannel(channel); };
   }, [id, fetchBooking]);
 
-  // Poll while waiting for provider assignment or acceptance (realtime fallback).
+  // Poll while waiting for provider assignment or acceptance, or during active job (realtime fallback).
   useEffect(() => {
     if (!booking) return;
-    if (!['pending', 'assigned'].includes(booking.status)) return;
+    if (['completed', 'cancelled', 'rejected'].includes(booking.status)) return;
     const timer = setInterval(() => {
       void fetchBooking({ force: true });
-    }, 3000);
+    }, 5000);
     return () => clearInterval(timer);
   }, [booking?.status, fetchBooking]);
 
@@ -544,11 +544,11 @@ export default function BookingDetailScreen() {
     void fetchBooking({ force: true });
   }, [booking?.provider_id, booking?.provider, providerProfile, fetchBooking]);
 
-  // Show brief banner when provider accepts (assigned → on_the_way).
+  // Show brief banner when provider accepts (assigned → accepted).
   useEffect(() => {
     if (!booking?.status) return;
     const prev = previousStatusRef.current;
-    if (prev === 'assigned' && booking.status === 'on_the_way') {
+    if (prev === 'assigned' && booking.status === 'accepted') {
       setJustAccepted(true);
       const timer = setTimeout(() => setJustAccepted(false), 5000);
       previousStatusRef.current = booking.status;
@@ -604,7 +604,10 @@ export default function BookingDetailScreen() {
     if (!error) fetchBooking();
   };
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
 
   const handleConfirmComplete = async () => {
     try {
@@ -674,12 +677,13 @@ export default function BookingDetailScreen() {
   const trackingSteps = [
     { key: 'pending', label: 'Booked', icon: CheckCircle },
     { key: 'assigned', label: 'Assigned', icon: User },
+    { key: 'accepted', label: 'Accepted', icon: CheckCircle },
     { key: 'on_the_way', label: 'On the way', icon: Navigation },
     { key: 'arrived', label: 'Arrived', icon: MapPin },
     { key: 'in_progress', label: 'In Progress', icon: Clock },
     { key: 'awaiting_confirmation', label: 'Done', icon: CheckCircle },
   ];
-  const currentStepIndex = trackingSteps.findIndex((s) => s.key === status || (status === 'accepted' && s.key === 'on_the_way'));
+  const currentStepIndex = trackingSteps.findIndex((s) => s.key === status);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -692,6 +696,11 @@ export default function BookingDetailScreen() {
             router.replace('/(tabs)');
           }
         }}
+        right={
+          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ padding: spacing.sm }}>
+            <Home size={24} color={colors.neutral[0]} />
+          </TouchableOpacity>
+        }
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Status Banner */}
@@ -991,9 +1000,12 @@ export default function BookingDetailScreen() {
               </View>
             )}
 
+<<<<<<< HEAD
             <Text style={{ fontSize: typography.sizes.sm, color: colors.neutral[500], textAlign: 'center', marginTop: spacing.md, fontFamily: typography.fontFamilyRegular }}>
               The professional will mark the job as complete when finished.
             </Text>
+=======
+>>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
           </View>
         )}
 

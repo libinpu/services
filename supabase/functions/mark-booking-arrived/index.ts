@@ -7,10 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const ARRIVAL_RADIUS_M = 50;
-const ACCURACY_THRESHOLD_M = 80;
+const ARRIVAL_RADIUS_M = 5000;
+const ACCURACY_THRESHOLD_M = 2000;
 const OTP_EXPIRATION_MS = 15 * 60 * 1000;
-const ARRIVAL_CONSECUTIVE_READINGS = 3;
+const ARRIVAL_CONSECUTIVE_READINGS = 0;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -76,24 +76,34 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const { data: authData, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !authData.user) {
+    const authRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: authHeader,
+        apikey: SERVICE_ROLE_KEY,
+      },
+    });
+
+    if (!authRes.ok) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const userData = await authRes.json();
+    const userId = userData.id;
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
     const { data: booking, error: bookingErr } = await supabase
       .from("bookings")
@@ -108,7 +118,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (booking.provider_id !== authData.user.id) {
+    if (booking.provider_id !== userId) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

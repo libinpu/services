@@ -15,7 +15,11 @@ import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/d
 import { useProviderLocationSync } from '@/lib/use-provider-location';
 import { OTP_LENGTH, isValidOtp } from '@/lib/otp';
 import { createRealtimeChannel } from '@/lib/realtime';
+<<<<<<< HEAD
 import { markBookingArrived, uploadProviderLocation, verifyBookingOtp, startNavigation, startJob, completeJob } from '@/lib/tracking-api';
+=======
+import { markBookingArrived, uploadProviderLocation, verifyBookingOtp, startNavigation } from '@/lib/tracking-api';
+>>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { trackingLog } from '@/lib/tracking-logger';
 import type { DeviceLocation } from '@/lib/location-service';
@@ -115,7 +119,16 @@ export default function ProviderJobDetailScreen() {
         void fetchBooking();
       })
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+
+    // Polling fallback every 5 seconds
+    const timer = setInterval(() => {
+      void fetchBooking();
+    }, 5000);
+
+    return () => { 
+      void supabase.removeChannel(channel); 
+      clearInterval(timer);
+    };
   }, [id, fetchBooking]);
 
   useEffect(() => {
@@ -304,6 +317,7 @@ export default function ProviderJobDetailScreen() {
   };
 
   const handleStartNavigation = async () => {
+<<<<<<< HEAD
     if (!booking?.address) return;
     const lat = booking.customer_latitude ?? booking.address.latitude;
     const lng = booking.customer_longitude ?? booking.address.longitude;
@@ -324,6 +338,40 @@ export default function ProviderJobDetailScreen() {
     }
     arrivalRequestedRef.current = false;
     fetchBooking();
+=======
+    if (actionLoading) return;
+    setActionLoading(true);
+    setError(null);
+    try {
+      // 1. First commit the status change — customer must see this ONLY after provider confirms
+      await startNavigation(id!);
+
+      // 2. Open maps AFTER status is updated
+      const lat = booking?.customer_latitude ?? booking?.address?.latitude;
+      const lng = booking?.customer_longitude ?? booking?.address?.longitude;
+      if (lat != null && lng != null) {
+        const mapsUrl = Platform.select({
+          ios: `maps://?daddr=${lat},${lng}&dirflg=d`,
+          android: `google.navigation:q=${lat},${lng}`,
+          default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+        });
+        if (mapsUrl) {
+          if (Platform.OS === 'web') {
+            window.open(mapsUrl, '_blank');
+          } else {
+            void Linking.openURL(mapsUrl);
+          }
+        }
+      }
+
+      arrivalRequestedRef.current = false;
+      fetchBooking();
+    } catch (e: any) {
+      setError(e.message || 'Could not start navigation');
+    } finally {
+      setActionLoading(false);
+    }
+>>>>>>> 96bcc6a5e471a8fbbcbca178e8a87dfa8f8bbd84
   };
 
   const handleMarkArrived = async () => {
@@ -514,7 +562,17 @@ export default function ProviderJobDetailScreen() {
 
         {status === 'accepted' && (
           <View style={styles.actionSection}>
-            <Button label={t('navigateToCustomer')} onPress={handleStartNavigation} style={styles.actionBtn} />
+            <Button
+              label={actionLoading ? 'Starting navigation...' : t('navigateToCustomer')}
+              onPress={handleStartNavigation}
+              loading={actionLoading}
+              style={styles.actionBtn}
+            />
+            {error && (
+              <Text style={{ textAlign: 'center', marginTop: spacing.sm, color: colors.error[600], fontSize: typography.sizes.sm }}>
+                {error}
+              </Text>
+            )}
           </View>
         )}
 

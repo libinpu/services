@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -168,9 +169,41 @@ export default function BookingConfirmationScreen() {
       if (subRes.error) throw subRes.error;
       setSubcategory(subRes.data as ServiceSubcategory);
 
-      if (addrRes.data && Array.isArray(addrRes.data) && addrRes.data.length > 0) {
-        setAddresses(addrRes.data as Address[]);
-        setSelectedAddress(addrRes.data[0] as Address);
+      if (addrRes.data && Array.isArray(addrRes.data)) {
+        const addrList = addrRes.data as Address[];
+        setAddresses(addrList);
+
+        if (addrList.length === 0) {
+          // No addresses at all — clear any stale selection
+          setSelectedAddress(null);
+          if (session?.user?.id) {
+            try { await AsyncStorage.removeItem(`selected_address_${session.user.id}`); } catch { /* silent */ }
+          }
+        } else {
+          // Try to load user's explicit selection
+          let selectedId: string | null = null;
+          if (session?.user?.id) {
+            try {
+              selectedId = await AsyncStorage.getItem(`selected_address_${session.user.id}`);
+            } catch { /* silent */ }
+          }
+
+          if (selectedId) {
+            const matchedAddress = addrList.find(a => a.id === selectedId);
+            if (matchedAddress) {
+              setSelectedAddress(matchedAddress);
+            } else {
+              // Saved ID no longer exists — clear it and show nothing selected
+              setSelectedAddress(null);
+              if (session?.user?.id) {
+                try { await AsyncStorage.removeItem(`selected_address_${session.user.id}`); } catch { /* silent */ }
+              }
+            }
+          } else {
+            // No saved preference — don't auto-select anything
+            setSelectedAddress(null);
+          }
+        }
       }
 
       if (!provRes.error && provRes.data && !Array.isArray(provRes.data)) {
@@ -183,9 +216,11 @@ export default function BookingConfirmationScreen() {
     }
   }, [subId, session?.user?.id, providerId, t]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const handleConfirmBooking = async () => {
     if (!session?.user?.id || !subcategory) {
@@ -352,7 +387,7 @@ export default function BookingConfirmationScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('address')} (optional)</Text>
-            <TouchableOpacity onPress={() => router.push('/location-setup')}>
+            <TouchableOpacity onPress={() => router.push('/location-setup?fromBooking=true')}>
               <Text style={styles.changeText}>{t('changeAddress')}</Text>
             </TouchableOpacity>
           </View>
@@ -369,7 +404,7 @@ export default function BookingConfirmationScreen() {
               </View>
             </View>
           ) : (
-            <TouchableOpacity style={styles.addAddressBtn} onPress={() => router.push('/location-setup')}>
+            <TouchableOpacity style={styles.addAddressBtn} onPress={() => router.push('/location-setup?fromBooking=true')}>
               <Text style={styles.addAddressText}>+ Add address</Text>
             </TouchableOpacity>
           )}
