@@ -1,4 +1,7 @@
-import { Platform, Linking } from 'react-native';
+import { Platform } from 'react-native';
+import * as Linking from 'expo-linking';
+
+
 import { TRACKING_CONFIG } from './tracking-config';
 import { trackingLog } from './tracking-logger';
 
@@ -86,6 +89,10 @@ export async function requestLocationPermission(): Promise<LocationPermissionSta
 
 /** Open device location settings when GPS is disabled. */
 export async function openLocationSettings(): Promise<void> {
+  if (Platform.OS === 'web') {
+    // Browser cannot open device settings — nothing to do
+    return;
+  }
   if (Platform.OS === 'ios') {
     await Linking.openURL('app-settings:');
   } else {
