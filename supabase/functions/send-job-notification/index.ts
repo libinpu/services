@@ -53,40 +53,32 @@ serve(async (req: Request) => {
 
     const busyProviderIds = new Set((activeBookings || []).map((b: any) => b.provider_id).filter(Boolean));
 
-    // 3. Find online providers providing this category
-    const { data: providers } = await supabase
-      .from('provider_profiles')
-      .select('id, latitude, longitude, category_ids, location_accuracy')
-      .eq('is_online', true)
-      .not('shift_started_at', 'is', null);
-
-    const eligibleProviders = (providers || []).filter((p: any) => {
-      // Must not be busy
-      if (busyProviderIds.has(p.id)) return false;
-      // Must provide this category
-      if (!p.category_ids || !p.category_ids.includes(sub.category_id)) return false;
-      // Must have valid GPS with acceptable accuracy (e.g. <= 80m)
-      if (!p.latitude || !p.longitude || (p.location_accuracy && p.location_accuracy > 80)) return false;
-      
-      return true;
+    // 3. Use DB RPC to find nearby eligible providers (enforces online/verified/availability/distance)
+    const { data: nearby, error: nearbyErr } = await supabase.rpc('find_nearby_providers', {
+      p_subcategory_id: booking.subcategory_id,
+      p_customer_latitude: booking.customer_latitude,
+      p_customer_longitude: booking.customer_longitude,
+      p_limit: 200,
     });
 
-    // 4. Filter by 10km radius
-    const nearbyProviders = eligibleProviders.map((p: any) => {
-      const distance = haversineKm(booking.customer_latitude, booking.customer_longitude, p.latitude, p.longitude);
-      return { ...p, distance };
-    }).filter(p => p.distance <= 10);
+    if (nearbyErr) {
+      console.error('[send-job-notification] nearby RPC failed', nearbyErr);
+      return new Response(JSON.stringify({ sent: 0, reason: 'Nearby providers lookup failed' }), { status: 500 });
+    }
+
+    // nearby already contains distance_km and filtered providers; exclude busy ones defensively
+    const nearbyProviders = (nearby || []).filter((p: any) => !busyProviderIds.has(p.provider_id));
 
     if (nearbyProviders.length === 0) {
       return new Response(JSON.stringify({ sent: 0, reason: 'No eligible nearby providers found' }), { status: 200 });
     }
 
     // 5. Insert requests into booking_provider_requests
-    const requestInserts = nearbyProviders.map(p => ({
+    const requestInserts = nearbyProviders.map((p: any) => ({
       booking_id: booking.id,
-      provider_id: p.id,
-      distance_km: p.distance,
-      status: 'pending'
+      provider_id: p.provider_id,
+      distance_km: Number(p.distance_km),
+      status: 'pending',
     }));
 
     const { error: insertError } = await supabase
@@ -99,7 +91,7 @@ serve(async (req: Request) => {
     }
 
     // 6. Get push tokens securely from provider_devices
-    const providerIdsToNotify = nearbyProviders.map(p => p.id);
+    const providerIdsToNotify = nearbyProviders.map((p: any) => p.provider_id);
     const { data: devices } = await supabase
       .from('provider_devices')
       .select('provider_id, push_token')

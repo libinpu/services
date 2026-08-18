@@ -7,12 +7,26 @@ import { useTheme } from '@/lib/theme-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
-import type { ServiceSubcategory, ProviderWithProfile } from '@/lib/types';
+import type { ServiceSubcategory } from '@/lib/types';
 import { Star, ShieldCheck, MapPin, Zap, ChevronRight, User } from 'lucide-react-native';
 import { cache } from '@/lib/cache';
 import { SkeletonList } from '@/components/ui';
-import { haversineKm, formatDistance } from '@/lib/distance';
+import { formatDistance } from '@/lib/distance';
 import { fetchCurrentLocation } from '@/lib/location-service';
+
+const NEARBY_RADIUS_KM = 10;
+
+type NearbyProvider = {
+  provider_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  rating_avg: number;
+  rating_count: number;
+  jobs_completed: number;
+  experience_years: number;
+  is_verified: boolean;
+  distance_km: number;
+};
 
 export default function ProvidersScreen() {
   const { subId } = useLocalSearchParams<{ subId: string }>();
@@ -21,9 +35,10 @@ export default function ProvidersScreen() {
   const { isDark } = useTheme();
 
   const [subcategory, setSubcategory] = useState<ServiceSubcategory | null>(null);
-  const [providers, setProviders] = useState<ProviderWithProfile[]>([]);
+  const [providers, setProviders] = useState<NearbyProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [mode, setMode] = useState<'auto' | 'manual'>('auto');
   const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -122,8 +137,21 @@ export default function ProvidersScreen() {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
+      setLocationError(null);
 
-      // 1. Subcategory: static data — cache for 10 minutes
+      // 1. Get customer location first — needed to filter by distance
+      let coords = customerCoords;
+      if (!coords) {
+        const locRes = await fetchCurrentLocation();
+        if (locRes.success && locRes.latitude != null && locRes.longitude != null) {
+          coords = { lat: locRes.latitude, lng: locRes.longitude };
+          setCustomerCoords(coords);
+        } else {
+          setLocationError('Location is required to show nearby professionals.');
+        }
+      }
+
+      // 2. Subcategory: cache for 10 minutes
       const cacheSubKey = `subcategory_${subId}`;
       let subData = cache.get<ServiceSubcategory>(cacheSubKey);
       if (!subData) {
@@ -138,43 +166,31 @@ export default function ProvidersScreen() {
       }
       setSubcategory(subData);
 
-      // 2. Providers: cache for 2 minutes (is_online changes, but list is stable)
+      // 3. Database-only geographic search. It returns public fields for at
+      // most 20 eligible providers within the fixed 10 km radius.
       const catId = subData?.category_id;
-      if (catId) {
-        const cacheProvKey = `providers_cat_${catId}`;
-        let provData = cache.get<ProviderWithProfile[]>(cacheProvKey);
-        if (!provData) {
-          const provRes = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url, provider_profile:provider_profiles(rating_avg, jobs_completed, experience_years, is_verified, is_online, latitude, longitude, category_ids)')
-            .eq('role', 'provider')
-            .filter('provider_profile.category_ids', 'cs', `{${catId}}`)
-            .order('created_at', { ascending: false })
-            .limit(10);
-          if (provRes.error) throw provRes.error;
-          provData = (provRes.data || []) as unknown as ProviderWithProfile[];
-          cache.set(cacheProvKey, provData, 2 * 60 * 1000);
-        }
-        setProviders(provData);
+      if (catId && coords) {
+        const { data: nearby, error: nearbyError } = await supabase.rpc('find_nearby_providers', {
+          p_subcategory_id: subId,
+          p_customer_latitude: coords.lat,
+          p_customer_longitude: coords.lng,
+          p_limit: 20,
+        });
+        if (nearbyError) throw nearbyError;
+        setProviders((nearby || []) as NearbyProvider[]);
+      } else {
+        setProviders([]);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load');
     } finally {
       setLoading(false);
     }
-  }, [subId]);
+  }, [subId, customerCoords]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  useEffect(() => {
-    void fetchCurrentLocation().then((res) => {
-      if (res.success && res.latitude != null && res.longitude != null) {
-        setCustomerCoords({ lat: res.latitude, lng: res.longitude });
-      }
-    });
-  }, []);
 
   const handleAutoAssign = () => {
     if (subcategory) {
@@ -214,6 +230,20 @@ export default function ProvidersScreen() {
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+        {/* Location warning banner */}
+        {locationError && (
+          <View style={{ marginHorizontal: spacing.md, marginTop: spacing.sm,
+            backgroundColor: colors.warning[50], borderRadius: radius.md,
+            padding: spacing.sm, borderWidth: 1, borderColor: colors.warning[200],
+            flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <MapPin size={14} color={colors.warning[700]} strokeWidth={2} />
+            <Text style={{ fontSize: typography.sizes.xs, color: colors.warning[700],
+              flex: 1, fontFamily: typography.fontFamilyRegular }}>
+              {locationError}
+            </Text>
+          </View>
+        )}
+
         {/* Mode toggle */}
         <View style={styles.modeContainer}>
           <TouchableOpacity
@@ -264,20 +294,24 @@ export default function ProvidersScreen() {
           <View style={styles.providersList}>
             {providers.length === 0 ? (
               <View style={styles.noProviders}>
-                <Text style={styles.noProvidersText}>No providers available yet in this category.</Text>
+                <MapPin size={40} color={colors.neutral[300]} strokeWidth={1.5} />
+                <Text style={[styles.noProvidersText, { marginTop: spacing.md, fontWeight: '700',
+                  color: colors.neutral[700], fontSize: typography.sizes.md }]}>
+                  No providers nearby
+                </Text>
+                <Text style={[styles.noProvidersText, { marginTop: spacing.xs }]}>
+                  {customerCoords
+                    ? `No online providers found within ${NEARBY_RADIUS_KM} km of your location.`
+                    : 'No online providers available in this category right now.'}
+                </Text>
               </View>
             ) : (
               providers.map((provider) => {
-                const pp = provider.provider_profile;
-                if (!pp) return null;
-                const distanceKm = customerCoords && pp.latitude != null && pp.longitude != null
-                  ? haversineKm(customerCoords.lat, customerCoords.lng, pp.latitude, pp.longitude)
-                  : null;
                 return (
                   <TouchableOpacity
-                    key={provider.id}
+                    key={provider.provider_id}
                     style={styles.providerCard}
-                    onPress={() => router.push(`/provider/${provider.id}?subId=${subcategory?.id}`)}
+                    onPress={() => router.push(`/provider/${provider.provider_id}?subId=${subcategory?.id}`)}
                     activeOpacity={0.8}
                   >
                     <View style={styles.providerAvatar}>
@@ -286,11 +320,16 @@ export default function ProvidersScreen() {
                       ) : (
                         <User size={28} color={colors.neutral[400]} strokeWidth={2} />
                       )}
+                      {/* Online indicator dot */}
+                      <View style={{ position: 'absolute', bottom: 2, right: 2,
+                        width: 12, height: 12, borderRadius: 6,
+                        backgroundColor: colors.success[500],
+                        borderWidth: 2, borderColor: colors.neutral[100] }} />
                     </View>
                     <View style={styles.providerInfo}>
                       <View style={styles.providerNameRow}>
-                        <Text style={styles.providerName}>{provider.full_name || 'Provider'}</Text>
-                        {pp.is_verified && (
+                        <Text style={styles.providerName}>{provider.display_name || 'Provider'}</Text>
+                        {provider.is_verified && (
                           <View style={styles.verifiedBadge}>
                             <ShieldCheck size={14} color={colors.success[600]} strokeWidth={2} />
                             <Text style={styles.verifiedText}>{t('verified')}</Text>
@@ -300,16 +339,16 @@ export default function ProvidersScreen() {
                       <View style={styles.providerMeta}>
                         <View style={styles.ratingRow}>
                           <Star size={14} color={colors.warning[500]} fill={colors.warning[500]} strokeWidth={0} />
-                          <Text style={styles.ratingText}>{pp.rating_avg.toFixed(1)}</Text>
-                          <Text style={styles.jobsText}>({pp.jobs_completed} {t('jobsCompleted')})</Text>
+                          <Text style={styles.ratingText}>{Number(provider.rating_avg).toFixed(1)}</Text>
+                          <Text style={styles.jobsText}>({provider.jobs_completed} {t('jobsCompleted')})</Text>
                         </View>
-                        <Text style={styles.expText}>{pp.experience_years} {t('yearsExp')}</Text>
+                        <Text style={styles.expText}>{provider.experience_years} {t('yearsExp')}</Text>
                       </View>
                       <View style={styles.distanceRow}>
                         <View style={styles.distanceTag}>
                           <MapPin size={12} color={colors.neutral[400]} strokeWidth={2} />
                           <Text style={styles.distanceText}>
-                            {distanceKm != null ? `${formatDistance(distanceKm)} away` : 'Distance unavailable'}
+                            {`${formatDistance(Number(provider.distance_km))} away`}
                           </Text>
                         </View>
                       </View>

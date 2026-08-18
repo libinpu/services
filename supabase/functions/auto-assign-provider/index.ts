@@ -92,38 +92,23 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { data: providers, error: provErr } = await supabase
-      .from("profiles")
-      .select(`id, provider_profile:provider_profiles(is_online, latitude, longitude, location_accuracy, last_location_at, category_ids)`)
-      .eq("role", "provider")
-      .filter("provider_profile.category_ids", "cs", `{${catId}}`)
-      .limit(100);
+    // Use a database-side nearby search RPC to avoid transferring provider tables
+    const { data: nearby, error: nearbyErr } = await supabase.rpc('find_nearby_providers', {
+      p_subcategory_id: booking.subcategory_id,
+      p_customer_latitude: custLat,
+      p_customer_longitude: custLng,
+      p_limit: 50,
+    });
 
-    if (provErr) {
-      return new Response(JSON.stringify({ error: "Failed to find providers" }), {
+    if (nearbyErr) {
+      return new Response(JSON.stringify({ error: 'Failed to find nearby providers' }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { data: activeJobs } = await supabase
-      .from("bookings")
-      .select("provider_id")
-      .in("status", ACTIVE_STATUSES);
-
-    const busyProviders = new Set((activeJobs || []).map((j: { provider_id: string }) => j.provider_id));
-
-    const candidates = (providers || [])
-      .map((p: any) => {
-        const pp = p.provider_profile;
-        if (!pp?.is_online || busyProviders.has(p.id)) return null;
-        if (pp.latitude == null || pp.longitude == null) return null;
-        if (!isFresh(pp.last_location_at)) return null;
-        if (pp.location_accuracy != null && pp.location_accuracy > ACCURACY_THRESHOLD_M) return null;
-        const distanceKm = haversineKm(custLat, custLng, pp.latitude, pp.longitude);
-        if (distanceKm > MATCH_RADIUS_KM) return null;
-        return { id: p.id, distanceKm };
-      })
+    const candidates = (nearby || [])
+      .map((p: any) => ({ id: p.provider_id, distanceKm: Number(p.distance_km) }))
       .filter(Boolean)
       .sort((a: any, b: any) => a.distanceKm - b.distanceKm);
 
