@@ -189,6 +189,89 @@ export function validateLocation(lat?: number, lng?: number, accuracy?: number, 
 }
 
 export async function fetchCurrentLocation(timeoutMs = 30_000): Promise<LocationResponse> {
+  // ─── WEB: single direct call, no permission pre-check ─────────────────────
+  if (Platform.OS === 'web') {
+    return new Promise<LocationResponse>((resolve) => {
+      if (typeof navigator === 'undefined' || !navigator.geolocation) {
+        resolve({
+          success: false, permissionStatus: 'denied_forever', servicesEnabled: false,
+          errorCode: 'UNKNOWN', errorMessage: 'Geolocation is not supported by your browser.',
+        });
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        resolve({
+          success: false, permissionStatus: 'granted', servicesEnabled: true,
+          errorCode: 'TIMEOUT',
+          errorMessage: 'Location is taking too long. Please check your browser has location permission enabled and try again.',
+        });
+      }, timeoutMs);
+
+      // Try network location first (fast, works indoors)
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timer);
+          const loc: DeviceLocation = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy ?? null,
+            altitude: pos.coords.altitude ?? null,
+            speed: pos.coords.speed ?? null,
+            heading: pos.coords.heading ?? null,
+            timestamp: pos.timestamp ?? Date.now(),
+          };
+          // Accept any valid coordinate — accuracy doesn't matter for web
+          if (loc.latitude === 0 && loc.longitude === 0) {
+            resolve({
+              success: false, permissionStatus: 'granted', servicesEnabled: true,
+              errorCode: 'UNKNOWN', errorMessage: 'Could not determine your location. Please try again.',
+            });
+            return;
+          }
+          setState({ location: loc, error: null, errorCode: undefined });
+          resolve({
+            success: true,
+            permissionStatus: 'granted',
+            servicesEnabled: true,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            accuracy: loc.accuracy ?? undefined,
+            timestamp: loc.timestamp,
+          });
+        },
+        (error) => {
+          clearTimeout(timer);
+          if (error.code === 1 /* PERMISSION_DENIED */) {
+            setState({ permission: 'denied_forever', error: 'Permission denied', errorCode: 'PERMISSION_DENIED' });
+            resolve({
+              success: false,
+              permissionStatus: 'denied_forever',
+              servicesEnabled: true,
+              errorCode: 'PERMISSION_DENIED',
+              errorMessage: 'Location permission was denied. Please tap the lock icon in your browser address bar and allow location access, then retry.',
+            });
+          } else if (error.code === 2 /* POSITION_UNAVAILABLE */) {
+            resolve({
+              success: false, permissionStatus: 'granted', servicesEnabled: false,
+              errorCode: 'SERVICES_DISABLED',
+              errorMessage: 'Your device cannot determine location. Please enable GPS/Location in your device settings.',
+            });
+          } else {
+            resolve({
+              success: false, permissionStatus: 'granted', servicesEnabled: true,
+              errorCode: 'TIMEOUT',
+              errorMessage: 'Location request timed out. Please ensure your browser has location access and try again.',
+            });
+          }
+        },
+        // enableHighAccuracy: false = use network/WiFi location (fast), no GPS needed
+        { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 300_000 },
+      );
+    });
+  }
+
+  // ─── NATIVE (Android / iOS) ────────────────────────────────────────────────
   const permStatus = await checkLocationPermission();
   if (permStatus !== 'granted') {
     const askedStatus = await requestLocationPermission();
@@ -198,15 +281,13 @@ export async function fetchCurrentLocation(timeoutMs = 30_000): Promise<Location
         permissionStatus: askedStatus,
         servicesEnabled: true,
         errorCode: 'PERMISSION_DENIED',
-        errorMessage: Platform.OS === 'web' 
-          ? 'Location permission is blocked for this website. Please allow location access in your browser settings and try again.'
-          : 'Location permission denied. Please allow it in settings.',
+        errorMessage: 'Location permission denied. Please allow it in settings.',
       };
     }
   }
 
   const servicesEnabled = await checkLocationServicesEnabled();
-  if (!servicesEnabled && Platform.OS !== 'web') {
+  if (!servicesEnabled) {
     return {
       success: false,
       permissionStatus: 'granted',
@@ -217,64 +298,6 @@ export async function fetchCurrentLocation(timeoutMs = 30_000): Promise<Location
   }
 
   try {
-    if (Platform.OS === 'web') {
-      return new Promise<LocationResponse>((resolve) => {
-        if (!navigator.geolocation) {
-          resolve({
-            success: false, permissionStatus: 'granted', servicesEnabled: false,
-            errorCode: 'UNKNOWN', errorMessage: 'Geolocation is not supported by your browser.'
-          });
-          return;
-        }
-
-        const timer = setTimeout(() => {
-          resolve({
-            success: false, permissionStatus: 'granted', servicesEnabled: true,
-            errorCode: 'TIMEOUT', errorMessage: 'Getting your location is taking too long. Please move to an area with better GPS signal and try again.'
-          });
-        }, timeoutMs);
-
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            clearTimeout(timer);
-            const mapped = mapPosition(pos);
-            if (!validateLocation(mapped.latitude, mapped.longitude, mapped.accuracy ?? undefined, mapped.timestamp)) {
-              resolve({
-                success: false, permissionStatus: 'granted', servicesEnabled: true,
-                latitude: mapped.latitude, longitude: mapped.longitude, accuracy: mapped.accuracy ?? undefined, timestamp: mapped.timestamp,
-                errorCode: 'LOW_ACCURACY', errorMessage: 'Getting a more accurate location...'
-              });
-            } else {
-              setState({ location: mapped, error: null, errorCode: undefined });
-              resolve({
-                success: true, permissionStatus: 'granted', servicesEnabled: true,
-                latitude: mapped.latitude, longitude: mapped.longitude, accuracy: mapped.accuracy ?? undefined, timestamp: mapped.timestamp
-              });
-            }
-          },
-          (error) => {
-            clearTimeout(timer);
-            if (error.code === error.PERMISSION_DENIED) {
-              resolve({
-                success: false, permissionStatus: 'denied_forever', servicesEnabled: true,
-                errorCode: 'PERMISSION_DENIED', errorMessage: 'Location permission is blocked for this website. Please allow location access in your browser settings and try again.'
-              });
-            } else if (error.code === error.POSITION_UNAVAILABLE) {
-              resolve({
-                success: false, permissionStatus: 'granted', servicesEnabled: false,
-                errorCode: 'SERVICES_DISABLED', errorMessage: 'Unable to get your current location. Please make sure GPS/Location Services are enabled and try again.'
-              });
-            } else {
-              resolve({
-                success: false, permissionStatus: 'granted', servicesEnabled: true,
-                errorCode: 'TIMEOUT', errorMessage: 'Getting your location is taking too long. Please move to an area with better GPS signal and try again.'
-              });
-            }
-          },
-          { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 }
-        );
-      });
-    } else {
       const Location = await import('expo-location');
       const current = await Promise.race([
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
@@ -310,7 +333,6 @@ export async function fetchCurrentLocation(timeoutMs = 30_000): Promise<Location
         success: true, permissionStatus: 'granted', servicesEnabled: true,
         latitude: mapped.latitude, longitude: mapped.longitude, accuracy: mapped.accuracy ?? undefined, timestamp: mapped.timestamp
       };
-    }
   } catch (e: any) {
     return {
       success: false, permissionStatus: 'granted', servicesEnabled: true,
