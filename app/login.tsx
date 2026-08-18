@@ -10,6 +10,7 @@ import { Button, Input } from '@/components/ui';
 import { Wrench } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
+import { getPhoneValidationError } from '@/lib/booking-rules';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -249,6 +250,14 @@ export default function LoginScreen() {
     if (mode === 'signup' && (!fullName.trim() || !phone.trim())) {
       setError('Please fill all required fields');
       return;
+    }
+
+    if (mode === 'signup') {
+      const phoneError = getPhoneValidationError(phone);
+      if (phoneError) {
+        setError(phoneError);
+        return;
+      }
     }
 
     setLoading(true);

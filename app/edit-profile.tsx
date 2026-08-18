@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header } from '@/components/ui';
+import { getPhoneValidationError } from '@/lib/booking-rules';
 import { User, Phone, Mail, MapPin, Save, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 
 export default function EditProfileScreen() {
@@ -123,8 +124,9 @@ export default function EditProfileScreen() {
       setError('Please enter your name.');
       return;
     }
-    if (!phone.trim()) {
-      setError('Please enter your phone number.');
+    const phoneError = getPhoneValidationError(phone);
+    if (phoneError) {
+      setError(phoneError);
       return;
     }
 

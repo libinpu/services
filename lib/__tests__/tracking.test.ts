@@ -5,6 +5,7 @@ import {
   bearingDegrees,
 } from '../distance';
 import { TRACKING_CONFIG } from '../tracking-config';
+import { getBookingAddressValidationError } from '../booking-rules';
 
 describe('distance and arrival', () => {
   it('100m away is not within arrival radius', () => {
@@ -68,5 +69,19 @@ describe('job state transitions (documented)', () => {
 
   it('on_the_way can only become arrived or cancelled', () => {
     expect(validTransitions.on_the_way).toEqual(['arrived', 'cancelled']);
+  });
+});
+
+describe('booking address validation', () => {
+  it('requires a saved address to be selected before checkout when the user already has addresses', () => {
+    expect(getBookingAddressValidationError([{ id: 'a1' }], null)).toBe('Please select or add your address before requesting a service.');
+  });
+
+  it('allows booking when the user has no saved addresses yet', () => {
+    expect(getBookingAddressValidationError([], null)).toBeNull();
+  });
+
+  it('accepts a selected address', () => {
+    expect(getBookingAddressValidationError([{ id: 'a1' }], { id: 'a1' })).toBeNull();
   });
 });

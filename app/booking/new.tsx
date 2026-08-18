@@ -13,6 +13,7 @@ import type { ServiceSubcategory, Address, Profile } from '@/lib/types';
 import { assignNearestProvider } from '@/lib/tracking-api';
 import { fetchCurrentLocation, openLocationSettings, getLocationServiceState, checkLocationServicesEnabled } from '@/lib/location-service';
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
+import { getPhoneValidationError, getBookingAddressValidationError } from '@/lib/booking-rules';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
 
 export default function BookingConfirmationScreen() {
@@ -227,6 +228,22 @@ export default function BookingConfirmationScreen() {
       setError('Please sign in and select a service.');
       return;
     }
+
+    const profilePhone = (await supabase.from('profiles').select('phone').eq('id', session.user.id).maybeSingle()).data?.phone ?? null;
+    const phoneError = getPhoneValidationError(profilePhone);
+    if (phoneError) {
+      setError(phoneError);
+      router.push('/edit-profile');
+      return;
+    }
+
+    const addressError = getBookingAddressValidationError(addresses, selectedAddress);
+    if (addressError) {
+      setError(addressError);
+      router.push('/location-setup?fromBooking=true');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 

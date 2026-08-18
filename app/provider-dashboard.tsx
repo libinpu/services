@@ -89,7 +89,7 @@ export default function ProviderDashboardScreen() {
           .maybeSingle(),
         supabase
           .from('profiles')
-          .select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at, provider_profile:provider_profiles(id, category_ids, specializations, experience_years, is_verified, background_check_status, rating_avg, rating_count, jobs_completed, is_online, price_per_hour, zone_id, bio_en, bio_ml, latitude, longitude, last_location_at, shift_started_at, push_token, created_at, updated_at)')
+          .select('id, role, full_name, phone, email, avatar_url, preferred_language, zone_id, is_active, created_at, updated_at, provider_profile:provider_profiles(id, category_ids, specializations, experience_years, is_verified, background_check_status, rating_avg, rating_count, jobs_completed, is_online, price_per_hour, zone_id, bio_en, bio_ml, latitude, longitude, last_location_at, shift_started_at, created_at, updated_at)')
           .eq('id', session.user.id)
           .maybeSingle(),
       ])));

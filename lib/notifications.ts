@@ -15,18 +15,19 @@ if (Platform.OS !== 'web') {
   }
 }
 
-/** Register the device for Expo push notifications and save the token to Supabase. */
+/**
+ * Register the provider device and save the Expo push token to the authoritative
+ * provider_devices table. Multiple devices per provider are supported.
+ */
 export async function registerForPushNotificationsAsync(userId: string): Promise<string | null> {
   if (!Notifications || !Device) return null;
   if (Platform.OS === 'web') return null;
 
-  // Push notifications only work on physical devices
   if (!Device.isDevice) {
     console.log('[notifications] Push notifications require a physical device.');
     return null;
   }
 
-  // Request permission
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
   if (existingStatus !== 'granted') {
@@ -38,24 +39,32 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
     return null;
   }
 
-  // Get the Expo push token
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: 'services', // matches app.json slug
+    projectId: 'services',
   });
   const token = tokenData.data;
-  console.log('[notifications] Push token:', token);
-
-  // Save to Supabase provider_profiles
-  const { error } = await supabase
-    .from('provider_profiles')
-    .update({ push_token: token })
-    .eq('id', userId);
-
-  if (error) {
-    console.warn('[notifications] Failed to save push token:', error.message);
+  if (!token || !token.startsWith('ExponentPushToken')) {
+    console.warn('[notifications] Invalid Expo token returned, skipping provider_devices save.');
+    return null;
   }
 
-  // Android notification channel
+  const { error } = await supabase
+    .from('provider_devices')
+    .upsert(
+      {
+        provider_id: userId,
+        push_token: token,
+        device_model: Device.modelName ?? Platform.OS,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'provider_id,push_token' }
+    );
+
+  if (error) {
+    console.warn('[notifications] Failed to save provider device token:', error.message);
+    return null;
+  }
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('job-alerts', {
       name: 'Job Alerts',
