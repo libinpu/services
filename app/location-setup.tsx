@@ -10,21 +10,11 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Button, Input } from '@/components/ui';
 import { Navigation, CircleAlert as AlertCircle, CircleCheck as CheckCircle, MapPin, Trash2, Plus, Home, Briefcase, Tag, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
-import * as Location from 'expo-location';
+import { fetchCurrentLocation } from '@/lib/location-service';
 import type { Address } from '@/lib/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const THRISSUR_BOUNDS = {
-  minLat: 10.35,
-  maxLat: 10.75,
-  minLng: 76.05,
-  maxLng: 76.45,
-};
-
-function isInThrissur(lat: number, lng: number): boolean {
-  return lat >= THRISSUR_BOUNDS.minLat && lat <= THRISSUR_BOUNDS.maxLat &&
-         lng >= THRISSUR_BOUNDS.minLng && lng <= THRISSUR_BOUNDS.maxLng;
-}
+// Thrissur restrictions removed. Using all Kerala districts.
 
 function getLabelIcon(label: string) {
   const lower = label.toLowerCase();
@@ -41,7 +31,7 @@ export default function LocationSetupScreen() {
 
   const { fromBooking } = useLocalSearchParams<{ fromBooking?: string }>();
 
-  const [step, setStep] = useState<'list' | 'permission' | 'map' | 'details' | 'outside' | 'denied'>('list');
+  const [step, setStep] = useState<'list' | 'permission' | 'map' | 'details' | 'denied'>('list');
 
   // Saved addresses state
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -315,28 +305,28 @@ export default function LocationSetupScreen() {
     setLoading(true);
     setError(null);
     try {
-      if (Platform.OS !== 'web') {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
+      const res = await fetchCurrentLocation();
+      if (!res.success) {
+        if (res.errorCode === 'PERMISSION_DENIED') {
           setStep('denied');
-          setLoading(false);
-          return;
+        } else {
+          setError(res.errorMessage || 'Could not get your location.');
+          setStep('denied');
+        }
+      } else {
+        const { latitude, longitude } = res;
+        if (latitude && longitude) {
+          setCoords({ lat: latitude, lng: longitude });
+          setStep('map');
+          reverseGeocode(latitude, longitude);
+        } else {
+           setError('Could not get precise coordinates.');
+           setStep('denied');
         }
       }
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const { latitude, longitude } = location.coords;
-      setCoords({ lat: latitude, lng: longitude });
-      setStep('map');
-      reverseGeocode(latitude, longitude);
     } catch (e: any) {
-      if (Platform.OS === 'web' && e.message?.toLowerCase().includes('denied')) {
-        setStep('denied');
-      } else {
-        setError('Could not get your location. Please enable GPS and try again.');
-        setStep('denied');
-      }
+      setError('An unexpected error occurred while getting location.');
+      setStep('denied');
     } finally {
       setLoading(false);
     }
@@ -399,11 +389,7 @@ export default function LocationSetupScreen() {
 
   const handleConfirmPin = () => {
     if (!coords) return;
-    if (isInThrissur(coords.lat, coords.lng)) {
-      setStep('details');
-    } else {
-      setStep('outside');
-    }
+    setStep('details');
   };
 
   const handleSaveAddress = async () => {
@@ -686,25 +672,6 @@ export default function LocationSetupScreen() {
         </ScrollView>
       )}
 
-      {/* ── OUTSIDE ── */}
-      {step === 'outside' && (
-        <View style={styles.flex1}>
-          <TouchableOpacity style={styles.subStepBack} onPress={() => setStep('map')} activeOpacity={0.7}>
-            <ArrowLeft size={18} color={colors.neutral[700]} strokeWidth={2} />
-          </TouchableOpacity>
-          <View style={styles.centerContent}>
-            <View style={[styles.iconWrap, styles.iconWrapError]}>
-              <AlertCircle size={64} color={colors.warning[500]} strokeWidth={1.5} />
-            </View>
-            <Text style={styles.title}>{t('notInServiceArea')}</Text>
-            <Text style={styles.desc}>{t('notInServiceAreaDesc')}</Text>
-            <Button label={t('enterAddressManually')} onPress={() => setStep('details')} variant="outline" style={styles.actionBtn} />
-            <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
-              <Text style={styles.skipText}>{t('skip')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
     </SafeAreaView>
   );

@@ -244,36 +244,41 @@ export default function BookingConfirmationScreen() {
       }
     }
 
-    // Attempt to get current location (will also verify services internally)
-    let gps = await fetchCurrentLocation();
-    if (!gps) {
-      // If still no location, prompt settings again and retry once
-      await openLocationSettings();
-      gps = await fetchCurrentLocation();
-      if (!gps) {
-        setError('Location permission and GPS are required to request a service.');
+    // Attempt to get current location
+    let res = await fetchCurrentLocation();
+    if (!res.success) {
+      // If permission denied on native, maybe prompt settings
+      if (res.errorCode === 'PERMISSION_DENIED') {
+        await openLocationSettings();
+        res = await fetchCurrentLocation();
+      }
+      if (!res.success) {
+        setError(res.errorMessage || 'Location permission and GPS are required to request a service.');
         setSubmitting(false);
         return;
       }
     }
-    if (gps.accuracy != null && gps.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) {
+    
+    // We only enforce accuracy if they are NOT using a saved address.
+    // If they have a saved address with coordinates, we use that for the service destination.
+    if (!selectedAddress && res.accuracy != null && res.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) {
       setError('GPS accuracy is too low. Move to an open area and try again.');
       setSubmitting(false);
       return;
     }
 
-    try {
-      // Determine the booking destination coordinates
-      let bookingLat = gps.latitude;
-      let bookingLng = gps.longitude;
+    // Determine the booking destination coordinates
+    let bookingLat = res.latitude!;
+    let bookingLng = res.longitude!;
       
-      if (selectedAddress && selectedAddress.latitude != null && selectedAddress.longitude != null) {
-        bookingLat = selectedAddress.latitude;
-        bookingLng = selectedAddress.longitude;
-      }
+    if (selectedAddress && selectedAddress.latitude != null && selectedAddress.longitude != null) {
+      bookingLat = selectedAddress.latitude;
+      bookingLng = selectedAddress.longitude;
+    }
 
-      const customerAccuracy = gps.accuracy;
+    const customerAccuracy = res.accuracy;
 
+    try {
       let finalProviderId = providerId || null;
       let finalStatus: 'pending' | 'assigned' = mode === 'manual' && providerId ? 'assigned' : 'pending';
 

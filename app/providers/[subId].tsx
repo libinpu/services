@@ -169,8 +169,10 @@ export default function ProvidersScreen() {
   }, [fetchData]);
 
   useEffect(() => {
-    void fetchCurrentLocation().then((gps) => {
-      if (gps) setCustomerCoords({ lat: gps.latitude, lng: gps.longitude });
+    void fetchCurrentLocation().then((res) => {
+      if (res.success && res.latitude != null && res.longitude != null) {
+        setCustomerCoords({ lat: res.latitude, lng: res.longitude });
+      }
     });
   }, []);
 

@@ -295,18 +295,25 @@ export default function ProviderDashboardScreen() {
 
   const startShift = async () => {
     if (!session?.user?.id) return;
-    const gps = await fetchCurrentLocation();
-    if (!gps || (gps.accuracy != null && gps.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M)) {
-      setError('Valid GPS location is required to go online.');
+    
+    const res = await fetchCurrentLocation();
+    if (!res.success) {
+      setError(res.errorMessage || 'Valid GPS location is required to go online.');
       return;
     }
+    
+    if (res.accuracy != null && res.accuracy > TRACKING_CONFIG.LOCATION_ACCURACY_THRESHOLD_M) {
+      setError('GPS accuracy is too low. Move to an open area and try again.');
+      return;
+    }
+
     const now = new Date().toISOString();
     const updateData = {
       is_online: true,
       shift_started_at: now,
-      latitude: gps.latitude,
-      longitude: gps.longitude,
-      location_accuracy: gps.accuracy,
+      latitude: res.latitude,
+      longitude: res.longitude,
+      location_accuracy: res.accuracy,
       last_location_at: now,
       updated_at: now,
     };
