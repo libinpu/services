@@ -125,7 +125,7 @@ export async function requestLocationPermission(): Promise<LocationPermissionSta
             setState({ permission: perm, error: 'Location permission denied', errorCode: 'PERMISSION_DENIED' });
             resolve(perm);
           },
-          { maximumAge: 60000, timeout: 5000, enableHighAccuracy: false }
+          { maximumAge: 60000, timeout: 60000, enableHighAccuracy: false }
         );
       });
     } else {
@@ -188,7 +188,7 @@ export function validateLocation(lat?: number, lng?: number, accuracy?: number, 
   return true;
 }
 
-export async function fetchCurrentLocation(timeoutMs = 15_000): Promise<LocationResponse> {
+export async function fetchCurrentLocation(timeoutMs = 30_000): Promise<LocationResponse> {
   const permStatus = await checkLocationPermission();
   if (permStatus !== 'granted') {
     const askedStatus = await requestLocationPermission();
