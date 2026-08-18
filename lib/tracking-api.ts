@@ -25,12 +25,12 @@ async function invokeFunction<T>(name: string, body: Record<string, unknown>): P
   return json as T;
 }
 
-/** Backend assigns nearest eligible provider within 10 km. */
+/** Backend broadcasts request to all eligible providers within 10 km. */
 export async function assignNearestProvider(bookingId: string) {
-  trackingLog('JOB_STATE_CHANGE', 'Requesting nearest provider assignment', { bookingId });
-  const { data, error } = await supabase.rpc('auto_assign_provider', { p_booking_id: bookingId });
+  trackingLog('JOB_STATE_CHANGE', 'Broadcasting request to nearby providers', { bookingId });
+  const { data, error } = await supabase.rpc('broadcast_booking_requests', { p_booking_id: bookingId });
   if (error) throw error;
-  return data as { success: boolean; status: string; providerId?: string; message?: string };
+  return data as { success: boolean; status: string; count?: number; message?: string };
 }
 
 /** Provider accepts an assigned job → accepted state (atomic). */
@@ -51,16 +51,7 @@ export async function rejectBooking(bookingId: string, reason?: string) {
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
 
-  // If auto-mode, the client needs to re-trigger auto-assign-provider
-  // since RPCs cannot do HTTP fetches easily
-  try {
-    const { data: booking } = await supabase.from('bookings').select('booking_mode').eq('id', bookingId).single();
-    if (booking?.booking_mode === 'auto') {
-      await assignNearestProvider(bookingId);
-    }
-  } catch (e) {
-    trackingLog('JOB_STATE_CHANGE', 'Failed to trigger auto-reassign after reject', { error: String(e) });
-  }
+
 
   return data as { success: boolean; status: string };
 }

@@ -724,7 +724,7 @@ export default function BookingDetailScreen() {
             <Text style={styles.waitingTitle}>{t('pending')}</Text>
             <Text style={styles.waitingDesc}>
               {booking.booking_mode === 'auto'
-                ? 'Finding the nearest available provider for you...'
+                ? 'Searching for nearby professionals...'
                 : 'Waiting for provider to accept your booking...'}
             </Text>
             <View style={styles.waitingPulse} />

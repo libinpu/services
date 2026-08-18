@@ -105,14 +105,25 @@ export default function NearbyRequestsScreen() {
       const provLat = liveLocRef.current.lat ?? providerProfileData.latitude;
       const provLon = liveLocRef.current.lng ?? providerProfileData.longitude;
 
-      // Assigned bookings for this provider awaiting acceptance
-      const bookingRes = await supabase
-        .from('bookings')
-        .select('*, subcategory:service_subcategories(id, name_en, name_ml, category_id), address:addresses(id, label, address_line, area, district, latitude, longitude)')
-        .eq('status', 'assigned')
-        .eq('provider_id', userId);
+      // Broadcasted requests for this provider awaiting acceptance
+      const requestRes = await supabase
+        .from('booking_provider_requests')
+        .select(`
+          id,
+          booking_id,
+          status,
+          bookings (
+            *,
+            subcategory:service_subcategories(id, name_en, name_ml, category_id),
+            address:addresses(id, label, address_line, area, district, latitude, longitude)
+          )
+        `)
+        .eq('provider_id', userId)
+        .eq('status', 'pending');
 
-      const matched = ((bookingRes.data as BookingWithDetails[]) || []).filter((b) => {
+      const activeRequests = (requestRes.data || []).map(r => r.bookings as unknown as BookingWithDetails).filter(Boolean);
+
+      const matched = activeRequests.filter((b) => {
         const catId = b.subcategory?.category_id;
         if (!catId) return false;
         return categoryIds.includes(catId);
@@ -197,7 +208,7 @@ export default function NearbyRequestsScreen() {
     // One scoped channel replaces the old 8-second list poll. The in-flight
     // guard in fetchRequests coalesces bursts of booking events.
     const channel = createRealtimeChannel(`nearby-assigned-bookings:${session.user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `provider_id=eq.${session.user.id}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'booking_provider_requests', filter: `provider_id=eq.${session.user.id}` }, () => {
         void fetchRequests();
       })
       .subscribe();

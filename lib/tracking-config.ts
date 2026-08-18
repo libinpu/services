@@ -7,7 +7,7 @@ export const TRACKING_CONFIG = {
   /** Proximity threshold for arrival detection (meters). */
   ARRIVAL_RADIUS_M: 50,
   /** Reject arrival when accuracy is worse than this (meters). */
-  LOCATION_ACCURACY_THRESHOLD_M: 200,
+  LOCATION_ACCURACY_THRESHOLD_M: 80,
   /** OTP validity window (ms). */
   OTP_EXPIRATION_MS: 15 * 60 * 1000,
   /** Max failed OTP attempts before lockout. */

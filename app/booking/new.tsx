@@ -263,8 +263,15 @@ export default function BookingConfirmationScreen() {
     }
 
     try {
-      const customerLat = gps.latitude;
-      const customerLng = gps.longitude;
+      // Determine the booking destination coordinates
+      let bookingLat = gps.latitude;
+      let bookingLng = gps.longitude;
+      
+      if (selectedAddress && selectedAddress.latitude != null && selectedAddress.longitude != null) {
+        bookingLat = selectedAddress.latitude;
+        bookingLng = selectedAddress.longitude;
+      }
+
       const customerAccuracy = gps.accuracy;
 
       let finalProviderId = providerId || null;
@@ -289,8 +296,8 @@ export default function BookingConfirmationScreen() {
           payment_method: 'cash',
           payment_status: 'pending',
           otp_verified: false,
-          customer_latitude: customerLat,
-          customer_longitude: customerLng,
+          customer_latitude: bookingLat,
+          customer_longitude: bookingLng,
           customer_location_accuracy: customerAccuracy,
           customer_location_at: new Date().toISOString(),
         })
