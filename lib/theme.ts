@@ -101,20 +101,20 @@ const darkColors: ColorPalette = {
   },
 };
 
-// ─── Light palette (premium modern design) ────────────
+// ─── Light palette (BEIGE premium service marketplace) ────────────
 const lightColors: ColorPalette = {
   primary: {
-    // Deep Slate Blue #334E68
-    50: 'rgba(51,78,104,0.08)',
-    100: 'rgba(51,78,104,0.15)',
-    200: 'rgba(51,78,104,0.25)',
-    300: '#334E68',
-    400: '#334E68',
-    500: '#334E68',
-    600: '#334E68', // Deep Slate Blue
-    700: '#243B53',
-    800: '#102A43',
-    900: '#0A1C30',
+    // Forest teal #143C35
+    50: 'rgba(20,60,53,0.08)',
+    100: 'rgba(20,60,53,0.14)',
+    200: 'rgba(20,60,53,0.24)',
+    300: '#2F665A',
+    400: '#225347',
+    500: '#143C35',
+    600: '#143C35',
+    700: '#10332D',
+    800: '#0B2823',
+    900: '#071C18',
   },
   secondary: {
     // Soft Orange #FF8C5A
@@ -179,18 +179,18 @@ const lightColors: ColorPalette = {
     900: '#D32F2F',
   },
   neutral: {
-    0: '#FFFFFF',
-    50: '#F7F9FC',   // Background
-    100: '#FFFFFF',  // Cards background
-    200: '#E8EEF4',  // Borders
-    300: '#DCE2E7',  // Divider
-    400: '#9FB3C8',  // Placeholder / light secondary
-    500: '#7B8794',  // Secondary Text
-    600: '#627D98',  // Medium text
-    700: '#233142',  // Primary Text
-    800: '#233142',
-    900: '#102A43',
-    950: '#F7F9FC',
+    0: '#FFFDF8',
+    50: '#F4F0E8',   // Warm beige background
+    100: '#FFFDF8',  // Cards background
+    200: '#E7DFD2',  // Borders
+    300: '#D5C9B9',  // Divider
+    400: '#A89D8E',  // Placeholder / light secondary
+    500: '#746D63',  // Secondary Text
+    600: '#4F514A',  // Medium text
+    700: '#20352F',  // Primary Text
+    800: '#182A25',
+    900: '#10201C',
+    950: '#F4F0E8',
   },
 };
 
