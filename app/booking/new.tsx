@@ -16,6 +16,9 @@ import { TRACKING_CONFIG } from '@/lib/tracking-config';
 import { getPhoneValidationError, getBookingAddressValidationError } from '@/lib/booking-rules';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
 
+/** Flat call-out charge added on top of the service base price. */
+const VISIT_CHARGE = 49;
+
 export default function BookingConfirmationScreen() {
   const { subId, mode, providerId } = useLocalSearchParams<{ subId: string; mode: string; providerId?: string }>();
   const { t, lang } = useLanguage();
@@ -120,6 +123,34 @@ export default function BookingConfirmationScreen() {
     addAddressText: {
       fontSize: typography.sizes.md, color: colors.primary[600], fontWeight: '600',
       fontFamily: typography.fontFamilyMedium,
+    },
+    estimateCard: {
+      backgroundColor: colors.neutral[100], borderRadius: radius.xl,
+      padding: spacing.lg, ...shadows.sm,
+    },
+    estimateRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    estimateLabel: {
+      fontSize: typography.sizes.sm, color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    estimateValue: {
+      fontSize: typography.sizes.sm, fontWeight: '700', color: colors.neutral[900],
+      fontFamily: typography.fontFamilyBold,
+    },
+    estimateTotalRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      borderTopWidth: 1, borderTopColor: colors.neutral[200], paddingTop: spacing.sm,
+    },
+    estimateTotal: {
+      fontSize: typography.sizes.xxl, fontWeight: '800', color: colors.primary[600],
+      fontFamily: typography.fontFamilyDisplay,
+    },
+    estimateNote: {
+      fontSize: typography.sizes.xs, color: colors.neutral[400], marginTop: spacing.sm,
+      fontFamily: typography.fontFamilyRegular,
     },
     errorText: {
       fontSize: typography.sizes.sm, color: colors.error[600], textAlign: 'center',
@@ -314,7 +345,7 @@ export default function BookingConfirmationScreen() {
           status: finalStatus,
           scheduled_at: scheduledAt,
           booking_mode: mode as 'auto' | 'manual',
-          estimated_cost: 0,
+          estimated_cost: Number(subcategory.base_price) + VISIT_CHARGE,
           payment_method: 'cash',
           payment_status: 'pending',
           otp_verified: false,
@@ -425,6 +456,30 @@ export default function BookingConfirmationScreen() {
             </View>
           )}
         </View>
+
+        {/* Live price estimate */}
+        {subcategory && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('priceEstimate')}</Text>
+            <View style={styles.estimateCard}>
+              <View style={styles.estimateRow}>
+                <Text style={styles.estimateLabel}>{lang === 'ml' ? subcategory.name_ml : subcategory.name_en}</Text>
+                <Text style={styles.estimateValue}>₹{Number(subcategory.base_price).toFixed(0)}</Text>
+              </View>
+              <View style={styles.estimateRow}>
+                <Text style={styles.estimateLabel}>{t('visitCharge')}</Text>
+                <Text style={styles.estimateValue}>₹{VISIT_CHARGE}</Text>
+              </View>
+              <View style={styles.estimateTotalRow}>
+                <Text style={styles.estimateLabel}>{t('estimatedTotal')}</Text>
+                <Text style={styles.estimateTotal}>
+                  ₹{(Number(subcategory.base_price) + VISIT_CHARGE).toFixed(0)}
+                </Text>
+              </View>
+              <Text style={styles.estimateNote}>{t('finalPriceNote')}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Saved address (optional) */}
         <View style={styles.section}>

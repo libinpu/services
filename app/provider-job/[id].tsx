@@ -9,6 +9,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
+import { BookingPhotos } from '@/components/BookingPhotos';
 import type { BookingWithDetails } from '@/lib/types';
 import { Phone, MessageSquare, MapPin, Navigation, Clock, CircleCheck as CheckCircle, X, User, Camera, ShieldCheck, Ruler, Receipt, Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
 import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
@@ -675,6 +676,10 @@ export default function ProviderJobDetailScreen() {
               <Text style={styles.contactBtnText}>{t('chat')}</Text>
             </TouchableOpacity>
           </View>
+        )}
+
+        {['arrived', 'in_progress', 'completed'].includes(status) && booking && (
+          <BookingPhotos bookingId={booking.id} uploaderId={session?.user?.id} canUpload />
         )}
       </ScrollView>
 

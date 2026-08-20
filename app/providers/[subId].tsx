@@ -3,12 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '@/lib/language-context';
-import { useTheme } from '@/lib/theme-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
-import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
+import { Header, ErrorState, Button } from '@/components/ui';
+import { ProviderCard } from '@/components/cards';
 import type { ServiceSubcategory } from '@/lib/types';
-import { Star, ShieldCheck, MapPin, Zap, ChevronRight, User } from 'lucide-react-native';
+import { MapPin, Zap, User } from 'lucide-react-native';
 import { cache } from '@/lib/cache';
 import { SkeletonList } from '@/components/ui';
 import { formatDistance } from '@/lib/distance';
@@ -26,13 +26,16 @@ type NearbyProvider = {
   experience_years: number;
   is_verified: boolean;
   distance_km: number;
+  verified_aadhaar?: boolean | null;
+  verified_police?: boolean | null;
+  area_served?: string | null;
+  locality_bookings?: number | null;
 };
 
 export default function ProvidersScreen() {
   const { subId } = useLocalSearchParams<{ subId: string }>();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const router = useRouter();
-  const { isDark } = useTheme();
 
   const [subcategory, setSubcategory] = useState<ServiceSubcategory | null>(null);
   const [providers, setProviders] = useState<NearbyProvider[]>([]);
@@ -88,49 +91,6 @@ export default function ProvidersScreen() {
     noProvidersText: {
       fontSize: typography.sizes.md, color: colors.neutral[500],
       textAlign: 'center', fontFamily: typography.fontFamilyRegular,
-    },
-    providerCard: {
-      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.neutral[100],
-      borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
-    },
-    providerAvatar: {
-      width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[200],
-      alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
-    },
-    providerAvatarPlaceholder: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.neutral[200] },
-    providerInfo: { flex: 1 },
-    providerNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
-    providerName: {
-      fontSize: typography.sizes.md, fontWeight: '700', color: colors.neutral[900],
-      marginRight: spacing.sm, fontFamily: typography.fontFamilyBold,
-    },
-    verifiedBadge: {
-      flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs, paddingVertical: 2,
-      backgroundColor: colors.success[50], borderRadius: radius.full,
-    },
-    verifiedText: {
-      fontSize: typography.sizes.xs, color: colors.success[700], fontWeight: '600',
-      marginLeft: 2, fontFamily: typography.fontFamilyMedium,
-    },
-    providerMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
-    ratingRow: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.md },
-    ratingText: {
-      fontSize: typography.sizes.sm, fontWeight: '600', color: colors.neutral[700],
-      marginLeft: 2, fontFamily: typography.fontFamilyMedium,
-    },
-    jobsText: {
-      fontSize: typography.sizes.xs, color: colors.neutral[400],
-      marginLeft: 4, fontFamily: typography.fontFamilyRegular,
-    },
-    expText: {
-      fontSize: typography.sizes.sm, color: colors.neutral[500],
-      fontFamily: typography.fontFamilyRegular,
-    },
-    distanceRow: { flexDirection: 'row', alignItems: 'center' },
-    distanceTag: { flexDirection: 'row', alignItems: 'center' },
-    distanceText: {
-      fontSize: typography.sizes.xs, color: colors.neutral[500],
-      marginLeft: 2, fontFamily: typography.fontFamilyRegular,
     },
   });
 
@@ -306,57 +266,35 @@ export default function ProvidersScreen() {
                 </Text>
               </View>
             ) : (
-              providers.map((provider) => {
-                return (
-                  <TouchableOpacity
-                    key={provider.provider_id}
-                    style={styles.providerCard}
-                    onPress={() => router.push(`/provider/${provider.provider_id}?subId=${subcategory?.id}`)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.providerAvatar}>
-                      {provider.avatar_url ? (
-                        <View style={styles.providerAvatarPlaceholder} />
-                      ) : (
-                        <User size={28} color={colors.neutral[400]} strokeWidth={2} />
-                      )}
-                      {/* Online indicator dot */}
-                      <View style={{ position: 'absolute', bottom: 2, right: 2,
-                        width: 12, height: 12, borderRadius: 6,
-                        backgroundColor: colors.success[500],
-                        borderWidth: 2, borderColor: colors.neutral[100] }} />
-                    </View>
-                    <View style={styles.providerInfo}>
-                      <View style={styles.providerNameRow}>
-                        <Text style={styles.providerName}>{provider.display_name || 'Provider'}</Text>
-                        {provider.is_verified && (
-                          <View style={styles.verifiedBadge}>
-                            <ShieldCheck size={14} color={colors.success[600]} strokeWidth={2} />
-                            <Text style={styles.verifiedText}>{t('verified')}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.providerMeta}>
-                        <View style={styles.ratingRow}>
-                          <Star size={14} color={colors.warning[500]} fill={colors.warning[500]} strokeWidth={0} />
-                          <Text style={styles.ratingText}>{Number(provider.rating_avg).toFixed(1)}</Text>
-                          <Text style={styles.jobsText}>({provider.jobs_completed} {t('jobsCompleted')})</Text>
-                        </View>
-                        <Text style={styles.expText}>{provider.experience_years} {t('yearsExp')}</Text>
-                      </View>
-                      <View style={styles.distanceRow}>
-                        <View style={styles.distanceTag}>
-                          <MapPin size={12} color={colors.neutral[400]} strokeWidth={2} />
-                          <Text style={styles.distanceText}>
-                            {`${formatDistance(Number(provider.distance_km))} away`}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    <ChevronRight size={20} color={colors.neutral[300]} strokeWidth={2} />
-                  </TouchableOpacity>
-                );
-              })
+              providers.map((provider) => (
+                <ProviderCard
+                  key={provider.provider_id}
+                  name={provider.display_name || 'Provider'}
+                  avatarUrl={provider.avatar_url}
+                  rating={Number(provider.rating_avg)}
+                  ratingCount={provider.rating_count}
+                  jobsCompleted={provider.jobs_completed}
+                  distanceLabel={`${formatDistance(Number(provider.distance_km))} away`}
+                  priceLabel={subcategory ? `₹${Number(subcategory.base_price).toFixed(0)}` : null}
+                  online
+                  badges={{
+                    verifiedAadhaar: provider.verified_aadhaar ?? provider.is_verified,
+                    verifiedPolice: provider.verified_police,
+                    areaServed: provider.area_served,
+                  }}
+                  badgeLabels={{
+                    aadhaar: t('aadhaarVerified'),
+                    police: t('policeVerified'),
+                    jobs: t('jobsCompleted'),
+                  }}
+                  neighborhoodNote={
+                    provider.locality_bookings && provider.locality_bookings > 0
+                      ? `${provider.locality_bookings} ${t('neighborhoodBooked')}`
+                      : null
+                  }
+                  onPress={() => router.push(`/provider/${provider.provider_id}?subId=${subcategory?.id}`)}
+                />
+              ))
             )}
           </View>
         )}

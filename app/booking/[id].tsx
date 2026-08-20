@@ -13,6 +13,7 @@ import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 import { Header, LoadingState, ErrorState, Button } from '@/components/ui';
 import { LiveTrackingMap } from '@/components/LiveTrackingMap';
+import { BookingPhotos } from '@/components/BookingPhotos';
 import { isValidOtp } from '@/lib/otp';
 import { haversineKm, estimateEtaMins, formatDistance, formatEta } from '@/lib/distance';
 import { TRACKING_CONFIG } from '@/lib/tracking-config';
@@ -1080,6 +1081,8 @@ export default function BookingDetailScreen() {
             </View>
           </View>
         </View>
+
+        <BookingPhotos bookingId={booking.id} />
       </ScrollView>
 
       {/* Chat overlay */}
