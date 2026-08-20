@@ -101,20 +101,20 @@ const darkColors: ColorPalette = {
   },
 };
 
-// ─── Light palette (premium modern design) ────────────
+// ─── Light palette (BEIGE premium cream + teal) ────────────
 const lightColors: ColorPalette = {
   primary: {
-    // Deep Slate Blue #334E68
-    50: 'rgba(51,78,104,0.08)',
-    100: 'rgba(51,78,104,0.15)',
-    200: 'rgba(51,78,104,0.25)',
-    300: '#334E68',
-    400: '#334E68',
-    500: '#334E68',
-    600: '#334E68', // Deep Slate Blue
-    700: '#243B53',
-    800: '#102A43',
-    900: '#0A1C30',
+    // Primary teal #0F766E
+    50: 'rgba(15,118,110,0.08)',
+    100: 'rgba(15,118,110,0.15)',
+    200: 'rgba(15,118,110,0.25)',
+    300: '#5AAFA5',
+    400: '#2B9187',
+    500: '#0F766E',
+    600: '#0F766E',
+    700: '#0B5F59',
+    800: '#084C48',
+    900: '#063B38',
   },
   secondary: {
     // Soft Orange #FF8C5A
@@ -179,18 +179,18 @@ const lightColors: ColorPalette = {
     900: '#D32F2F',
   },
   neutral: {
-    0: '#FFFFFF',
-    50: '#F7F9FC',   // Background
-    100: '#FFFFFF',  // Cards background
-    200: '#E8EEF4',  // Borders
-    300: '#DCE2E7',  // Divider
-    400: '#9FB3C8',  // Placeholder / light secondary
-    500: '#7B8794',  // Secondary Text
-    600: '#627D98',  // Medium text
-    700: '#233142',  // Primary Text
-    800: '#233142',
-    900: '#102A43',
-    950: '#F7F9FC',
+    0: '#FFF9F0',
+    50: '#F8F5EF',   // Warm beige background
+    100: '#FFF9F0',  // Cream cards
+    200: '#E4E8DE',  // Soft green borders
+    300: '#D6DCCF',  // Dividers
+    400: '#A7B0A3',  // Placeholder
+    500: '#6B7280',  // Secondary text
+    600: '#4B5563',  // Medium text
+    700: '#1A1A1A',  // Primary text
+    800: '#1A1A1A',
+    900: '#111827',
+    950: '#F8F5EF',
   },
 };
 

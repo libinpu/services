@@ -224,9 +224,9 @@ export default function HomeScreen() {
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.neutral[50] },
     scroll: { flex: 1 },
-    // Large rounded header card in deep slate blue with decorative shapes
+    // Soft cream hero inspired by the BEIGE mobile reference
     heroBlock: {
-      backgroundColor: colors.primary[600],
+      backgroundColor: colors.neutral[50],
       borderBottomLeftRadius: 36,
       borderBottomRightRadius: 36,
       paddingHorizontal: spacing.lg,
@@ -263,7 +263,7 @@ export default function HomeScreen() {
     heroLeft: { flex: 1 },
     locationLabel: {
       fontSize: 11,
-      color: 'rgba(255, 255, 255, 0.7)',
+      color: colors.neutral[500],
       fontFamily: typography.fontFamilyRegular,
       marginBottom: 2,
       textTransform: 'uppercase',
@@ -281,7 +281,7 @@ export default function HomeScreen() {
     heroIcons: { flexDirection: 'row', gap: spacing.sm },
     iconBtn: {
       width: 44, height: 44, borderRadius: radius.full,
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      backgroundColor: colors.neutral[100],
       alignItems: 'center', justifyContent: 'center',
     },
     iconBtnPressed: { backgroundColor: 'rgba(255, 255, 255, 0.25)' },
@@ -304,7 +304,7 @@ export default function HomeScreen() {
     },
     filterBtn: {
       width: 54, height: 54, borderRadius: radius.full,
-      backgroundColor: colors.accent[500], alignItems: 'center', justifyContent: 'center', // active state accent color
+      backgroundColor: colors.primary[500], alignItems: 'center', justifyContent: 'center', // teal CTA
       ...shadows.md,
     },
     filterBtnPressed: { backgroundColor: '#FF8C5A' },
@@ -539,9 +539,9 @@ export default function HomeScreen() {
                 activeOpacity={0.7}
                 onPress={() => router.push('/location-setup')}
               >
-                <MapPin size={16} color={colors.neutral[100]} strokeWidth={2.5} />
+                <MapPin size={16} color={colors.primary[500]} strokeWidth={2.5} />
                 <Text style={styles.locationText} numberOfLines={1}>{selectedLocationText}</Text>
-                <ChevronRight size={16} color={colors.neutral[100]} strokeWidth={2.5} />
+                <ChevronRight size={16} color={colors.primary[500]} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
             <View style={styles.heroIcons}>
@@ -549,7 +549,7 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
                 onPress={() => router.push('/(tabs)/bookings')}
               >
-                <Bell size={20} color={colors.neutral[100]} strokeWidth={2.2} />
+                <Bell size={20} color={colors.primary[500]} strokeWidth={2.2} />
                 <View style={styles.bellDot} />
               </Pressable>
             </View>
@@ -568,7 +568,7 @@ export default function HomeScreen() {
               style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}
               onPress={() => setSearchOpen(true)}
             >
-              <SlidersHorizontal size={20} color={colors.neutral[100]} strokeWidth={2.2} />
+              <SlidersHorizontal size={20} color={colors.neutral[0]} strokeWidth={2.2} />
             </Pressable>
           </View>
         </View>

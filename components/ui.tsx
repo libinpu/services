@@ -22,9 +22,9 @@ function makeStyles() {
       flex: 1,
       backgroundColor: colors.neutral[50],
     },
-    // Premium round header style with slate blue bg (#334E68)
+    // Premium round header style with BEIGE cream + teal accents
     header: {
-      backgroundColor: colors.primary[600],
+      backgroundColor: colors.neutral[50],
       borderBottomLeftRadius: radius.xl,
       borderBottomRightRadius: radius.xl,
       paddingHorizontal: spacing.lg,
@@ -51,7 +51,7 @@ function makeStyles() {
       flex: 1,
       fontSize: typography.sizes.xl,
       fontWeight: '700',
-      color: colors.neutral[100],
+      color: colors.neutral[900],
       fontFamily: typography.fontFamilyBold,
       includeFontPadding: false,
     },
@@ -76,7 +76,7 @@ function makeStyles() {
       ...shadows.sm,
     },
     btnPrimary: {
-      backgroundColor: colors.accent[500], // Coral Orange CTA
+      backgroundColor: colors.primary[500], // Teal CTA
     },
     btnSecondary: {
       backgroundColor: colors.neutral[100],
@@ -292,7 +292,7 @@ export function Header({
       <View style={styles.headerRow}>
         {onBack && (
           <TouchableOpacity onPress={onBack} style={styles.headerBtn} activeOpacity={0.7}>
-            <ChevronLeft size={22} color={colors.neutral[100]} strokeWidth={2.5} />
+            <ChevronLeft size={22} color={colors.primary[500]} strokeWidth={2.5} />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>{title}</Text>

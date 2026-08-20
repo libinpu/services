@@ -13,7 +13,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accent[500], // Coral Orange for active tabs
+        tabBarActiveTintColor: colors.primary[500], // BEIGE teal active state
         tabBarInactiveTintColor: colors.neutral[500], // Inactive gray icons
         tabBarStyle: {
           backgroundColor: colors.neutral[100],
