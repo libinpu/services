@@ -33,7 +33,7 @@ export default function LoginScreen() {
     },
     // Large rounded colored top section with soft decorative background shapes
     topSection: {
-      backgroundColor: colors.neutral[50], // Warm BEIGE surface
+      backgroundColor: colors.neutral[100],
       borderBottomLeftRadius: 36,
       borderBottomRightRadius: 36,
       paddingTop: Platform.OS === 'ios' ? 70 : 50,

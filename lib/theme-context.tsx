@@ -15,19 +15,20 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>('dark');
+  const [mode, setModeState] = useState<ThemeMode>('light');
 
   // Load saved preference on mount
   useEffect(() => {
     AsyncStorage.getItem(THEME_STORAGE_KEY).then((saved) => {
-      if (saved === 'light' || saved === 'dark') {
-        applyMode(saved);
+      if (saved === 'light') {
+        applyMode('light');
       } else {
-        // Default to dark theme per design
-        applyMode('dark');
+        // The supplied BEIGE reference is the product default. Migrate any
+        // legacy dark preference so the visible app matches the new system.
+        applyMode('light');
       }
     }).catch(() => {
-      applyMode('dark');
+      applyMode('light');
     });
   }, []);
 

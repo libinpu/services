@@ -11,7 +11,7 @@ type ColorPalette = {
   neutral: ColorRamp;
 };
 
-// ─── Dark palette (deep slate + coral orange) ───────────────
+// ─── Legacy dark palette (kept for explicit user toggle) ────
 const darkColors: ColorPalette = {
   primary: {
     50: 'rgba(56, 189, 248, 0.1)',

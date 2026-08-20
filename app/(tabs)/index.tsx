@@ -226,7 +226,7 @@ export default function HomeScreen() {
     scroll: { flex: 1 },
     // Soft cream hero inspired by the BEIGE mobile reference
     heroBlock: {
-      backgroundColor: colors.neutral[50],
+      backgroundColor: colors.neutral[100],
       borderBottomLeftRadius: 36,
       borderBottomRightRadius: 36,
       paddingHorizontal: spacing.lg,
