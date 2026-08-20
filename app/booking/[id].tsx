@@ -738,9 +738,9 @@ export default function BookingDetailScreen() {
             <View style={[styles.waitingIconWrap, { backgroundColor: colors.error[50] }]}>
               <User size={48} color={colors.error[500]} strokeWidth={1.5} />
             </View>
-            <Text style={[styles.waitingTitle, { color: colors.error[700] }]}>Professional Not Found</Text>
+            <Text style={[styles.waitingTitle, { color: colors.error[700] }]}>No provider nearby</Text>
             <Text style={styles.waitingDesc}>
-              We couldn't find any professionals within 10 km of your location for this service.
+              Sorry, there is no verified provider available within 10 km of your location right now. Try another time or choose a nearby service area.
             </Text>
             <Button label="Back to Home" onPress={() => router.replace('/(tabs)')} style={[styles.cancelBtn, { marginTop: spacing.lg }]} />
           </View>

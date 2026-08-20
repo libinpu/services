@@ -33,7 +33,7 @@ export default function LoginScreen() {
     },
     // Large rounded colored top section with soft decorative background shapes
     topSection: {
-      backgroundColor: colors.primary[600], // Deep Slate Blue header
+      backgroundColor: colors.neutral[50], // Warm BEIGE surface
       borderBottomLeftRadius: 36,
       borderBottomRightRadius: 36,
       paddingTop: Platform.OS === 'ios' ? 70 : 50,
@@ -75,12 +75,12 @@ export default function LoginScreen() {
     appName: {
       fontSize: 26,
       fontWeight: '700',
-      color: colors.neutral[100],
+      color: colors.neutral[900],
       fontFamily: typography.fontFamilyBold,
     },
     tagline: {
       fontSize: typography.sizes.sm,
-      color: 'rgba(255, 255, 255, 0.75)',
+      color: colors.neutral[500],
       marginTop: 4,
       fontFamily: typography.fontFamilyRegular,
     },
@@ -134,7 +134,7 @@ export default function LoginScreen() {
     googleIcon: {
       fontSize: 18,
       fontWeight: '700',
-      color: colors.accent[500], // accent orange
+      color: colors.primary[500], // teal accent
       fontFamily: typography.fontFamilyBold,
     },
     socialBtnText: {
@@ -188,7 +188,7 @@ export default function LoginScreen() {
       fontFamily: typography.fontFamilyMedium,
     },
     modeTabTextActive: {
-      color: colors.accent[500], // orange state
+      color: colors.primary[500], // teal state
     },
     input: {
       backgroundColor: colors.neutral[100],
@@ -316,7 +316,7 @@ export default function LoginScreen() {
           <View style={styles.topCircle1} />
           <View style={styles.topCircle2} />
           <View style={styles.logoCircle}>
-            <Wrench size={34} color={colors.neutral[100]} strokeWidth={2} />
+            <Wrench size={34} color={colors.primary[500]} strokeWidth={2} />
           </View>
           <Text style={styles.appName}>{t('appName')}</Text>
           <Text style={styles.tagline}>{t('tagline')}</Text>

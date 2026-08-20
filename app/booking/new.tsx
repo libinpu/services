@@ -329,7 +329,19 @@ export default function BookingConfirmationScreen() {
       if (insertError) throw insertError;
 
       if (data) {
-        // Trigger notification will automatically run and dispatch to nearby providers
+        // Broadcast the request immediately. The backend filters verified, online
+        // providers within the configured 10 km radius and notifies every match.
+        try {
+          const assignment = await assignNearestProvider(data.id);
+          if (assignment.count === 0 || assignment.status === 'no_provider') {
+            await supabase.from('bookings').update({
+              status: 'cancelled',
+              cancellation_reason: 'No verified provider available within 10 km',
+            }).eq('id', data.id).eq('status', 'pending');
+          }
+        } catch (assignmentError) {
+          console.log('[v0] Provider broadcast failed; booking remains pending:', assignmentError);
+        }
         router.replace(`/booking/${data.id}`);
       }
     } catch (e: any) {
