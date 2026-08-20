@@ -12,8 +12,8 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { ArrowRight, ChevronLeft } from 'lucide-react-native';
-import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
+import { ArrowRight, ChevronLeft, MapPin, ChevronDown, Search, SlidersHorizontal } from 'lucide-react-native';
+import { colors, spacing, radius, typography, shadows, heroHeadline } from '@/lib/theme';
 
 // Build styles fresh on each call so they pick up the current theme values.
 function makeStyles() {
@@ -22,17 +22,13 @@ function makeStyles() {
       flex: 1,
       backgroundColor: colors.neutral[50],
     },
-    // Premium round header style with slate blue bg (#334E68)
+    // Flat warm header that sits directly on the beige canvas
     header: {
-      backgroundColor: colors.primary[600],
-      borderBottomLeftRadius: radius.xl,
-      borderBottomRightRadius: radius.xl,
+      backgroundColor: colors.neutral[50],
       paddingHorizontal: spacing.lg,
-      paddingTop: Platform.OS === 'ios' ? 54 : spacing.xl,
-      paddingBottom: spacing.lg,
-      ...shadows.md,
+      paddingTop: Platform.OS === 'ios' ? 54 : spacing.lg,
+      paddingBottom: spacing.md,
       position: 'relative',
-      overflow: 'hidden',
     },
     headerRow: {
       flexDirection: 'row',
@@ -44,15 +40,17 @@ function makeStyles() {
       borderRadius: radius.full,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      backgroundColor: colors.neutral[100],
       marginRight: spacing.md,
+      ...shadows.sm,
     },
     headerTitle: {
       flex: 1,
       fontSize: typography.sizes.xl,
-      fontWeight: '700',
-      color: colors.neutral[100],
-      fontFamily: typography.fontFamilyBold,
+      fontWeight: '800',
+      color: colors.neutral[900],
+      fontFamily: typography.fontFamilyDisplay,
+      letterSpacing: -0.3,
       includeFontPadding: false,
     },
     headerRight: {
@@ -61,7 +59,7 @@ function makeStyles() {
     },
     headerSubtitle: {
       fontSize: typography.sizes.xs,
-      color: 'rgba(255, 255, 255, 0.75)',
+      color: colors.neutral[500],
       fontFamily: typography.fontFamilyRegular,
       marginTop: spacing.xs,
       marginLeft: 42 + spacing.md, // Align with title
@@ -69,24 +67,22 @@ function makeStyles() {
     btnBase: {
       minHeight: 54,
       paddingVertical: spacing.sm,
-      borderRadius: radius.full,
+      borderRadius: radius.full, // fully rounded pill
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: spacing.xl,
       ...shadows.sm,
     },
     btnPrimary: {
-      backgroundColor: colors.accent[500], // Coral Orange CTA
+      backgroundColor: colors.primary[600], // forest green CTA
     },
     btnSecondary: {
-      backgroundColor: colors.neutral[100],
-      borderWidth: 1.5,
-      borderColor: colors.accent[500],
+      backgroundColor: colors.neutral[900], // solid black pill
     },
     btnOutline: {
       backgroundColor: 'transparent',
       borderWidth: 1.5,
-      borderColor: colors.accent[500],
+      borderColor: colors.primary[600],
     },
     btnGhost: {
       backgroundColor: 'transparent',
@@ -113,35 +109,33 @@ function makeStyles() {
       textAlign: 'center',
     },
     btnPrimaryText: {
-      color: colors.neutral[100],
+      color: '#FFFFFF',
     },
     btnSecondaryText: {
-      color: colors.accent[500],
+      color: colors.neutral[0],
     },
     btnOutlineText: {
-      color: colors.accent[500],
+      color: colors.primary[600],
     },
     btnGhostText: {
-      color: colors.accent[500],
+      color: colors.primary[600],
     },
     btnDangerText: {
       color: colors.neutral[100],
     },
     card: {
-      backgroundColor: colors.neutral[100], // Clean white background
-      borderRadius: radius.xl, // Large rounded corners 22-28px
-      padding: spacing.lg, // Generous padding
+      backgroundColor: colors.neutral[100], // white surface
+      borderRadius: radius.xl, // 24px rounded corners
+      padding: spacing.lg, // generous padding
       marginHorizontal: spacing.md,
       marginVertical: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.neutral[200],
-      ...shadows.md, // Soft shadow / subtle elevation
+      ...shadows.md, // soft shadow, no hard border
     },
     input: {
       minHeight: 54,
       borderWidth: 1,
       borderColor: colors.neutral[200],
-      borderRadius: radius.md,
+      borderRadius: radius.lg,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       fontSize: typography.sizes.md,
@@ -152,21 +146,24 @@ function makeStyles() {
       ...shadows.sm,
     },
     badge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 5,
       borderRadius: radius.full,
     },
     badgeDefault: {
-      backgroundColor: 'rgba(255, 140, 90, 0.12)',
+      backgroundColor: colors.primary[50],
     },
     badgeSuccess: {
-      backgroundColor: 'rgba(76, 175, 80, 0.12)',
+      backgroundColor: colors.success[50],
     },
     badgeWarning: {
-      backgroundColor: 'rgba(245, 166, 35, 0.12)',
+      backgroundColor: colors.warning[50],
     },
     badgeError: {
-      backgroundColor: 'rgba(244, 67, 54, 0.12)',
+      backgroundColor: colors.error[50],
     },
     badgeText: {
       fontSize: typography.sizes.xs,
@@ -174,16 +171,16 @@ function makeStyles() {
       fontFamily: typography.fontFamilyBold,
     },
     badgeDefaultText: {
-      color: '#FF8C5A',
+      color: colors.primary[600],
     },
     badgeSuccessText: {
-      color: '#4CAF50',
+      color: colors.success[600],
     },
     badgeWarningText: {
-      color: '#F5A623',
+      color: colors.warning[700],
     },
     badgeErrorText: {
-      color: '#F44336',
+      color: colors.error[600],
     },
     loading: {
       flex: 1,
@@ -226,7 +223,7 @@ function makeStyles() {
     },
     errorText: {
       fontSize: typography.sizes.md,
-      color: '#F44336',
+      color: colors.error[600],
       textAlign: 'center',
       fontFamily: typography.fontFamilyRegular,
     },
@@ -239,12 +236,182 @@ function makeStyles() {
       marginBottom: spacing.md,
     },
     sectionTitle: {
-      fontSize: typography.sizes.lg,
+      fontSize: typography.sizes.xl,
+      fontWeight: '800',
+      color: colors.neutral[900],
+      fontFamily: typography.fontFamilyDisplay,
+      letterSpacing: -0.3,
+    },
+    // ── Floating pill search bar ──
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginHorizontal: spacing.lg,
+    },
+    searchBar: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: 58,
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.full,
+      paddingHorizontal: spacing.sm,
+      ...shadows.lg,
+    },
+    searchLocationChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.primary[50],
+      borderRadius: radius.full,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 7,
+      maxWidth: 130,
+    },
+    searchLocationText: {
+      fontSize: typography.sizes.xs,
+      fontWeight: '700',
+      color: colors.primary[600],
+      fontFamily: typography.fontFamilyBold,
+    },
+    searchPlaceholder: {
+      flex: 1,
+      marginLeft: spacing.sm,
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    searchIconBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.full,
+      backgroundColor: colors.primary[600],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    searchFilterBtn: {
+      width: 58,
+      height: 58,
+      borderRadius: radius.full,
+      backgroundColor: colors.neutral[900],
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.lg,
+    },
+    // ── Location pill ──
+    locationPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      alignSelf: 'flex-start',
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.full,
+      paddingLeft: spacing.sm,
+      paddingRight: spacing.sm + 4,
+      paddingVertical: 7,
+      maxWidth: 220,
+      ...shadows.sm,
+    },
+    locationPillIcon: {
+      width: 26,
+      height: 26,
+      borderRadius: radius.full,
+      backgroundColor: colors.primary[50],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    locationPillLabel: {
+      fontSize: 10,
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    locationPillText: {
+      fontSize: typography.sizes.sm,
       fontWeight: '700',
       color: colors.neutral[900],
       fontFamily: typography.fontFamilyBold,
     },
+    heroTitle: heroHeadline,
+    heroSubtitle: {
+      marginTop: 6,
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+      lineHeight: 20,
+    },
   });
+}
+
+/** Bold two-line hero headline used under the top bar. */
+export function HeroHeading({ title, subtitle, style }: { title: string; subtitle?: string; style?: StyleProp<ViewStyle> }) {
+  const styles = makeStyles();
+  return (
+    <View style={[{ paddingHorizontal: spacing.lg }, style]}>
+      <Text style={styles.heroTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.heroSubtitle}>{subtitle}</Text> : null}
+    </View>
+  );
+}
+
+/** Tappable location pill for the top bar. */
+export function LocationPill({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
+  const styles = makeStyles();
+  return (
+    <TouchableOpacity style={styles.locationPill} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.locationPillIcon}>
+        <MapPin size={14} color={colors.primary[600]} strokeWidth={2.5} />
+      </View>
+      <View style={{ flexShrink: 1 }}>
+        <Text style={styles.locationPillLabel}>{label}</Text>
+        <Text style={styles.locationPillText} numberOfLines={1}>{value}</Text>
+      </View>
+      <ChevronDown size={16} color={colors.neutral[500]} strokeWidth={2.5} />
+    </TouchableOpacity>
+  );
+}
+
+/**
+ * Floating pill search bar that sits between the header and the content.
+ * Optional location chip on the left, green search button on the right.
+ */
+export function FloatingSearchBar({
+  placeholder,
+  locationChip,
+  onPress,
+  onFilterPress,
+  style,
+}: {
+  placeholder: string;
+  locationChip?: string;
+  onPress: () => void;
+  onFilterPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const styles = makeStyles();
+  return (
+    <View style={[styles.searchWrap, style]}>
+      <TouchableOpacity style={styles.searchBar} onPress={onPress} activeOpacity={0.9}>
+        {locationChip ? (
+          <View style={styles.searchLocationChip}>
+            <MapPin size={12} color={colors.primary[600]} strokeWidth={2.5} />
+            <Text style={styles.searchLocationText} numberOfLines={1}>{locationChip}</Text>
+          </View>
+        ) : null}
+        <Text style={styles.searchPlaceholder} numberOfLines={1}>{placeholder}</Text>
+        <View style={styles.searchIconBtn}>
+          <Search size={20} color="#FFFFFF" strokeWidth={2.4} />
+        </View>
+      </TouchableOpacity>
+      {onFilterPress ? (
+        <TouchableOpacity style={styles.searchFilterBtn} onPress={onFilterPress} activeOpacity={0.9}>
+          <SlidersHorizontal size={20} color="#FFFFFF" strokeWidth={2.4} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
 }
 
 export function ScreenContainer({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
@@ -266,33 +433,10 @@ export function Header({
   const styles = makeStyles();
   return (
     <View style={styles.header}>
-      {/* Soft decorative background shape */}
-      <View
-        style={{
-          position: 'absolute',
-          top: -40,
-          right: -40,
-          width: 140,
-          height: 140,
-          borderRadius: radius.full,
-          backgroundColor: 'rgba(255,255,255,0.06)',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          bottom: -50,
-          left: -20,
-          width: 100,
-          height: 100,
-          borderRadius: radius.full,
-          backgroundColor: 'rgba(255,255,255,0.04)',
-        }}
-      />
       <View style={styles.headerRow}>
         {onBack && (
           <TouchableOpacity onPress={onBack} style={styles.headerBtn} activeOpacity={0.7}>
-            <ChevronLeft size={22} color={colors.neutral[100]} strokeWidth={2.5} />
+            <ChevronLeft size={22} color={colors.neutral[900]} strokeWidth={2.5} />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>{title}</Text>
@@ -337,7 +481,7 @@ export function Button({
     danger: styles.btnDangerText,
   }[variant];
 
-  const iconColor = variant === 'primary' ? colors.neutral[100] : colors.accent[500];
+  const iconColor = variant === 'primary' || variant === 'secondary' || variant === 'danger' ? '#FFFFFF' : colors.primary[600];
 
   return (
     <TouchableOpacity
@@ -402,7 +546,16 @@ export function Input({
   );
 }
 
-export function Badge({ label, variant = 'default' }: { label: string; variant?: 'default' | 'success' | 'warning' | 'error' }) {
+export function Badge({
+  label,
+  variant = 'default',
+  icon,
+}: {
+  label: string;
+  variant?: 'default' | 'success' | 'warning' | 'error';
+  /** Optional small leading icon, e.g. a shield for "Police Verified" */
+  icon?: React.ReactNode;
+}) {
   const styles = makeStyles();
   const variantStyle = {
     default: styles.badgeDefault,
@@ -418,6 +571,7 @@ export function Badge({ label, variant = 'default' }: { label: string; variant?:
   }[variant];
   return (
     <View style={[styles.badge, variantStyle]}>
+      {icon}
       <Text style={[styles.badgeText, variantTextStyle]}>{label}</Text>
     </View>
   );
@@ -427,7 +581,7 @@ export function LoadingState({ label }: { label?: string }) {
   const styles = makeStyles();
   return (
     <View style={styles.loading}>
-      <ActivityIndicator size="large" color={colors.accent[500]} />
+      <ActivityIndicator size="large" color={colors.primary[600]} />
       {label && <Text style={styles.loadingText}>{label}</Text>}
     </View>
   );

@@ -5,11 +5,14 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, typography, shadows } from '@/lib/theme';
-import { useTheme } from '@/lib/theme-context';
 import { LoadingState, EmptyState, Button } from '@/components/ui';
-import type { Wallet, WalletTransaction, Offer } from '@/lib/types';
+import { ServiceIcon3D } from '@/components/ServiceIcon3D';
+import type { Wallet, WalletTransaction, Offer, LoyaltyTransaction } from '@/lib/types';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Wallet as WalletIcon, TrendingUp, TrendingDown, Gift, Tag } from 'lucide-react-native';
+import { Wallet as WalletIcon, TrendingUp, TrendingDown, Tag } from 'lucide-react-native';
+
+/** Redemption rate used across checkout and the wallet screen. */
+const POINTS_PER_RUPEE = 10;
 
 export default function WalletScreen() {
   const { t, lang } = useLanguage();
@@ -18,10 +21,10 @@ export default function WalletScreen() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [loyaltyLog, setLoyaltyLog] = useState<LoyaltyTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const { isDark } = useTheme();
 
   const styles = StyleSheet.create({
     container: {
@@ -153,6 +156,34 @@ export default function WalletScreen() {
       fontWeight: '700',
       fontFamily: typography.fontFamilyBold,
     },
+    loyaltyCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginHorizontal: spacing.md,
+      backgroundColor: colors.neutral[100],
+      borderRadius: radius.xl,
+      padding: spacing.lg,
+      ...shadows.sm,
+    },
+    loyaltyPoints: {
+      fontSize: typography.sizes.xxl,
+      fontWeight: '800',
+      color: colors.neutral[900],
+      fontFamily: typography.fontFamilyDisplay,
+    },
+    loyaltyLabel: {
+      fontSize: typography.sizes.sm,
+      color: colors.neutral[500],
+      fontFamily: typography.fontFamilyRegular,
+    },
+    loyaltyWorth: {
+      fontSize: typography.sizes.xs,
+      fontWeight: '700',
+      color: colors.primary[600],
+      marginTop: 2,
+      fontFamily: typography.fontFamilyBold,
+    },
   });
 
   const fetchData = useCallback(async () => {
@@ -170,6 +201,18 @@ export default function WalletScreen() {
       setOffers([
         { id: '1', title_en: 'Add ₹1000 & get ₹100 extra', title_ml: '₹1000 ചേർക്കുക, ₹100 അധികം നേടുക', discount_text_en: '10% Extra', discount_text_ml: '10% അധികം', is_active: true } as Offer
       ]);
+
+      const [profileRes, loyaltyRes] = await Promise.all([
+        supabase.from('profiles').select('loyalty_points').eq('id', session.user.id).maybeSingle(),
+        supabase
+          .from('loyalty_transactions')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ]);
+      setLoyaltyPoints(Number(profileRes.data?.loyalty_points ?? 0));
+      setLoyaltyLog((loyaltyRes.data || []) as LoyaltyTransaction[]);
     } catch (e) {
       // silent
     } finally {
@@ -214,6 +257,44 @@ export default function WalletScreen() {
             </View>
           </LinearGradient>
         </View>
+
+        {/* Loyalty points */}
+        <View style={styles.loyaltyCard}>
+          <ServiceIcon3D name="loyalty" size={52} tone="gold" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.loyaltyLabel}>{t('pointsBalance')}</Text>
+            <Text style={styles.loyaltyPoints}>{loyaltyPoints}</Text>
+            <Text style={styles.loyaltyWorth}>
+              {t('pointsWorth')
+                .replace('{count}', String(POINTS_PER_RUPEE))
+                .replace('{value}', '1')}
+            </Text>
+          </View>
+        </View>
+
+        {loyaltyLog.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('loyaltyPoints')}</Text>
+            {loyaltyLog.map((entry) => (
+              <View key={entry.id} style={styles.txRow}>
+                <View style={[styles.txIcon, { backgroundColor: entry.points >= 0 ? colors.success[50] : colors.error[50] }]}>
+                  {entry.points >= 0 ? (
+                    <TrendingUp size={18} color={colors.success[600]} strokeWidth={2} />
+                  ) : (
+                    <TrendingDown size={18} color={colors.error[600]} strokeWidth={2} />
+                  )}
+                </View>
+                <View style={styles.txInfo}>
+                  <Text style={styles.txDesc}>{entry.reason}</Text>
+                  <Text style={styles.txDate}>{new Date(entry.created_at).toLocaleDateString('en-IN')}</Text>
+                </View>
+                <Text style={[styles.txAmount, { color: entry.points >= 0 ? colors.success[600] : colors.error[600] }]}>
+                  {entry.points >= 0 ? '+' : ''}{entry.points}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Offers */}
         {offers.length > 0 && (

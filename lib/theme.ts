@@ -11,186 +11,187 @@ type ColorPalette = {
   neutral: ColorRamp;
 };
 
-// ─── Dark palette (deep slate + coral orange) ───────────────
+// ─── Dark palette (warm charcoal + forest green) ───────────────
 const darkColors: ColorPalette = {
   primary: {
-    50: 'rgba(56, 189, 248, 0.1)',
-    100: '#E0F2FE',
-    200: '#BAE6FD',
-    300: '#7DD3FC',
-    400: '#38BDF8',
-    500: '#0EA5E9',
-    600: '#38BDF8', // Vibrant Sky Blue for CTA/active
-    700: '#0369A1',
-    800: '#075985',
-    900: '#0C4A6E',
+    50: 'rgba(111, 191, 149, 0.10)',
+    100: 'rgba(111, 191, 149, 0.18)',
+    200: 'rgba(111, 191, 149, 0.28)',
+    300: '#9AD6B7',
+    400: '#7FCAA4',
+    500: '#6FBF95',
+    600: '#6FBF95', // Mint-forest green for CTA/active
+    700: '#4E9E77',
+    800: '#3A7B5C',
+    900: '#2A5A43',
   },
   secondary: {
-    50: 'rgba(255,140,90,0.1)',
-    100: '#FFEDD5',
-    200: '#FED7AA',
-    300: '#FDBA74',
-    400: '#FB923C',
-    500: '#F97316',
-    600: '#EA580C',
-    700: '#C2410C',
-    800: '#9A3412',
-    900: '#7C2D12',
+    50: 'rgba(230, 188, 107, 0.10)',
+    100: 'rgba(230, 188, 107, 0.18)',
+    200: 'rgba(230, 188, 107, 0.28)',
+    300: '#F0D49A',
+    400: '#EAC782',
+    500: '#E6BC6B', // Warm gold
+    600: '#E6BC6B',
+    700: '#C79C4C',
+    800: '#A47E37',
+    900: '#7F6027',
   },
   accent: {
-    50: 'rgba(244,106,69,0.1)',
-    100: '#FFE4E0',
-    200: '#FFC8C0',
-    300: '#FFA093',
-    400: '#FF7D6A',
-    500: '#F46A45',
-    600: '#F46A45', // Coral Orange for accents
-    700: '#BF3D1B',
-    800: '#9C2A0F',
-    900: '#7A1C08',
+    50: 'rgba(111, 191, 149, 0.10)',
+    100: 'rgba(111, 191, 149, 0.18)',
+    200: 'rgba(111, 191, 149, 0.28)',
+    300: '#9AD6B7',
+    400: '#7FCAA4',
+    500: '#6FBF95', // CTA green
+    600: '#6FBF95',
+    700: '#4E9E77',
+    800: '#3A7B5C',
+    900: '#2A5A43',
   },
   success: {
-    50: 'rgba(74, 222, 128, 0.1)',
-    100: '#DCFCE7',
-    200: '#BBF7D0',
-    300: '#86EFAC',
-    400: '#4ADE80',
-    500: '#22C55E',
-    600: '#22C55E',
-    700: '#15803D',
-    800: '#166534',
-    900: '#14532D',
+    50: 'rgba(96, 200, 140, 0.12)',
+    100: 'rgba(96, 200, 140, 0.18)',
+    200: 'rgba(96, 200, 140, 0.28)',
+    300: '#8FDCB4',
+    400: '#74D0A0',
+    500: '#60C88C',
+    600: '#60C88C',
+    700: '#42A76D',
+    800: '#2F8253',
+    900: '#22603D',
   },
   warning: {
-    50: 'rgba(250, 204, 21, 0.1)',
-    100: '#FEF9C3',
-    200: '#FEF08A',
-    300: '#FDE047',
-    400: '#FACC15',
-    500: '#EAB308',
-    600: '#EAB308',
-    700: '#A16207',
-    800: '#854D0E',
-    900: '#713F12',
+    50: 'rgba(230, 188, 107, 0.12)',
+    100: 'rgba(230, 188, 107, 0.18)',
+    200: 'rgba(230, 188, 107, 0.28)',
+    300: '#F0D49A',
+    400: '#EAC782',
+    500: '#E6BC6B',
+    600: '#E6BC6B',
+    700: '#C79C4C',
+    800: '#A47E37',
+    900: '#7F6027',
   },
   error: {
-    50: 'rgba(248, 113, 113, 0.1)',
-    100: '#FEE2E2',
-    200: '#FECACA',
-    300: '#FCA5A5',
-    400: '#F87171',
-    500: '#EF4444',
-    600: '#EF4444',
-    700: '#B91C1C',
-    800: '#991B1B',
-    900: '#7F1D1D',
+    50: 'rgba(232, 114, 92, 0.12)',
+    100: 'rgba(232, 114, 92, 0.18)',
+    200: 'rgba(232, 114, 92, 0.28)',
+    300: '#F0A091',
+    400: '#EC8874',
+    500: '#E8725C',
+    600: '#E8725C',
+    700: '#C4553F',
+    800: '#9E402D',
+    900: '#772E1F',
   },
   neutral: {
     0: '#000000',
-    50: '#0B111A',   // App Background (Deep Slate)
-    100: '#131A26',  // Cards background
-    200: '#1E293B',  // Borders / Dividers
-    300: '#334155',  // Strong borders / Divider
-    400: '#475569',  // Placeholder / light secondary
-    500: '#94A3B8',  // Secondary Text
-    600: '#CBD5E1',  // Medium text
-    700: '#F1F5F9',  // Primary Text
-    800: '#F8FAFC',
+    50: '#16201A',   // App background (warm charcoal green)
+    100: '#1F2A23',  // Card surfaces
+    200: '#2C3A31',  // Borders
+    300: '#3A4B3F',  // Strong borders / dividers
+    400: '#5B6B60',  // Placeholder
+    500: '#9AA69E',  // Secondary text
+    600: '#C6CFC8',  // Medium text
+    700: '#F5F1E8',  // Primary text (warm off-white)
+    800: '#FAF6EE',
     900: '#FFFFFF',
-    950: '#0B111A',
+    950: '#16201A',
   },
 };
 
-// ─── Light palette (premium modern design) ────────────
+// ─── Light palette (Seva warm — beige / forest green / gold) ────────────
 const lightColors: ColorPalette = {
   primary: {
-    // Deep Slate Blue #334E68
-    50: 'rgba(51,78,104,0.08)',
-    100: 'rgba(51,78,104,0.15)',
-    200: 'rgba(51,78,104,0.25)',
-    300: '#334E68',
-    400: '#334E68',
-    500: '#334E68',
-    600: '#334E68', // Deep Slate Blue
-    700: '#243B53',
-    800: '#102A43',
-    900: '#0A1C30',
+    // Forest green #2F6B4F
+    50: 'rgba(47,107,79,0.06)',
+    100: '#E7F0EA',
+    200: '#C9DFD3',
+    300: '#8FBCA4',
+    400: '#4E8C6C',
+    500: '#2F6B4F',
+    600: '#2F6B4F', // Primary accent — buttons, active states, price tags
+    700: '#265842',
+    800: '#1C4331',
+    900: '#123023',
   },
   secondary: {
-    // Soft Orange #FF8C5A
-    50: 'rgba(255,140,90,0.08)',
-    100: '#FF8C5A',
-    200: '#FF8C5A',
-    300: '#FF8C5A',
-    400: '#FF8C5A',
-    500: '#FF8C5A',
-    600: '#FF8C5A',
-    700: '#E07A1F',
-    800: '#C06000',
-    900: '#A05000',
+    // Warm gold #D9A441 — offers, badges, ratings
+    50: 'rgba(217,164,65,0.08)',
+    100: '#FBF2DF',
+    200: '#F4E1B9',
+    300: '#EACB84',
+    400: '#E1B75F',
+    500: '#D9A441',
+    600: '#D9A441',
+    700: '#B8862C',
+    800: '#96691F',
+    900: '#775217',
   },
   accent: {
-    // Coral Orange #F46A45
-    50: 'rgba(244,106,69,0.08)',
-    100: '#F46A45',
-    200: '#F46A45',
-    300: '#F46A45',
-    400: '#F46A45',
-    500: '#F46A45',
-    600: '#F46A45',
-    700: '#D05030',
-    800: '#B04020',
-    900: '#903010',
+    // CTA green (mirrors primary so every call-to-action is forest green)
+    50: 'rgba(47,107,79,0.06)',
+    100: '#E7F0EA',
+    200: '#C9DFD3',
+    300: '#8FBCA4',
+    400: '#4E8C6C',
+    500: '#2F6B4F',
+    600: '#2F6B4F',
+    700: '#265842',
+    800: '#1C4331',
+    900: '#123023',
   },
   success: {
-    50: 'rgba(76,175,80,0.10)',
-    100: 'rgba(76,175,80,0.15)',
-    200: 'rgba(76,175,80,0.22)',
-    300: '#4CAF50',
-    400: '#4CAF50',
-    500: '#4CAF50',
-    600: '#4CAF50',
-    700: '#388E3C',
-    800: '#388E3C',
-    900: '#388E3C',
+    50: 'rgba(47,143,91,0.10)',
+    100: 'rgba(47,143,91,0.15)',
+    200: 'rgba(47,143,91,0.22)',
+    300: '#7CC49B',
+    400: '#4CA875',
+    500: '#2F8F5B',
+    600: '#2F8F5B',
+    700: '#26744A',
+    800: '#1D5A39',
+    900: '#154029',
   },
   warning: {
-    50: 'rgba(245,166,35,0.10)',
-    100: 'rgba(245,166,35,0.15)',
-    200: 'rgba(245,166,35,0.22)',
-    300: '#F5A623',
-    400: '#F5A623',
-    500: '#F5A623',
-    600: '#F5A623',
-    700: '#E69512',
-    800: '#E69512',
-    900: '#E69512',
+    50: 'rgba(217,164,65,0.10)',
+    100: 'rgba(217,164,65,0.16)',
+    200: 'rgba(217,164,65,0.24)',
+    300: '#EACB84',
+    400: '#E1B75F',
+    500: '#D9A441',
+    600: '#D9A441',
+    700: '#B8862C',
+    800: '#96691F',
+    900: '#775217',
   },
   error: {
-    50: 'rgba(244,67,54,0.10)',
-    100: 'rgba(244,67,54,0.15)',
-    200: 'rgba(244,67,54,0.22)',
-    300: '#F44336',
-    400: '#F44336',
-    500: '#F44336',
-    600: '#F44336',
-    700: '#D32F2F',
-    800: '#D32F2F',
-    900: '#D32F2F',
+    // Warm red — also drives the emergency "red mode" flow
+    50: 'rgba(192,69,47,0.10)',
+    100: 'rgba(192,69,47,0.15)',
+    200: 'rgba(192,69,47,0.22)',
+    300: '#E39182',
+    400: '#D46A55',
+    500: '#C0452F',
+    600: '#C0452F',
+    700: '#9E3626',
+    800: '#7C291C',
+    900: '#5A1D14',
   },
   neutral: {
     0: '#FFFFFF',
-    50: '#F7F9FC',   // Background
-    100: '#FFFFFF',  // Cards background
-    200: '#E8EEF4',  // Borders
-    300: '#DCE2E7',  // Divider
-    400: '#9FB3C8',  // Placeholder / light secondary
-    500: '#7B8794',  // Secondary Text
-    600: '#627D98',  // Medium text
-    700: '#233142',  // Primary Text
-    800: '#233142',
-    900: '#102A43',
-    950: '#F7F9FC',
+    50: '#FAF6EE',   // App background — warm beige/cream
+    100: '#FFFFFF',  // Card surfaces
+    200: '#EDE5D6',  // Borders
+    300: '#E2D9C8',  // Dividers
+    400: '#A8A093',  // Placeholder
+    500: '#6B6B6B',  // Subtext
+    600: '#4A4A4A',  // Medium text
+    700: '#1E1E1E',  // Headings
+    800: '#1E1E1E',
+    900: '#1E1E1E',
+    950: '#FAF6EE',
   },
 };
 
@@ -252,26 +253,27 @@ const darkShadows = {
   }),
 };
 
+// Warm, soft shadows tinted with the forest-green brand colour
 const lightShadows = {
   sm: Platform.select({
-    ios: { shadowColor: '#334E68', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
+    ios: { shadowColor: '#5A4A32', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
     android: { elevation: 1 },
-    default: { boxShadow: '0 2px 6px rgba(51, 78, 104, 0.04)' },
+    default: { boxShadow: '0 2px 8px rgba(90, 74, 50, 0.06)' },
   }),
   md: Platform.select({
-    ios: { shadowColor: '#334E68', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16 },
+    ios: { shadowColor: '#5A4A32', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 18 },
     android: { elevation: 3 },
-    default: { boxShadow: '0 4px 16px rgba(51, 78, 104, 0.06)' },
+    default: { boxShadow: '0 6px 18px rgba(90, 74, 50, 0.08)' },
   }),
   lg: Platform.select({
-    ios: { shadowColor: '#334E68', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.09, shadowRadius: 24 },
+    ios: { shadowColor: '#5A4A32', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.10, shadowRadius: 28 },
     android: { elevation: 6 },
-    default: { boxShadow: '0 8px 24px rgba(51, 78, 104, 0.09)' },
+    default: { boxShadow: '0 10px 28px rgba(90, 74, 50, 0.10)' },
   }),
   xl: Platform.select({
-    ios: { shadowColor: '#334E68', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.12, shadowRadius: 36 },
+    ios: { shadowColor: '#2F6B4F', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.14, shadowRadius: 40 },
     android: { elevation: 10 },
-    default: { boxShadow: '0 16px 36px rgba(51, 78, 104, 0.12)' },
+    default: { boxShadow: '0 18px 40px rgba(47, 107, 79, 0.14)' },
   }),
 };
 
@@ -292,17 +294,23 @@ export const spacing = {
 };
 
 export const radius = {
-  sm: 8,
+  sm: 12,
   md: 16,
-  lg: 24, // Generous 24px rounded corners per guideline
-  xl: 28, // High end card corners
+  lg: 20, // Card minimum per design system
+  xl: 24, // Large card / sheet corners
+  xxl: 32,
   full: 9999, // Pill shape
 };
 
+const WEB_BODY_STACK = 'Poppins, Noto Sans Malayalam, system-ui, sans-serif';
+const WEB_DISPLAY_STACK = 'Sora, Poppins, Noto Sans Malayalam, system-ui, sans-serif';
+
 export const typography = {
-  fontFamilyRegular: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'Noto-Sans-Malayalam-Regular',
-  fontFamilyMedium: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'Noto-Sans-Malayalam-Medium',
-  fontFamilyBold: Platform.OS === 'web' ? 'Inter, Noto Sans Malayalam, system-ui, sans-serif' : 'Noto-Sans-Malayalam-Bold',
+  fontFamilyRegular: Platform.OS === 'web' ? WEB_BODY_STACK : 'Poppins-Regular',
+  fontFamilyMedium: Platform.OS === 'web' ? WEB_BODY_STACK : 'Poppins-Medium',
+  fontFamilyBold: Platform.OS === 'web' ? WEB_BODY_STACK : 'Poppins-Bold',
+  /** Rounded display face used for hero headlines ("Smart Home, Smooth Service") */
+  fontFamilyDisplay: Platform.OS === 'web' ? WEB_DISPLAY_STACK : 'Poppins-Bold',
   headingLineHeight: 28,
   bodyLineHeight: 24,
   sizes: {
@@ -312,10 +320,39 @@ export const typography = {
     lg: 18,
     xl: 20,
     xxl: 24,
-    xxxl: 32,
+    /** Hero headline size (tight line-height, two-line headings) */
+    xxxl: 30,
     display: 40,
   },
 };
+
+/** Hero headline text style — bold, rounded, tight line-height. */
+export const heroHeadline = {
+  fontSize: typography.sizes.xxxl,
+  lineHeight: 36,
+  fontWeight: '800' as const,
+  fontFamily: typography.fontFamilyDisplay,
+  color: '#1E1E1E',
+  letterSpacing: -0.5,
+};
+
+/**
+ * Gradient pairs for the 3D illustrated category icon tiles.
+ * One shared lighting model (light source top-left) keeps the whole icon set
+ * visually consistent — see components/ServiceIcon3D.tsx.
+ */
+export const iconTileGradients: Record<string, [string, string]> = {
+  green: ['#4E9E77', '#2F6B4F'],
+  gold: ['#EFC069', '#D9A441'],
+  sky: ['#6FB6E8', '#3B7FC4'],
+  coral: ['#F2937C', '#D9614A'],
+  violet: ['#A88FE0', '#7A5FC4'],
+  teal: ['#5FC4BC', '#2E8F88'],
+  clay: ['#D3A98A', '#A9765A'],
+  rose: ['#EF9BB4', '#D2648B'],
+};
+
+export type IconTileTone = keyof typeof iconTileGradients;
 
 export function getLangTextStyle(lang: string) {
   if (lang === 'ml') {

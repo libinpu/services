@@ -15,7 +15,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>('dark');
+  const [mode, setModeState] = useState<ThemeMode>('light');
 
   // Load saved preference on mount
   useEffect(() => {
@@ -23,11 +23,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (saved === 'light' || saved === 'dark') {
         applyMode(saved);
       } else {
-        // Default to dark theme per design
-        applyMode('dark');
+        // Default to the warm light theme per the design system
+        applyMode('light');
       }
     }).catch(() => {
-      applyMode('dark');
+      applyMode('light');
     });
   }, []);
 

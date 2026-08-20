@@ -17,6 +17,13 @@ import {
   NotoSansMalayalam_600SemiBold,
   NotoSansMalayalam_700Bold,
 } from '@expo-google-fonts/noto-sans-malayalam';
+import {
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold,
+} from '@expo-google-fonts/poppins';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { LanguageProvider } from '@/lib/language-context';
@@ -30,6 +37,11 @@ export default function RootLayout() {
     'Noto-Sans-Malayalam-Medium': NotoSansMalayalam_500Medium,
     'Noto-Sans-Malayalam-SemiBold': NotoSansMalayalam_600SemiBold,
     'Noto-Sans-Malayalam-Bold': NotoSansMalayalam_700Bold,
+    'Poppins-Regular': Poppins_400Regular,
+    'Poppins-Medium': Poppins_500Medium,
+    'Poppins-SemiBold': Poppins_600SemiBold,
+    'Poppins-Bold': Poppins_700Bold,
+    'Poppins-ExtraBold': Poppins_800ExtraBold,
   });
 
   useEffect(() => {
@@ -42,6 +54,7 @@ export default function RootLayout() {
         document.head.appendChild(style);
       }
       style.textContent = `
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap');
         @font-face {
           font-family: 'Noto Sans Malayalam';
           font-weight: 400;
@@ -66,13 +79,14 @@ export default function RootLayout() {
           src: url('https://fonts.gstatic.com/s/notosansmalayalam/v28/sJoi3-2xKqOkEklVHRgsrYyL4AtxAomUQV5Tb0z0jg.woff2') format('woff2');
           font-display: swap;
         }
-        /* Global font stack includes Malayalam fallback */
+        /* Global font stack: rounded Poppins body + Malayalam fallback */
         body, html, #root {
-          font-family: 'Inter', 'Noto Sans Malayalam', system-ui, sans-serif;
+          font-family: 'Poppins', 'Noto Sans Malayalam', system-ui, sans-serif;
+          background-color: #FAF6EE;
         }
         /* When Malayalam is active, apply proper rendering */
         [lang="ml"], [data-lang="ml"] {
-          font-family: 'Noto Sans Malayalam', 'Inter', system-ui, sans-serif !important;
+          font-family: 'Noto Sans Malayalam', 'Poppins', system-ui, sans-serif !important;
           line-height: 1.7 !important;
           letter-spacing: 0.01em !important;
           word-spacing: normal !important;
@@ -82,7 +96,7 @@ export default function RootLayout() {
           -moz-osx-font-smoothing: grayscale !important;
         }
         [lang="ml"] *, [data-lang="ml"] * {
-          font-family: 'Noto Sans Malayalam', 'Inter', system-ui, sans-serif !important;
+          font-family: 'Noto Sans Malayalam', 'Poppins', system-ui, sans-serif !important;
           line-height: 1.7 !important;
           letter-spacing: 0.01em !important;
           font-feature-settings: "kern" on, "liga" on, "calt" on, "mark" on, "mkmk" on !important;
@@ -96,7 +110,7 @@ export default function RootLayout() {
         }
         /* Fix for Malayalam numerals alignment */
         [data-lang="ml"] [class*="fontFamily"] {
-          font-family: 'Noto Sans Malayalam', 'Inter', system-ui, sans-serif !important;
+          font-family: 'Noto Sans Malayalam', 'Poppins', system-ui, sans-serif !important;
         }
       `;
     }

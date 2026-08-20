@@ -76,6 +76,7 @@ export interface Profile {
   email: string | null;
   avatar_url: string | null;
   preferred_language: Language;
+  loyalty_points?: number;
   zone_id: string | null;
   is_active: boolean;
   created_at: string;
@@ -100,6 +101,10 @@ export interface ProviderProfile {
   id_proof_url: string | null;
   address_proof_url: string | null;
   police_verification_url: string | null;
+  aadhaar_url?: string | null;
+  verified_aadhaar?: boolean;
+  verified_police?: boolean;
+  area_served?: string | null;
   latitude: number | null;
   longitude: number | null;
   heading?: number | null;
@@ -162,6 +167,9 @@ export interface Booking {
   updated_at: string;
   estimated_eta_mins: number | null;
   distance_km: number | null;
+  is_emergency?: boolean;
+  priority_fee?: number;
+  loyalty_points_used?: number;
 }
 
 export interface BookingItem {
@@ -254,4 +262,69 @@ export interface ProviderApplication {
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type PhotoPhase = 'before' | 'after';
+
+export interface BookingPhoto {
+  id: string;
+  booking_id: string;
+  uploaded_by: string;
+  phase: PhotoPhase;
+  photo_url: string;
+  caption: string | null;
+  created_at: string;
+}
+
+export interface LoyaltyTransaction {
+  id: string;
+  user_id: string;
+  booking_id: string | null;
+  points: number;
+  reason: string;
+  created_at: string;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  code: string;
+  name_en: string;
+  name_ml: string;
+  description_en: string | null;
+  description_ml: string | null;
+  price: number;
+  billing_period: 'monthly' | 'yearly';
+  included_services: number;
+  discount_percent: number;
+  perks_en: string[];
+  perks_ml: string[];
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface UserSubscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: 'active' | 'cancelled' | 'expired';
+  services_used: number;
+  started_at: string;
+  renews_at: string | null;
+  cancelled_at: string | null;
+  auto_renew: boolean;
+  created_at: string;
+}
+
+export interface MaintenanceReminder {
+  id: string;
+  user_id: string;
+  subcategory_id: string | null;
+  title: string;
+  interval_months: number;
+  last_service_at: string | null;
+  next_due_at: string;
+  is_active: boolean;
+  notified_at: string | null;
+  created_at: string;
 }
